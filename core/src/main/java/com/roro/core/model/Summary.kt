@@ -14,5 +14,6 @@ import java.util.UUID
 data class Summary(
     val id: UUID = UUID.randomUUID(),
     val text: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val voiceNoteId: UUID,
 )
