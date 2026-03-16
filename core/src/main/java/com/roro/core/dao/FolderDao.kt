@@ -19,15 +19,83 @@ import java.util.UUID
  */
 @Dao
 interface FolderDao {
-    @Query("SELECT * FROM folder ORDER BY updatedAt DESC")
-    fun observeFolders(): Flow<List<FolderEntity>>
-
+    // 단일 폴더 조회
     @Query("SELECT * FROM folder WHERE id = :id LIMIT 1")
     suspend fun getFolder(id: UUID): FolderEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(folder: FolderEntity)
 
+    // 폴더 생성
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertFolder(folder: FolderEntity)
+
+
+    // 폴더 전체 업데이트
+    @androidx.room.Update
+    suspend fun updateFolder(folder: FolderEntity)
+
+    // 휴지통으로 이동
+    @Query(
+        """
+    UPDATE folder
+    SET deletedAt = :deletedAt, updatedAt = :updatedAt
+    WHERE id = :folderId
+"""
+    )
+    suspend fun moveToTrash(
+        folderId: UUID,
+        deletedAt: Long,
+        updatedAt: Long
+    )
+
+    // 복원
+    @Query("""
+    UPDATE folder
+    SET deletedAt = NULL, updatedAt = :updatedAt
+    WHERE id = :folderId
+""")
+    suspend fun restoreFolder(
+        folderId: UUID,
+        updatedAt: Long
+    )
+
+    // 사용자 폴더 목록 조회(휴지통 제외)
+    @Query(
+        """
+    SELECT * FROM folder
+    WHERE deletedAt IS NULL
+    ORDER BY updatedAt DESC
+    """
+    )
+    fun observeUserFolders(): Flow<List<FolderEntity>>
+
+    // 휴지통 폴더 조회
+    @Query(
+        """
+        SELECT * FROM folder
+        WHERE deletedAt IS NOT NULL
+        ORDER BY updatedAt DESC
+    """
+    )
+    fun observeTrashFolders(): Flow<List<FolderEntity>>
+
+    // 폴더 이름 변경
+    @Query(
+        """
+        UPDATE folder
+        SET name = :name,
+            updatedAt = :updatedAt
+        WHERE id = :folderId
+    """
+    )
+    suspend fun renameFolder(
+        folderId: UUID,
+        name: String,
+        updatedAt: Long
+    )
+
+
+    // 폴더 완전 삭제
     @Delete
-    suspend fun delete(folder: FolderEntity)
+    suspend fun deleteFolder(folder: FolderEntity)
+
 }
