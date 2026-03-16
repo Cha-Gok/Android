@@ -11,4 +11,5 @@ import java.util.UUID
 data class Keyword(
     val id: UUID = UUID.randomUUID(),
     val word: String,
+    val voiceNoteId: UUID,
 )
