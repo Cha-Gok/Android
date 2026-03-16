@@ -2,6 +2,12 @@ package com.roro.core.database.di
 
 import android.content.Context
 import androidx.room.Room
+import com.roro.core.dao.FolderDao
+import com.roro.core.dao.KeywordDao
+import com.roro.core.dao.SummaryDao
+import com.roro.core.dao.TranscriptDao
+import com.roro.core.dao.VoiceNoteDao
+import com.roro.core.dao.VoiceRecordDao
 import com.roro.core.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -27,4 +33,23 @@ object DatabaseModule {
         Room.databaseBuilder(context, AppDatabase::class.java, "chagok.db")
             .fallbackToDestructiveMigration(true)
             .build()
+
+    @Provides
+    fun provideFolderDao(db: AppDatabase): FolderDao = db.folderDao()
+
+    @Provides
+    fun provideKeywordDao(db: AppDatabase): KeywordDao = db.keywordDao()
+
+    @Provides
+    fun provideSummaryDao(db: AppDatabase): SummaryDao = db.summaryDao()
+
+    @Provides
+    fun provideTranscriptDao(db: AppDatabase): TranscriptDao = db.transcriptDao()
+
+    @Provides
+    fun provideVoiceNoteDao(db: AppDatabase): VoiceNoteDao = db.voiceNoteDao()
+
+    @Provides
+    fun provideVoiceRecordDao(db: AppDatabase): VoiceRecordDao = db.voiceRecordDao()
+
 }
