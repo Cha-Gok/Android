@@ -16,7 +16,7 @@ import java.util.UUID
 data class Folder(
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    val path: String,
+    val deletedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = createdAt
 )
