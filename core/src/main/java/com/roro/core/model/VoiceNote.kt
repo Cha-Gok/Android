@@ -1,5 +1,6 @@
 package com.roro.core.model
 
+import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
@@ -12,8 +13,10 @@ import java.util.UUID
  * @since 2026. 2. 28.
  */
 data class VoiceNote(
-    val id: UUID = UUID.randomUUID(),
+    val id: UUID,
     val title: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = createdAt
+    val updatedAt: Long = createdAt,
+    val deletedAt: Long? = null,
+    val folderId: UUID? = null
 )
