@@ -3,7 +3,6 @@ package com.roro.storage.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.model.Folder
-import com.roro.core.model.FolderIds
 import com.roro.core.model.VoiceNote
 import com.roro.storage.domain.CreateUserFolderUseCase
 import com.roro.storage.domain.CreateVoiceNoteUseCase
@@ -60,8 +59,6 @@ class StorageViewModel @Inject constructor(
         extraBufferCapacity = 1
     )
     val effect = _effect.asSharedFlow()
-
-    private val _currentFolderId = MutableStateFlow(FolderIds.CHAGOK)
 
     private val _userFolders =
         MutableStateFlow<List<Folder>>(emptyList())
@@ -242,21 +239,5 @@ class StorageViewModel @Inject constructor(
                 }
 
         }
-    }
-
-    fun openFolder(folder: Folder) {
-        _currentFolderId.value = folder.id
-    }
-
-    fun openChaGokRoot() {
-        _currentFolderId.value = FolderIds.CHAGOK
-    }
-
-    fun openDefaultFolder() {
-        _currentFolderId.value = FolderIds.DEFAULT
-    }
-
-    fun openTrashFolder() {
-        _currentFolderId.value = FolderIds.TRASH
     }
 }
