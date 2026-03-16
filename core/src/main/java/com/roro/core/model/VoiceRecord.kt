@@ -16,5 +16,6 @@ data class VoiceRecord(
     val id: UUID = UUID.randomUUID(),
     val audioFilePath: String,
     val duration: Double = 0.0,
-    val createAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val voiceNoteId: UUID,
 )
