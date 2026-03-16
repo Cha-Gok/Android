@@ -17,12 +17,17 @@ import java.util.UUID
  */
 @Dao
 interface KeywordDao {
-    @Query("SELECT * FROM keyword WHERE voiceNoteId = :voiceNoteId")
-    suspend fun getByVoiceNoteId(voiceNoteId: UUID): List<KeywordEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertAll(list: List<KeywordEntity>)
+    /**
+     * 키워드 저장
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(keyword: KeywordEntity)
 
-    @Query("DELETE FROM keyword WHERE voiceNoteId = :voiceNoteId")
-    suspend fun deleteByVoiceNoteId(voiceNoteId: UUID)
+    /**
+     * 키워드 여러 개 저장
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(keywords: List<KeywordEntity>)
+
 }
