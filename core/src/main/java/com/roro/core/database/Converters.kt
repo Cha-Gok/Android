@@ -1,7 +1,6 @@
 package com.roro.core.database
 
 import androidx.room.TypeConverter
-import com.roro.core.model.FolderType
 import java.util.UUID
 
 /**
@@ -23,14 +22,4 @@ class Converters{
 
     @TypeConverter
     fun toUuid(value: String?): UUID? = value?.let(UUID::fromString)
-
-    @TypeConverter
-    fun fromFolderType(type: FolderType): String {
-        return type.name
-    }
-
-    @TypeConverter
-    fun toFolderType(value: String): FolderType {
-        return FolderType.valueOf(value)
-    }
 }
