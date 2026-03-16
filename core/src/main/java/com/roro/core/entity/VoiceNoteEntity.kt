@@ -1,7 +1,6 @@
 package com.roro.core.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
@@ -20,10 +19,18 @@ import java.util.UUID
  * @since 2026. 2. 28.
  */
 
-@Entity(tableName = "voice_note")
+@Entity(
+    tableName = "voice_note",
+    indices = [
+        Index(value = ["folderId"]),
+        Index(value = ["deletedAt"])
+    ]
+)
 data class VoiceNoteEntity(
     @PrimaryKey val id: UUID,
     val title: String,
-    val createdAt:Long,
-    val updatedAt: Long
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long?,
+    val folderId: UUID?,
 )
