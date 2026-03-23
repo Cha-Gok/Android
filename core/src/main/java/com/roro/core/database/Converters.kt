@@ -21,5 +21,5 @@ class Converters{
     fun fromUuid(uuid: UUID?):String? = uuid?.toString()
 
     @TypeConverter
-    fun toUuid(value: String?) : UUID? = value?.let(UUID::fromString)
+    fun toUuid(value: String?): UUID? = value?.let(UUID::fromString)
 }

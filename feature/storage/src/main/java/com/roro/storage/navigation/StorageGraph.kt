@@ -23,7 +23,7 @@ import com.roro.storage.presentation.StorageScreen
  */
 fun NavGraphBuilder.storageGraph(
     navController: NavController
-){
+) {
     // 바텀 네비게이션 O
     composable(Routes.STORAGE) {
         StorageScreen(navController = navController)
@@ -31,7 +31,7 @@ fun NavGraphBuilder.storageGraph(
 
     // 바텀 네비게이션 X
     composable(Routes.STORAGE_DETAIL) { backStackEntry ->
-        val fileId = backStackEntry.arguments?.getString("fileId").orEmpty()
-        StorageDetailScreen(navController=navController,fileId=fileId)
+        val fileId = backStackEntry.arguments?.getString("folderId").orEmpty()
+        StorageDetailScreen(navController = navController, folderId = fileId)
     }
 }

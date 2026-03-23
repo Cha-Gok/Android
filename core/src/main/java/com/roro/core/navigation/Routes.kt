@@ -12,8 +12,8 @@ object Routes{
     const val RECORDER = "record"
 
     // 바텀 네비게이션 X
-    const val STORAGE_DETAIL = "storage/detail/{fileId}"
-    fun storageDetail(fileId: String) = "storage/detail/$fileId"
+    const val STORAGE_DETAIL = "storage/detail/{folderId}"
+    fun storageDetail(folderId: String) = "storage/detail/$folderId"
 
     const val RECORD_DETAIL = "recoder/detail/{fileId}"
     fun recorderDetail(fileId: String) = "recoder/detail/$fileId"

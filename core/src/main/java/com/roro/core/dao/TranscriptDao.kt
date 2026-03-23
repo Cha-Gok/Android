@@ -17,9 +17,11 @@ import java.util.UUID
  */
 @Dao
 interface TranscriptDao {
-    @Query("SELECT * FROM transcript WHERE voiceNoteId = :voiceNoteId LIMIT 1")
-    suspend fun getByVoiceNoteId(voiceNoteId: UUID): TranscriptEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: TranscriptEntity)
+    /**
+     * 전사문 저장
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(transcript: TranscriptEntity)
+
 }

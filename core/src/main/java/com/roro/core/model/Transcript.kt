@@ -15,4 +15,5 @@ data class Transcript(
     val id: UUID = UUID.randomUUID(),
     val text: String,
     val createdAt: Long = System.currentTimeMillis(),
+    val voiceNoteId: UUID,
 )
