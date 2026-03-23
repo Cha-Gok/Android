@@ -4,8 +4,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.roro.core.navigation.Routes
-import com.roro.recorder.presentation.RecorderDetailScreen
-import com.roro.recorder.presentation.RecorderScreen
+import com.roro.recorder.presentation.screen.RecorderDetailScreen
+import com.roro.recorder.presentation.screen.RecorderScreen
 
 /**
  * 기능 설명:
