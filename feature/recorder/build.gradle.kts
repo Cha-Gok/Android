@@ -65,4 +65,11 @@ dependencies {
     // Hilt + KSP
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // 더 넓은 기기 지원 -> 동시 불가
+    //implementation("com.google.android.gms:play-services-mlkit-speech-recognition:17.0.0")
+    // 또는 GenAI 버전 -> AudioRecord 하나만 마이크를 잡고, PCM 버퍼를 직접 ML Kit에 넘기는 방식
+    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+    //implementation(libs.mlkit.genai.speech.recognition)
+
 }

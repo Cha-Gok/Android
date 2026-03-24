@@ -24,4 +24,15 @@ interface VoiceRecordDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(record: VoiceRecordEntity)
 
+    /**
+     * 녹음 파일 정보 저장 또는 업데이트
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(record: VoiceRecordEntity)
+
+    /**
+     * voiceNoteId로 녹음 파일 정보 단건 조회
+     */
+    @Query("SELECT * FROM voice_record WHERE voiceNoteId = :voiceNoteId LIMIT 1")
+    suspend fun getByVoiceNoteId(voiceNoteId: UUID): VoiceRecordEntity?
 }

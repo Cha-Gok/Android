@@ -18,3 +18,4 @@ interface FileRepository {
     fun observeVoiceNotesByNullFolder(): Flow<List<VoiceNote>>
     fun observeVoiceNotesByNoneNullFolder(uuid: UUID): Flow<List<VoiceNote>>
 }
+

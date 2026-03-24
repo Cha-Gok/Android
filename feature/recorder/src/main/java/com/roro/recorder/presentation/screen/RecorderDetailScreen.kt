@@ -20,7 +20,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.roro.recorder.presentation.viewModel.RecordViewModel
-
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun RecorderDetailScreen(
@@ -29,13 +31,16 @@ fun RecorderDetailScreen(
     viewModel: RecordViewModel = hiltViewModel()
 ) {
     val isRecording by viewModel.isRecording.collectAsStateWithLifecycle()
+    val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
 
-    // 마이크 권한 요청
+    val context = LocalContext.current
+
+    // 🎤 마이크 권한 요청
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    ) @androidx.annotation.RequiresPermission(android.Manifest.permission.RECORD_AUDIO) { isGranted ->
         if (isGranted) {
-            viewModel.startRecording()
+            viewModel.startRecording()   // 🔥 핵심
         }
     }
 
@@ -47,18 +52,53 @@ fun RecorderDetailScreen(
             Text("Recorder Screen")
             Text("받은 값: $fileId")
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // 🎙 1. 시작 / 정지 버튼
             Button(
                 onClick = {
                     if (isRecording) {
-                        viewModel.stopRecording(title = fileId)
+                        viewModel.stopRecording()
                     } else {
-                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        val permissionCheck = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO
+                        )
+
+                        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                            viewModel.startRecording()   // ✅ 안전
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
                     }
                 }
+            ){
+                Text(
+                    if (isRecording) "녹음 정지"
+                    else "녹음 시작"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ⏸ 2. 일시정지 / 재개 버튼
+            Button(
+                onClick = {
+                    if (isPaused) {
+                        viewModel.resumeRecording()
+                    } else {
+                        viewModel.pauseRecording()
+                    }
+                },
+                enabled = isRecording   // 🔥 녹음 중일 때만 활성화
             ) {
-                Text(if (isRecording) "녹음 중지" else "녹음 시작")
+                Text(
+                    when {
+                        !isRecording -> "일시정지"
+                        isPaused -> "재개"
+                        else -> "일시정지"
+                    }
+                )
             }
         }
     }

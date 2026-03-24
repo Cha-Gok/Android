@@ -1,4 +1,4 @@
-package com.roro.recorder.presentation
+package com.roro.recorder.presentation.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
