@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
@@ -45,8 +47,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.model.Folder
+import com.roro.core.model.VoiceNote
 import com.roro.core.navigation.Routes
 import com.roro.core.ui.theme.ChaGokTheme
+import com.roro.core.util.formatDate
 import com.roro.core.util.toast
 import timber.log.Timber
 import java.util.UUID
@@ -62,6 +66,8 @@ fun StorageScreen(
     val folderItemCount by viewModel.folderItemCountMap.collectAsState()
     val context = LocalContext.current
     var folderName by rememberSaveable { mutableStateOf("") }
+    val trashVoiceNotes by viewModel.voiceNoteTrashList.collectAsState()
+    val recentVoiceNotes by viewModel.voiceNoteRecentList.collectAsState()
 
     if (uiState.isLoading) {
         Timber.d("로딩 중~")
@@ -94,7 +100,7 @@ fun StorageScreen(
         onCreateVoice = { folderName ->
             viewModel.onIntent(StorageIntent.CreateDummyVoiceNote(folderName = folderName))
         },
-        onRemoveFolder = { folder ->
+        onMoveToTrash = { folder ->
             viewModel.onIntent(StorageIntent.MoveToTrash(folder = folder))
         },
         folders = folders,
@@ -102,7 +108,18 @@ fun StorageScreen(
         onRestoreFolder = { folder ->
             viewModel.onIntent(StorageIntent.RestoreFromTrash(folder = folder))
         },
+        onRestoreVoiceNote = { voiceNote ->
+            viewModel.onIntent(StorageIntent.RestoreVoiceNote(voiceNote = voiceNote))
+        },
+        onRemoveVoiceNote = { voiceNote ->
+            viewModel.onIntent(StorageIntent.RemoveVoiceNote(voiceNote = voiceNote))
+        },
+        onRemoveFolder = { folder ->
+            viewModel.onIntent(StorageIntent.RemoveFolder(folder = folder))
+        },
         trashFolders = trashFolders,
+        trashVoiceNotes = trashVoiceNotes,
+        recentVoiceNotes = recentVoiceNotes
     )
 }
 
@@ -113,12 +130,18 @@ internal fun StorageScreenContent(
     onFolderNameChange: (String) -> Unit,
     onCreateFolder: (String) -> Unit,
     onCreateVoice: (String) -> Unit,
-    onRemoveFolder: (Folder) -> Unit,
+    onMoveToTrash: (Folder) -> Unit,
     onRestoreFolder: (Folder) -> Unit,
+    onRestoreVoiceNote: (VoiceNote) -> Unit,
+    onRemoveVoiceNote: (VoiceNote) -> Unit,
+    onRemoveFolder: (Folder) -> Unit,
     folders: List<Folder>,
     folderItem: Map<UUID?, Int>,
     trashFolders: List<Folder>,
+    trashVoiceNotes: List<VoiceNote>,
+    recentVoiceNotes: List<VoiceNote>
 ) {
+
     Surface(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -173,9 +196,13 @@ internal fun StorageScreenContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable{
-                                navController.navigate(Routes.storageDetail(folderId =
-                                folder.id.toString()))
+                            .clickable {
+                                navController.navigate(
+                                    Routes.storageDetail(
+                                        folderId =
+                                            folder.id.toString()
+                                    )
+                                )
                             }
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color(0xFFBABABB))
@@ -210,7 +237,7 @@ internal fun StorageScreenContent(
                             modifier = Modifier
                                 .size(20.dp)
                                 .padding(2.dp)
-                                .clickable { onRemoveFolder(folder) }
+                                .clickable { onMoveToTrash(folder) }
                         )
                     }
                 }
@@ -260,17 +287,132 @@ internal fun StorageScreenContent(
                         )
                         Icon(
                             imageVector = Icons.Default.Remove,
-                            contentDescription = "Remove folder",
+                            contentDescription = "Restore folder",
                             tint = Color.Red,
                             modifier = Modifier
                                 .size(20.dp)
                                 .padding(2.dp)
                                 .clickable { onRestoreFolder(folder) }
                         )
+                        Spacer(modifier = Modifier.width(22.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Remove folder",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(2.dp)
+                                .clickable { onRemoveFolder(folder) }
+                        )
+
                     }
                 }
             }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 30.dp),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(trashVoiceNotes) { voiceNote ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFBABABB))
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFF2B2B31),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AudioFile,
+                            contentDescription = null,
+                            tint = Color(0xFFEDEDED),
+                            modifier = Modifier.size(20.dp)
+                        )
 
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Text(
+                            text = voiceNote.title,
+                            color = Color(0xFFF5F5F5),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Remove folder",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(2.dp)
+                                .clickable { onRestoreVoiceNote(voiceNote) }
+                        )
+                        Spacer(modifier = Modifier.width(22.dp))
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Remove folder",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(2.dp)
+                                .clickable { onRemoveVoiceNote(voiceNote) }
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "최근문서", modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 30.dp),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(recentVoiceNotes) { voiceNote ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFBABABB))
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFF2B2B31),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AudioFile,
+                            contentDescription = null,
+                            tint = Color(0xFFEDEDED),
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Text(
+                            text = "${voiceNote.title} \t ${voiceNote.updatedAt.formatDate("yy.MM.dd HH:mm")}",
+                            color = Color(0xFFF5F5F5),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -284,7 +426,7 @@ fun StorageScreenPreview() {
             folderName = "",
             onFolderNameChange = {},
             onCreateFolder = { /* preview no-op */ },
-            onRemoveFolder = { /* preview no-op */ },
+            onMoveToTrash = { /* preview no-op */ },
             folders = listOf(
                 Folder(name = "ㄱㄱ"),
                 Folder(name = "기본폴더"),
@@ -297,7 +439,30 @@ fun StorageScreenPreview() {
             trashFolders = listOf(
                 Folder(name = "휴지통1"),
                 Folder(name = "휴지통2"),
-            )
+            ),
+            onRestoreVoiceNote = {},
+            onRemoveVoiceNote = {},
+            onRemoveFolder = {},
+            trashVoiceNotes = listOf(
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "VoiceNote1",
+                ),
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "VoiceNote2",
+                ),
+            ),
+            recentVoiceNotes = listOf(
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "recentVoiceNote1",
+                ),
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "recentVoiceNote2",
+                ),
+            ),
         )
     }
 }
