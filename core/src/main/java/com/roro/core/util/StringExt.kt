@@ -11,7 +11,18 @@ import java.util.Locale
  * @since 2026. 2. 28.
  */
 
-fun Long.toDate(): String {
-    val sdf = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+/**
+ * Long타입의 시간을 포맷 해주는 확장함수
+ * "yy.MM.dd HH:mm"형식을 원하는 파라미터로 넣어주면 된다.
+ *
+ * @param 
+ * @return
+ *
+ * @author sehoon
+ * @since 2026. 3. 24.
+ * @modified
+ */
+fun Long.formatDate(pattern: String = "yyyy.MM.dd"): String {
+    val sdf = SimpleDateFormat(pattern, Locale.getDefault())
     return sdf.format(Date(this))
 }
