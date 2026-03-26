@@ -14,6 +14,7 @@ import com.roro.storage.domain.FileRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.String
 
 class FileRepositoryImpl @Inject constructor(
     private val local: LocalFileDataSource,
@@ -128,6 +129,12 @@ class FileRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun restoreVoiceNote(voiceNote: VoiceNote) {
+        room.restoreVoiceNote(
+            voiceNote = voiceNote
+        )
+    }
+
     // 사용자 폴더 가져오기
     override fun observeUserFolders(): Flow<List<Folder>> {
         return room.observeUserFolder()
@@ -136,6 +143,10 @@ class FileRepositoryImpl @Inject constructor(
     // 휴지통 폴더 가져오기
     override fun observeTrashFolders(): Flow<List<Folder>> {
         return room.observeTrashFolders()
+    }
+
+    override fun observeTrashVoiceNotes(): Flow<List<VoiceNote>> {
+        return room.observeTrashVoiceNotes()
     }
 
     // 폴더가 가지고 있는 아이템 개수
@@ -153,5 +164,26 @@ class FileRepositoryImpl @Inject constructor(
         return room.observeNotNullVoiceNote(uuid)
     }
 
+    // 최근 voiceNote 5개
+    override fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
+        return room.observeRecentVoiceNote()
+    }
 
+    override suspend fun removeVoiceNote(voiceNote: VoiceNote) {
+        room.removeVoiceNote(
+            voiceNote.copy(
+                id = voiceNote.id,
+                title = voiceNote.title,
+            ).toEntity()
+        )
+    }
+
+    override suspend fun removeFolder(folder: Folder) {
+        room.removeFolder(
+            folder.copy(
+                id = folder.id,
+                name = folder.name
+            ).toEntity()
+        )
+    }
 }
