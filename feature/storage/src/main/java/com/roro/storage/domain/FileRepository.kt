@@ -51,4 +51,10 @@ interface FileRepository {
 
     // folder 영구삭제
     suspend fun removeFolder(folder: Folder)
+
+    // 폴더 이름 변경
+    suspend fun renameFolder(folder: Folder)
+
+    // VoiceNote 이름 변경
+    suspend fun renameVoiceNote(voiceNote: VoiceNote)
 }
