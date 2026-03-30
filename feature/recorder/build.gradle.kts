@@ -72,4 +72,7 @@ dependencies {
     //implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
     implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
+
 }

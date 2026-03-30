@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.common.GenAiException
 import com.google.mlkit.genai.summarization.Summarization
 import com.google.mlkit.genai.summarization.SummarizationRequest
 import com.google.mlkit.genai.summarization.SummarizerOptions
@@ -21,6 +23,13 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
+import androidx.concurrent.futures.await
+
+
+
+import com.google.mlkit.genai.common.DownloadCallback
+
+import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
@@ -118,80 +127,90 @@ class RecordViewModel @Inject constructor(
         try { val options = SummarizerOptions.builder(context)
             .setInputType(SummarizerOptions.InputType.ARTICLE)
             .setOutputType(SummarizerOptions.OutputType.ONE_BULLET)
-            .setLanguage(SummarizerOptions.Language.KOREAN)
+            //.setLanguage(SummarizerOptions.Language.KOREAN)
             .build()
 
             val summarizer = Summarization.getClient(options)
-            val status = summarizer.checkFeatureStatus().get()
+            //val summarizer = Summarization.getClient(options)
 
-//            val statusFuture = summarizer.checkFeatureStatus()
-//            val status = statusFuture.get()
-
-            Timber.d("🤖 Summarization 상태: ${status}")
+            // ✅ Task를 코루틴으로 변환 (블로킹 .get() 대신)
+            val status = summarizer.checkFeatureStatus().await()
             // 0=UNAVAILABLE, 1=DOWNLOADABLE, 2=DOWNLOADING, 3=AVAILABLE
+
+            Timber.d("🤖 Summarization 상태: $status")
+
+            when (status) {
+                0 -> Timber.w("🤖 이 기기는 Summarization 미지원 (UNAVAILABLE)")
+                1 -> {
+                    Timber.d("🤖 모델 다운로드 필요 (DOWNLOADABLE)")
+                    summarizer.downloadFeature(object : DownloadCallback {
+                        override fun onDownloadStarted(bytesToDownload: Long) {
+                            Timber.d("🤖 다운로드 시작: ${bytesToDownload}bytes")
+                        }
+                        override fun onDownloadProgress(bytesDownloaded: Long) {
+                            Timber.d("🤖 다운로드 중: ${bytesDownloaded}bytes")
+                        }
+                        override fun onDownloadCompleted() {
+                            Timber.d("🤖 다운로드 완료!")
+                        }
+                        override fun onDownloadFailed(errorCode: GenAiException) {
+                            Timber.e("🤖 다운로드 실패: $errorCode")
+                        }
+                    }).await()
+                }
+                2 -> Timber.d("🤖 모델 다운로드 중... (DOWNLOADING)")
+                3 -> Timber.d("🤖 사용 가능! (AVAILABLE)")
+            }
 
             summarizer.close()
 
-        } catch (e: Exception) { Timber.e(e, "🤖 AICore 체크 실패") } }
+        } catch (e: Exception) {
+            Timber.e(e, "🤖 AICore 체크 실패")
+        }
     }
-
+    }
 
 
         // 임시 테스트 코드 - 확인 후 삭제
     fun summarizeText(context: Context, inputText: String) {
 
-
-
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val options = SummarizerOptions.builder(context)
-                    .setInputType(SummarizerOptions.InputType.ARTICLE)
-                    .setOutputType(SummarizerOptions.OutputType.ONE_BULLET)
-                    .setLanguage(SummarizerOptions.Language.KOREAN)
-                    .build()
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val options = SummarizerOptions.builder(context)
+                        //.setInputType(SummarizerOptions.InputType.ARTICLE)
+                        .setInputType(SummarizerOptions.InputType.CONVERSATION) // 400자 제한 없음
+                        .setOutputType(SummarizerOptions.OutputType.ONE_BULLET)
+                        .setLanguage(SummarizerOptions.Language.ENGLISH)
+                        .build()
 
-                val summarizer = Summarization.getClient(options)
+                    val summarizer = Summarization.getClient(options)
 
-                // 1️⃣ 상태 확인
-                val status = summarizer.checkFeatureStatus()
+                    // 엔진 준비
+                    summarizer.prepareInferenceEngine().await()
+                    Timber.d("🤖 엔진 준비 완료")
 
-                //Timber.d("🤖 Summarization 상태: ${status.}")
-                // 0=UNAVAILABLE, 1=DOWNLOADABLE, 2=DOWNLOADING, 3=AVAILABLE
+                    // 입력 텍스트 400자 이상이어야 함.
+                    val request = SummarizationRequest.builder(
+                        "Android is a mobile operating system developed by Google. " +
+                                "It is based on the Linux kernel and is designed primarily for touchscreen " +
+                                "mobile devices such as smartphones and tablets. "
+//                                "Android was first released in 2008 and has since become the most widely used " +
+//                                "mobile operating system in the world, with billions of active devices. " +
+//                                "The operating system features a large ecosystem of applications available through " +
+//                                "the Google Play Store, which contains millions of apps for productivity, entertainment, " +
+//                                "communication, and many other purposes. Google regularly releases new versions of Android " +
+//                                "with improved features, security updates, and performance enhancements."
+                    ).build()
 
-//                if (status != 3) {
-//                    Timber.e("❌ 사용 불가: $status")
-//                    return@launch
-//                }
+                    val result = summarizer.runInference(request).await()
+                    Timber.d("🤖 요약 결과: ${result.summary}")
 
-                // 2️⃣ 요청 생성
-                val request = SummarizationRequest.builder(inputText)
-                    .build()
+                    summarizer.close()
 
-//                summarizer.summarizeText(inputText)
-//                    .addOnSuccessListener { summary ->
-//                        // 여기서 실제 요약된 텍스트가 나옵니다!
-//                        Log.d("AI_DEBUG", "요약 성공: $summary")
-//                        // UI 업데이트 등을 여기서 진행하세요.
-//                    }
-//                    .addOnFailureListener { e ->
-//                        // 에러 발생 시 (모델 미설치 등)
-//                        Log.e("AI_DEBUG", "요약 실패: ${e.message}")
-//                    }
-
-
-
-                // 3️⃣ 실행
-                val result = summarizer.runInference(request).get()
-                //_updateState { RecordState.Success(result.summary) }
-
-                // 4️⃣ 결과
-                Timber.d("✅ 요약 결과: ${result.summary}")
-
-
-                summarizer.close()
-
-            } catch (e: Exception) {
-                Timber.e(e, "❌ summarize 실패")
+                } catch (e: Exception) {
+                    Timber.e(e, "🤖 요약 실패")
+                }
             }
         }
     }
