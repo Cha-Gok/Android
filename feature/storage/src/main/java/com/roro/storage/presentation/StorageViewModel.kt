@@ -1,5 +1,6 @@
 package com.roro.storage.presentation
 
+import android.util.Printer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.model.Folder
@@ -9,11 +10,18 @@ import com.roro.storage.domain.CreateVoiceNoteUseCase
 import com.roro.storage.domain.MoveToTrashUseCase
 import com.roro.storage.domain.MoveToTrashVoiceNotesUseCase
 import com.roro.storage.domain.ObserveFolderItemCount
+import com.roro.storage.domain.ObserveRecentVoiceNoteUseCase
 import com.roro.storage.domain.ObserveTrashFoldersUseCase
+import com.roro.storage.domain.ObserveTrashVoiceNotesUseCase
 import com.roro.storage.domain.ObserveUserFoldersUseCase
 import com.roro.storage.domain.ObserveVoiceNotesByNoneNullFolderUseCase
 import com.roro.storage.domain.ObserveVoiceNotesInFolderUseCase
+import com.roro.storage.domain.RemoveFolderUseCase
+import com.roro.storage.domain.RemoveVoiceNoteUseCase
+import com.roro.storage.domain.RenameFolderUseCase
+import com.roro.storage.domain.RenameVoiceNoteUseCase
 import com.roro.storage.domain.RestoreFromTrashUseCase
+import com.roro.storage.domain.RestoreVoiceNoteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,13 +50,26 @@ class StorageViewModel @Inject constructor(
     private val moveToTrashUseCase: MoveToTrashUseCase,
     // 휴지통 -> 복원
     private val restoreFromTrashUserCase: RestoreFromTrashUseCase,
+    // voiceNote 휴지통 -> 복원
+    private val restoreVoiceNoteUserCase: RestoreVoiceNoteUseCase,
     // 폴더 아이템 개수 가져오기
     private val observeFolderItemCount: ObserveFolderItemCount,
     // 폴더 없는 voiceNote
     private val observeVoiceNotesByNoneNullFolderUseCase: ObserveVoiceNotesByNoneNullFolderUseCase,
     // 폴더 있는 voiceNote
-    private val observeVoiceNoteInFolderUseCase: ObserveVoiceNotesInFolderUseCase
-
+    private val observeVoiceNoteInFolderUseCase: ObserveVoiceNotesInFolderUseCase,
+    // 휴지통 VoiceNotes 확인
+    private val observeTrashVoiceNotesUseCase: ObserveTrashVoiceNotesUseCase,
+    // 최근 문서 5개
+    private val observeRecentVoiceNoteUseCase: ObserveRecentVoiceNoteUseCase,
+    // voiceNote 제거
+    private val removeVoiceNoteUseCase: RemoveVoiceNoteUseCase,
+    // Folder 제거
+    private val removeFolderUseCase: RemoveFolderUseCase,
+    // Rename Folder
+    private val renameFolderUseCase: RenameFolderUseCase,
+    // Rename VoiceNote
+    private val renameVoiceNoteUseCase: RenameVoiceNoteUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StorageUiState(isLoading = true))
@@ -77,6 +98,12 @@ class StorageViewModel @Inject constructor(
     private val _voiceNoteFolderList = MutableStateFlow<List<VoiceNote>>(emptyList())
     val voiceNoteFolderList: StateFlow<List<VoiceNote>> = _voiceNoteFolderList.asStateFlow()
 
+    private val _voiceNoteTrashList = MutableStateFlow<List<VoiceNote>>(emptyList())
+    val voiceNoteTrashList: StateFlow<List<VoiceNote>> = _voiceNoteTrashList.asStateFlow()
+
+    private val _voiceNoteRecentList = MutableStateFlow<List<VoiceNote>>(emptyList())
+    val voiceNoteRecentList: StateFlow<List<VoiceNote>> = _voiceNoteRecentList.asStateFlow()
+
     init {
         onIntent(StorageIntent.Initialize)
     }
@@ -90,6 +117,11 @@ class StorageViewModel @Inject constructor(
             is StorageIntent.CreateDummyVoiceNote -> createVoiceNote(intent.folderName)
             is StorageIntent.MoveToTrashVoiceNotes -> moveToTrashVoiceNots(intent.ids)
             StorageIntent.RefreshDefaults -> Unit
+            is StorageIntent.RestoreVoiceNote -> restoreVoiceNote(intent.voiceNote)
+            is StorageIntent.RemoveVoiceNote -> removeVoiceNote(intent.voiceNote)
+            is StorageIntent.RemoveFolder -> removeFolder(intent.folder)
+            is StorageIntent.RenameFolder -> renameFolder(intent.folder)
+            is StorageIntent.RenameVoiceNote -> renameVoiceNote(intent.voiceNote)
         }
     }
 
@@ -140,6 +172,57 @@ class StorageViewModel @Inject constructor(
         }
     }
 
+    private fun removeFolder(folder: Folder) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            runCatching {
+                removeFolderUseCase(folder = folder)
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                _effect.emit(StorageEffect.ShowToast("folder 영구삭제"))
+            }.onFailure { e ->
+                Timber.e(e, "remove Folder")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _effect.emit(StorageEffect.ShowToast("삭제 실패: ${e.message ?: "알 수 없는 오류"}"))
+            }
+        }
+    }
+
+    private fun removeVoiceNote(voiceNote: VoiceNote) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            runCatching {
+                removeVoiceNoteUseCase(voiceNote = voiceNote)
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                _effect.emit(StorageEffect.ShowToast("voiceNote영구삭제"))
+            }.onFailure { e ->
+                Timber.e(e, "removeVoiceNote")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _effect.emit(StorageEffect.ShowToast("삭제 실패: ${e.message ?: "알 수 없는 오류"}"))
+            }
+        }
+    }
+
+    private fun restoreVoiceNote(voiceNote: VoiceNote) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            runCatching {
+                restoreVoiceNoteUserCase(voiceNote)
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                _effect.emit(StorageEffect.ShowToast("복원했습니다."))
+            }.onFailure { e ->
+                Timber.e(e, "restoreVoiceNote failure")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _effect.emit(StorageEffect.ShowToast("이동 실패: ${e.message ?: "알 수 없는 오류"}"))
+            }
+        }
+    }
+
     private fun moveToTrash(folder: Folder) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -174,6 +257,41 @@ class StorageViewModel @Inject constructor(
         }
     }
 
+    private fun renameFolder(folder: Folder) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            runCatching {
+                renameFolderUseCase(folder)
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                _effect.emit(StorageEffect.ShowToast("폴더 이름 변경"))
+            }.onFailure { e ->
+                Timber.e(e, "moveToTrash failure")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _effect.emit(StorageEffect.ShowToast("이름 변경 실패: ${e.message ?: "알 수 없는 오류"}"))
+            }
+        }
+    }
+
+    private fun renameVoiceNote(voiceNote: VoiceNote) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            runCatching {
+                renameVoiceNoteUseCase(voiceNote)
+            }.onSuccess {
+                _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                _effect.emit(StorageEffect.ShowToast("voiceNote 이름 변경"))
+            }.onFailure { e ->
+                Timber.e(e, "moveToTrash failure")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _effect.emit(StorageEffect.ShowToast("voiceNote 이름 변경 실패: ${e.message ?: "알 수 없는 오류"}"))
+            }
+        }
+    }
+
+    // 화면 초기 갱신
     private fun initialize() {
         viewModelScope.launch {
             observeUserFoldersUseCase()
@@ -214,7 +332,43 @@ class StorageViewModel @Inject constructor(
                     voiceNotes.forEach { note ->
                         Timber.d("voiceNote -> id=${note.id}, title=${note.title}, folderId=${note.folderId}")
                     }
+
                     _voiceNoteList.value = voiceNotes
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            observeTrashVoiceNotesUseCase()
+                .collect { voiceNotes ->
+                    voiceNotes.forEach { note ->
+                        Timber.d(
+                            "voiceNote 휴지통 -> id=${note.id}, title=${note.title}, folderId = ${note.folderId}"
+                        )
+                    }
+                    _voiceNoteTrashList.value = voiceNotes
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    }
+                }
+        }
+
+        // 최근 문서
+        viewModelScope.launch {
+            observeRecentVoiceNoteUseCase()
+                .collect { voiceNotes ->
+                    voiceNotes.forEach { note ->
+                        Timber.d("voiceNote Recent  = ${note.title}")
+                    }
+                    _voiceNoteRecentList.value = voiceNotes
                     _uiState.update {
                         it.copy(
                             isLoading = false,
