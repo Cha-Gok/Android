@@ -26,8 +26,14 @@ import timber.log.Timber
 import androidx.concurrent.futures.await
 
 
-
 import com.google.mlkit.genai.common.DownloadCallback
+import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
+
+import com.google.mlkit.genai.speechrecognition.SpeechRecognition
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
+import com.google.mlkit.genai.common.DownloadStatus
+import java.util.Locale
 
 import kotlinx.coroutines.tasks.await
 
@@ -122,6 +128,45 @@ class RecordViewModel @Inject constructor(
 //        }
     }
 
+    fun checkSTT() {
+        viewModelScope.launch {
+            try {
+                val options = speechRecognizerOptions {
+                    locale = Locale.KOREAN  // 한국어 가능!
+                    preferredMode = SpeechRecognizerOptions.Mode.MODE_BASIC // S25는 BASIC만
+                }
+                val speechRecognizer = SpeechRecognition.getClient(options)
+
+                val status = speechRecognizer.checkStatus()
+                Timber.d("🎤 STT 상태: $status")
+
+                when (status) {
+                    FeatureStatus.DOWNLOADABLE -> {
+                        speechRecognizer.download().collect { downloadStatus ->
+                            when (downloadStatus) {
+                                is DownloadStatus.DownloadCompleted -> Timber.d("🎤 다운로드 완료!")
+                                is DownloadStatus.DownloadFailed -> Timber.e("🎤 다운로드 실패")
+                                is DownloadStatus.DownloadProgress -> Timber.d("🎤 다운로드 중...")
+                                else -> {}
+                            }
+                        }
+                    }
+                    FeatureStatus.AVAILABLE -> {
+                        Timber.d("🎤 STT 사용 가능!")
+                    }
+                    FeatureStatus.UNAVAILABLE -> {
+                        Timber.w("🎤 이 기기 미지원")
+                    }
+                }
+
+                speechRecognizer.close()
+
+            } catch (e: Exception) {
+                Timber.e(e, "🎤 STT 체크 실패")
+            }
+        }
+    }
+
     // 요약 ai 연결 확인 여부
     fun checkAICore(context: Context) { viewModelScope.launch(Dispatchers.IO){
         try { val options = SummarizerOptions.builder(context)
@@ -214,5 +259,52 @@ class RecordViewModel @Inject constructor(
             }
         }
     }
+
+    //  Prompt API가 S25에서 아직 미지원
+//    fun testKeywordExtract() {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            try {
+//                val model = Generation.getClient()
+//
+//                // 상태 체크
+//                val status = model.checkStatus()
+//                Timber.d("🤖 Prompt API 상태: $status")
+//
+//                when (status) {
+//                    FeatureStatus.UNAVAILABLE -> {
+//                        Timber.w("🤖 이 기기는 미지원")
+//                        return@launch
+//                    }
+//                    FeatureStatus.DOWNLOADABLE -> {
+//                        Timber.d("🤖 모델 다운로드 중...")
+//                        model.download().collect { downloadStatus ->
+//                            Timber.d("🤖 다운로드: $downloadStatus")
+//                        }
+//                    }
+//                    FeatureStatus.AVAILABLE -> {
+//                        // 엔진 워밍업
+//                        model.warmup()
+//                        Timber.d("🤖 워밍업 완료")
+//
+//                        val result = model.generateContent(
+//                            "Extract 5 keywords from this text. " +
+//                                    "Return only the keywords separated by commas, no explanation.\n\n" +
+//                                    "Text: Android is a mobile operating system developed by Google. " +
+//                                    "It is based on the Linux kernel and is designed primarily for touchscreen " +
+//                                    "mobile devices such as smartphones and tablets. " +
+//                                    "Android was first released in 2008 and has since become the most widely used " +
+//                                    "mobile operating system in the world."
+//                        )
+//                        Timber.d("🤖 키워드: ${result.candidates.first()}")
+//                    }
+//                }
+//
+//                model.close()
+//
+//            } catch (e: Exception) {
+//                Timber.e(e, "🤖 키워드 추출 실패")
+//            }
+//        }
+//    }
 
 }

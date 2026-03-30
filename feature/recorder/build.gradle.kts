@@ -75,4 +75,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
 
+    //  Prompt API가 S25에서 아직 미지원 -> 혹시 모르니까...
+//    implementation("com.google.mlkit:genai-prompt:1.0.0-beta1")
+
+    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+
+
 }

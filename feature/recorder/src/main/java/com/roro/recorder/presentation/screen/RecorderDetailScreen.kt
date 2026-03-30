@@ -120,6 +120,7 @@ fun RecorderDetailScreen(
             Button(
                 onClick = {
                     viewModel.summarizeText(context, inputText)
+                    //viewModel.testKeywordExtract()
                 }
             ) {
                 Text("🧠 요약 테스트")
