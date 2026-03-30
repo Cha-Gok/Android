@@ -187,9 +187,26 @@ WHERE id IN (:noteIds)
     suspend fun removeVoiceNote(voiceNoteEntity: VoiceNoteEntity)
 
     // 폴더가 있는 voiceNote 제거
-    @Query("""
+    @Query(
+        """
 DELETE FROM voice_note
 WHERE folderId = :folderId
-""")
+"""
+    )
     suspend fun removeVoiceNotesByFolderId(folderId: UUID)
+
+
+    @Query(
+        """
+UPDATE voice_note
+SET title = :voiceNoteTitle,
+    updatedAt = :updatedAt
+WHERE id = :noteId
+"""
+    )
+    suspend fun renameVoiceNote(
+        noteId: UUID,
+        voiceNoteTitle: String,
+        updatedAt: Long
+    )
 }
