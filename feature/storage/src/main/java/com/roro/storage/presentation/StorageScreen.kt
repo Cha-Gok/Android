@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Remove
@@ -117,6 +118,9 @@ fun StorageScreen(
         onRemoveFolder = { folder ->
             viewModel.onIntent(StorageIntent.RemoveFolder(folder = folder))
         },
+        renameFolder = { folder ->
+            viewModel.onIntent(StorageIntent.RenameFolder(folder = folder))
+        },
         trashFolders = trashFolders,
         trashVoiceNotes = trashVoiceNotes,
         recentVoiceNotes = recentVoiceNotes
@@ -135,6 +139,7 @@ internal fun StorageScreenContent(
     onRestoreVoiceNote: (VoiceNote) -> Unit,
     onRemoveVoiceNote: (VoiceNote) -> Unit,
     onRemoveFolder: (Folder) -> Unit,
+    renameFolder: (Folder) -> Unit,
     folders: List<Folder>,
     folderItem: Map<UUID?, Int>,
     trashFolders: List<Folder>,
@@ -238,6 +243,24 @@ internal fun StorageScreenContent(
                                 .size(20.dp)
                                 .padding(2.dp)
                                 .clickable { onMoveToTrash(folder) }
+                        )
+
+                        Spacer(modifier = Modifier.width(22.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Brush,
+                            contentDescription = "Remove folder",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(2.dp)
+                                .clickable {
+                                    renameFolder(
+                                        folder.copy(
+                                            name = folderName.trim()
+                                        )
+                                    )
+                                }
                         )
                     }
                 }
@@ -453,6 +476,7 @@ fun StorageScreenPreview() {
                     title = "VoiceNote2",
                 ),
             ),
+            renameFolder = {},
             recentVoiceNotes = listOf(
                 VoiceNote(
                     id = UUID.randomUUID(),
