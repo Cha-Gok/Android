@@ -14,6 +14,8 @@ sealed interface StorageIntent {
     data class RestoreVoiceNote(val voiceNote: VoiceNote) : StorageIntent
     data class RemoveVoiceNote(val voiceNote: VoiceNote) : StorageIntent
     data class RemoveFolder(val folder: Folder) : StorageIntent
+    data class RenameFolder(val folder: Folder) : StorageIntent
+    data class RenameVoiceNote(val voiceNote: VoiceNote) : StorageIntent
     object RefreshDefaults : StorageIntent
 }
 
