@@ -4,9 +4,9 @@ import android.content.Context
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
 import com.roro.recorder.data.repository.RecordRepositoryImpl
-import com.roro.recorder.data.repository.VoiceNoteRepositoryImpl
+
 import com.roro.recorder.domain.repository.RecordRepository
-import com.roro.recorder.domain.repository.VoiceNoteRepository
+
 
 import dagger.Binds
 import dagger.Module
@@ -26,8 +26,8 @@ abstract class RecorderModule {
         impl: RecordRepositoryImpl
     ): RecordRepository
 
-    @Binds
-    abstract fun bindVoiceNoteRepository(
-        impl: VoiceNoteRepositoryImpl
-    ): VoiceNoteRepository
+//    @Binds
+//    abstract fun bindVoiceNoteRepository(
+//        impl: VoiceNoteRepositoryImpl
+//    ): VoiceNoteRepository
 }

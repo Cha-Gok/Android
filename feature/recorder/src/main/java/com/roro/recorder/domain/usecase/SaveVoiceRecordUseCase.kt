@@ -2,7 +2,7 @@ package com.roro.recorder.domain.usecase
 
 import com.roro.core.model.VoiceNote
 import javax.inject.Inject
-import com.roro.recorder.domain.repository.VoiceNoteRepository
+
 
 
 // 녹음 완료 후 저장
