@@ -17,9 +17,11 @@ import java.util.UUID
  */
 @Dao
 interface VoiceRecordDao {
-    @Query("SELECT * FROM voice_record WHERE voiceNoteId = :voiceNoteId LIMIT 1")
-    suspend fun getByVoiceNoteId(voiceNoteId: UUID): VoiceRecordEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: VoiceRecordEntity)
+    /**
+     * 녹음 파일 정보 저장
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(record: VoiceRecordEntity)
+
 }

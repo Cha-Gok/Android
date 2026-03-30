@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.roro.chagok.navigation.AppScaffold
 import com.roro.core.ui.theme.ChaGokTheme
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * 기능 설명:
@@ -22,6 +23,7 @@ import com.roro.core.ui.theme.ChaGokTheme
  * @author sehoon
  * @since 2026. 2. 28.
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

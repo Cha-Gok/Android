@@ -17,9 +17,11 @@ import java.util.UUID
  */
 @Dao
 interface SummaryDao {
-    @Query("SELECT * FROM summary WHERE voiceNoteId = :voiceNoteId LIMIT 1")
-    suspend fun getByVoiceNoteId(voiceNoteId: UUID): SummaryEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: SummaryEntity)
+    /**
+     * 요약문 저장
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(summary: SummaryEntity)
+
 }
