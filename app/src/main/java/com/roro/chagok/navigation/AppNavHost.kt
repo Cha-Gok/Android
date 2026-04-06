@@ -3,7 +3,9 @@ package com.roro.chagok.navigation
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import com.roro.chagok.splash.navigation.splashGraph
 import com.roro.core.navigation.Routes
+import com.roro.onboarding.navigation.onBoardingGraph
 import com.roro.recorder.navigation.recorderGraph
 import com.roro.storage.navigation.storageGraph
 
@@ -21,14 +23,26 @@ import com.roro.storage.navigation.storageGraph
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-){
+) {
     NavHost(
         navController = navController,
-        startDestination = Routes.STORAGE
+        startDestination = Routes.SPLASH,
     ) {
-        // 파일 저장소 관련 화면 그래프
+        // 스플래시 그래프
+        splashGraph(
+            onNavigateToMain = {
+                navController.navigate(Routes.STORAGE) {
+                    popUpTo(Routes.SPLASH) { inclusive = true }
+                }
+            },
+            onNavigateToOnboarding = {
+                navController.navigate(Routes.ONBOARDING) {
+                    popUpTo(Routes.SPLASH) { inclusive = true }
+                }
+            },
+        )
+        onBoardingGraph(navController = navController)
         storageGraph(navController = navController)
-        // 녹음 기능 관련 화면 그래프
         recorderGraph(navController = navController)
     }
 }

@@ -68,4 +68,7 @@ dependencies {
     // Hilt + KSP
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
 }
