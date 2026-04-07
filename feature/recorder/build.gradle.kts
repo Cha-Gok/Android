@@ -78,7 +78,11 @@ dependencies {
     //  Prompt API가 S25에서 아직 미지원 -> 혹시 모르니까...
 //    implementation("com.google.mlkit:genai-prompt:1.0.0-beta1")
 
+    // stt 관련
     implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+
+    // 번역 관련
+    implementation("com.google.mlkit:translate:17.0.3")
 
 
 }

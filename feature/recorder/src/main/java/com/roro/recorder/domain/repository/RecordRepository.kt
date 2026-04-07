@@ -3,9 +3,13 @@ package com.roro.recorder.domain.repository
 import java.io.File
 import java.util.UUID
 
-//RecordRepository → 순수하게 녹음 기능만 (하드웨어 제어)
-// 음성 녹음 (Start, Pause, Resume, Finish)
+//RecordRepository
 interface RecordRepository {
-    suspend fun processAndSave(audioFile: File, folderId: UUID?): String
+    suspend fun saveRecording(
+        audioFile: File,
+        durationSec: Double,
+        sttText: String,
+        folderId: UUID? = null
+    )
 
 }
