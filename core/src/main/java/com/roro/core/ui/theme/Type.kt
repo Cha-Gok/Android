@@ -17,105 +17,118 @@ import com.roro.core.R
  * @author sehoon
  * @since 2026. 2. 28.
  */
-val pretendard = FontFamily(
-    Font(R.font.pretendard_regular),
+val Pretendard = FontFamily(
+    Font(R.font.pretendard_regular, FontWeight.Normal),
     Font(R.font.pretendard_medium, FontWeight.Medium),
     Font(R.font.pretendard_bold, FontWeight.Bold)
 )
 
 val ChaGokTypography = Typography(
+    displayLarge = ChaGokTextStyle.Header1,
+    displayMedium = ChaGokTextStyle.Header2,
+    titleLarge = ChaGokTextStyle.Title1,
+    bodyLarge = ChaGokTextStyle.Body1
+)
+
+object ChaGokTextStyle {
 
     // Headers
-    displayLarge = TextStyle(
-        fontFamily = pretendard,
+    val Header1 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 28.sp,
         lineHeight = (28 * 1.3).sp,
         letterSpacing = 0.em
-    ),
-    displayMedium = TextStyle(
-        fontFamily = pretendard,
+    )
+    val Header2 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = (24 * 1.3).sp,
         letterSpacing = (-0.02).em
-    ),
+    )
 
     // Titles
-    titleLarge = TextStyle(
-        fontFamily = pretendard,
+    val Title1 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = (20 * 1.3).sp,
         letterSpacing = (-0.02).em
-    ),
-    titleMedium = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Title2 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
         lineHeight = (18 * 1.3).sp,
         letterSpacing = (-0.02).em
-    ),
-    titleSmall = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Title3 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
         lineHeight = (16 * 1.3).sp,
         letterSpacing = (-0.02).em
-    ),
+    )
 
     // Subtitles
-    headlineSmall = TextStyle(
-        fontFamily = pretendard,
+    val Subtitle1 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp,
         lineHeight = (18 * 1.5).sp,
         letterSpacing = 0.em
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Subtitle2 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = (16 * 1.3).sp,
         letterSpacing = (-0.03).em
-    ),
+    )
 
     // Body
-    bodyLarge = TextStyle(
-        fontFamily = pretendard,
+    val Body1 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = (16 * 1.5).sp,
         letterSpacing = (-0.03).em
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Body2 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = (16 * 1.3).sp,
         letterSpacing = (-0.03).em
-    ),
-    bodySmall = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Body3 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = (15 * 1.5).sp,
         letterSpacing = (-0.03).em
-    ),
+    )
 
     // Label / Caption
-    labelLarge = TextStyle(
-        fontFamily = pretendard,
+    val Label = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = (15 * 1.3).sp,
         letterSpacing = (-0.03).em
-    ),
-    labelSmall = TextStyle(
-        fontFamily = pretendard,
+    )
+
+    val Caption = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = (14 * 1.3).sp,
         letterSpacing = (-0.02).em
     )
-)
+}
