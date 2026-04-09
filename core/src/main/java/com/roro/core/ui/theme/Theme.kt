@@ -20,15 +20,15 @@ import androidx.compose.ui.platform.LocalContext
  * @since 2026. 2. 28.
  */
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = PrimaryColor,
+    secondary = TextSecondary,
+    tertiary = TextTertiary
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = PrimaryColor,
+    secondary = TextSecondary,
+    tertiary = TextTertiary
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -60,7 +60,7 @@ fun ChaGokTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = ChaGokTypography,
         content = content
     )
 }
