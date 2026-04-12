@@ -24,32 +24,12 @@ import com.roro.recorder.presentation.RecordViewModel
 import timber.log.Timber
 import java.io.File
 
-
+// 여기가 곧 기본 녹음 화면으로 구현 (예정)
 @Composable
 fun RecorderScreen(
     navController: NavController,
     viewModel: RecordViewModel = hiltViewModel()
 ) {
-    val transcribeState by viewModel.transcribeState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
-    val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument() // ✅ GetContent → OpenDocument
-    ) { uri: Uri? ->
-        uri?.let { viewModel.startTranscribeFromUri(it, context) }
-    }
-
-    val audioPermission = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            filePicker.launch(arrayOf("audio/*"))
-        } else {
-            Timber.e("🎤 권한 거부됨")
-        }
-    }
-
-
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -57,27 +37,8 @@ fun RecorderScreen(
         ) {
             Text("Recorder Screen")
 
-            when (val state = transcribeState) {
-                is RecordViewModel.TranscribeState.Idle -> { }
-                is RecordViewModel.TranscribeState.Loading -> {
-                    CircularProgressIndicator()
-                    Text("변환 중...")
-                }
-                is RecordViewModel.TranscribeState.Success -> {
-                    Text(state.text)
-                }
-                is RecordViewModel.TranscribeState.Error -> {
-                    Text("오류: ${state.message}", color = Color.Red)
-                }
-            }
 
-            Button(onClick = {
-                audioPermission.launch(android.Manifest.permission.RECORD_AUDIO) // ✅ 권한 먼저 요청
-            }) {
-                Text("파일 선택")
-            }
-
-            // ✅ 살린 버튼
+            // 기본 버튼
             Button(
                 onClick = {
                     Timber.d("Timber D")

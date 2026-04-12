@@ -25,6 +25,15 @@ import javax.inject.Inject
 import java.util.Locale
 import java.util.UUID
 
+/**
+ * 기능 설명:
+ * - 음성 녹음을 담당하는 DataSource
+ * - AudioRecord를 사용해 PCM 데이터를 수집하고 WAV 파일로 저장
+ * - MLKit STT 최적화 형식 (16000Hz, Mono, PCM 16bit)
+ *
+ * @author hyeonseo
+ * @since 2026. 04. 12.
+ */
 class RecordDataSource @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
@@ -33,6 +42,7 @@ class RecordDataSource @Inject constructor(
     private var isRecording = false
     private var currentFile: File? = null
 
+    // mlkit 최적화 녹음 파일 형식
     companion object {
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
@@ -40,6 +50,16 @@ class RecordDataSource @Inject constructor(
         private const val TAG = "RecordDataSource"
     }
 
+    /**
+     * 녹음 파일 생성
+     *
+     * @param folderName 폴더명 (null이면 UUID로 대체)
+     * @return 생성된 WAV 파일
+     *
+     * @author hyeonseo
+     * @since 2026. 04. 12.
+     * @modified
+     */
     fun createAudioFile(folderName: String? = null): File {
 
         val baseDir = context.getExternalFilesDir(null)
@@ -67,6 +87,14 @@ class RecordDataSource @Inject constructor(
 
     /**
      * 녹음 시작
+     * - AudioRecord를 초기화하고 별도 스레드에서 PCM 데이터 수집 시작
+     *
+     * @param file 녹음 데이터를 저장할 WAV 파일
+     * @throws IllegalStateException 이미 녹음 중인 경우
+     *
+     * @author hyeonseo
+     * @since 2026. 04. 12.
+     * @modified
      */
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun startRecording(file: File) {
@@ -98,7 +126,15 @@ class RecordDataSource @Inject constructor(
     }
 
     /**
-     * 녹음 중지
+     * 녹음 중지 및 파일 저장
+     * - 녹음 스레드 종료 후 WAV 파일 반환
+     *
+     * @return 저장된 WAV 파일
+     * @throws IllegalStateException 녹음 중이 아닌 경우 또는 파일이 없는 경우
+     *
+     * @author hyeonseo
+     * @since 2026. 04. 12.
+     * @modified
      */
     fun stopRecording(): File {
         if (!isRecording) throw IllegalStateException("녹음 중이 아닙니다.")
@@ -115,7 +151,16 @@ class RecordDataSource @Inject constructor(
     }
 
     /**
-     * PCM 데이터 수집 → WAV 파일로 저장
+     * PCM 데이터 수집 후 WAV 파일로 저장
+     * - 녹음이 진행되는 동안 PCM 데이터를 버퍼에 수집
+     * - 녹음 종료 후 WAV 헤더를 붙여 파일로 저장
+     *
+     * @param file 저장할 WAV 파일
+     * @param bufferSize AudioRecord 버퍼 크기
+     *
+     * @author hyeonseo
+     * @since 2026. 04. 12.
+     * @modified
      */
     private fun writeAudioToFile(file: File, bufferSize: Int) {
         val buffer = ByteArray(bufferSize)
@@ -141,6 +186,14 @@ class RecordDataSource @Inject constructor(
 
     /**
      * WAV 헤더 생성
+     * - PCM 데이터 앞에 붙는 44바이트 WAV 표준 헤더
+     *
+     * @param dataSize PCM 데이터 크기 (byte)
+     * @return 44바이트 WAV 헤더
+     *
+     * @author hyeonseo
+     * @since 2026. 04. 12.
+     * @modified
      */
     private fun buildWavHeader(dataSize: Int): ByteArray {
         val byteRate = SAMPLE_RATE * 2 // 모노 * 16bit(2byte)

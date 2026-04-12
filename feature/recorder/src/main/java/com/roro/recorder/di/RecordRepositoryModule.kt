@@ -1,23 +1,20 @@
 package com.roro.recorder.di
 
-
 import com.roro.recorder.data.repository.RecordRepositoryImpl
 import com.roro.recorder.domain.repository.RecordRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-
-
+import jakarta.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class RecorderModule {
+abstract class RecordRepositoryModule {
 
     @Binds
+    @Singleton
     abstract fun bindRecordRepository(
         impl: RecordRepositoryImpl
     ): RecordRepository
-
-
 }

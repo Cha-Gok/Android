@@ -30,19 +30,13 @@ fun RecorderDetailScreen(
     viewModel: RecordViewModel = hiltViewModel()
 ) {
     val state          by viewModel.state.collectAsStateWithLifecycle()
-    val transcribeState by viewModel.transcribeState.collectAsStateWithLifecycle()
-    val translateState  by viewModel.translateState.collectAsStateWithLifecycle()
-    val summarizeState  by viewModel.summarizeState.collectAsStateWithLifecycle()
-    val sttResult by viewModel.sttResult.collectAsStateWithLifecycle()
-
+    val summarizeState by viewModel.summarizeState.collectAsStateWithLifecycle()
+    val sttResult      by viewModel.sttResult.collectAsStateWithLifecycle()
     val context        = LocalContext.current
 
-    var inputText by remember { mutableStateOf("") }
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
 
-
-
-    // 오디오 파일 피커 (startTranscribe 용)
+    // 오디오 파일 피커
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -73,8 +67,6 @@ fun RecorderDetailScreen(
 
             // ── 상태 표시 ──────────────────────────────────────────
             Text("RecordState: $state", style = MaterialTheme.typography.bodySmall)
-            Text("TranscribeState: $transcribeState", style = MaterialTheme.typography.bodySmall)
-            Text("TranslateState: $translateState", style = MaterialTheme.typography.bodySmall)
             Text("SummarizeState: $summarizeState", style = MaterialTheme.typography.bodySmall)
 
             HorizontalDivider()
@@ -110,10 +102,9 @@ fun RecorderDetailScreen(
             }
 
             Button(onClick = {
-                // 파일 탐색기로 오디오파일만 선택
                 filePicker.launch("audio/*")
             }, modifier = Modifier.fillMaxWidth()) {
-                Text("startSTTFromFile()  ← 파일 선택")
+                Text("startSTTFromFile() ← 파일 선택")
             }
 
             pickedUri?.let {
@@ -131,51 +122,25 @@ fun RecorderDetailScreen(
                 }
             }
 
-
             HorizontalDivider()
 
-            // ── AI Core / 요약 ────────────────────────────────────
+            // ── 요약 결과 표시 ────────────────────────────────────
             SectionLabel("🤖 Summarization")
 
-            Button(onClick = {
-                viewModel.checkAICore(context)
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("checkAICore()")
-            }
-
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
-                label = { Text("요약할 텍스트 (영어 or 번역 후)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-
-            Button(
-                onClick = { viewModel.summarizeText(context, inputText) },
-                enabled = inputText.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("summarizeText(inputText)")
-            }
-
-            HorizontalDivider()
-
-            // ── 번역 ──────────────────────────────────────────────
-            SectionLabel("🌐 Translation")
-
-            Button(onClick = {
-                viewModel.checkTranslateModel()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("checkTranslateModel()")
-            }
-
-            Button(
-                onClick = { viewModel.translateAndSummarize(context, inputText) },
-                enabled = inputText.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("translateAndSummarize(inputText)")
+            when (val s = summarizeState) {
+                is RecordViewModel.SummarizeState.Loading ->
+                    CircularProgressIndicator()
+                is RecordViewModel.SummarizeState.Success ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = s.summary,
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                is RecordViewModel.SummarizeState.Error ->
+                    Text("요약 실패: ${s.message}", color = MaterialTheme.colorScheme.error)
+                else -> Unit
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -193,3 +158,4 @@ private fun SectionLabel(text: String) {
             .padding(vertical = 4.dp)
     )
 }
+
