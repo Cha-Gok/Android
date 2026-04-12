@@ -27,8 +27,8 @@ fun AppScaffold() {
                 )
             }
         }
-    ) {  paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)){
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
             AppNavHost(navController)
         }
     }

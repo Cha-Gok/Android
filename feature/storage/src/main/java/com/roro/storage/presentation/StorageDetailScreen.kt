@@ -1,5 +1,6 @@
 package com.roro.storage.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,19 +9,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,6 +53,7 @@ fun StorageDetailScreen(
     val context = LocalContext.current
     val uuid = UUID.fromString(folderId)
     val voiceNotes by viewModel.voiceNoteFolderList.collectAsState()
+    var voiceNoteName by rememberSaveable { mutableStateOf("") }
 
     // 추후 디테일 전용 이펙트 생성
     LaunchedEffect(Unit) {
@@ -57,6 +68,18 @@ fun StorageDetailScreen(
         viewModel.observeVoiceNoteByFolder(uuid)
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is StorageEffect.ClearFolderInput -> {
+                    voiceNoteName = ""
+                }
+
+                is StorageEffect.ShowToast -> context.toast(effect.message)
+            }
+        }
+    }
+
     if (uiState.isLoading) {
         Timber.d("로딩 중~")
     }
@@ -67,11 +90,16 @@ fun StorageDetailScreen(
 
     StorageDetailScreenContent(
         navController = navController,
+        voiceNoteName = voiceNoteName,
         folderId = uuid,
+        onFolderNameChange = { voiceNoteName = it },
         voiceNotes = voiceNotes,
         onRemoveVoiceNotes = { ids ->
             viewModel.onIntent(StorageIntent.MoveToTrashVoiceNotes(ids = ids))
-        }
+        },
+        renameVoiceNote = { voiceNote ->
+            viewModel.onIntent(StorageIntent.RenameVoiceNote(voiceNote))
+        },
     )
 }
 
@@ -79,9 +107,13 @@ fun StorageDetailScreen(
 internal fun StorageDetailScreenContent(
     navController: NavController,
     folderId: UUID,
+    voiceNoteName: String,
+    onFolderNameChange: (String) -> Unit,
     voiceNotes: List<VoiceNote>,
-    onRemoveVoiceNotes: (List<UUID>) -> Unit
+    onRemoveVoiceNotes: (List<UUID>) -> Unit,
+    renameVoiceNote: (VoiceNote) -> Unit,
 ) {
+
     val selectedIds = remember(voiceNotes) { mutableStateListOf<UUID>() }
 
     Surface(
@@ -96,6 +128,12 @@ internal fun StorageDetailScreenContent(
             Text("Storage Detail Screen")
 
             Text("Folder UUID: $folderId")
+
+            TextField(
+                value = voiceNoteName,
+                onValueChange = onFolderNameChange,
+                label = { Text("폴더 이름") }
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -116,7 +154,11 @@ internal fun StorageDetailScreenContent(
                             } else {
                                 selectedIds.remove(note.id)
                             }
-                        }
+                        },
+                        renameVoiceNote = { voiceNote ->
+                            renameVoiceNote(voiceNote)
+                        },
+                        voiceNoteName = voiceNoteName
                     )
                 }
             }
@@ -141,9 +183,15 @@ internal fun StorageDetailScreenContent(
 fun VoiceNoteRow(
     title: String,
     id: UUID,
+    voiceNoteName: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    renameVoiceNote: (VoiceNote) -> Unit
 ) {
+    val voiceNote = VoiceNote(
+        id = id,
+        title = title,
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +203,26 @@ fun VoiceNoteRow(
             onCheckedChange = onCheckedChange
         )
 
-        Text(text = "$title (${id})")
+        Text(
+            text = "$title $id",
+            modifier = Modifier.weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Default.Brush,
+            contentDescription = "Rename voice note",
+            tint = Color.Red,
+            modifier = Modifier
+                .size(20.dp)
+                .padding(2.dp)
+                .clickable {
+                    renameVoiceNote(
+                        voiceNote.copy(
+                            title = voiceNoteName
+                        )
+                    )
+                }
+        )
     }
 }
 
@@ -166,8 +233,24 @@ fun StorageDetailScreenPreview() {
         StorageDetailScreenContent(
             navController = rememberNavController(),
             folderId = UUID.fromString("00000000-0000-0000-0000-000000000000"),
-            voiceNotes = emptyList(),
-            onRemoveVoiceNotes = {}
+            voiceNotes = listOf(
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "1"
+                ),
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "2"
+                ),
+                VoiceNote(
+                    id = UUID.randomUUID(),
+                    title = "3"
+                ),
+            ),
+            onFolderNameChange = {},
+            voiceNoteName = "",
+            onRemoveVoiceNotes = {},
+            renameVoiceNote = {},
         )
     }
 }

@@ -2,9 +2,12 @@ package com.roro.core.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
+import com.roro.core.R
 
 /**
  * 기능 설명:
@@ -14,29 +17,118 @@ import androidx.compose.ui.unit.sp
  * @author sehoon
  * @since 2026. 2. 28.
  */
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+val Pretendard = FontFamily(
+    Font(R.font.pretendard_regular, FontWeight.Normal),
+    Font(R.font.pretendard_medium, FontWeight.Medium),
+    Font(R.font.pretendard_bold, FontWeight.Bold)
+)
+
+val ChaGokTypography = Typography(
+    displayLarge = ChaGokTextStyle.Header1,
+    displayMedium = ChaGokTextStyle.Header2,
+    titleLarge = ChaGokTextStyle.Title1,
+    bodyLarge = ChaGokTextStyle.Body1
+)
+
+object ChaGokTextStyle {
+
+    // Headers
+    val Header1 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 28.sp,
+        lineHeight = (28 * 1.3).sp,
+        letterSpacing = 0.em
+    )
+    val Header2 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        lineHeight = (24 * 1.3).sp,
+        letterSpacing = (-0.02).em
+    )
+
+    // Titles
+    val Title1 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        lineHeight = (20 * 1.3).sp,
+        letterSpacing = (-0.02).em
+    )
+
+    val Title2 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = (18 * 1.3).sp,
+        letterSpacing = (-0.02).em
+    )
+
+    val Title3 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.02).em
+    )
+
+    // Subtitles
+    val Subtitle1 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = (18 * 1.5).sp,
+        letterSpacing = 0.em
+    )
+
+    val Subtitle2 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.03).em
+    )
+
+    // Body
+    val Body1 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = (16 * 1.5).sp,
+        letterSpacing = (-0.03).em
     )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+
+    val Body2 = TextStyle(
+        fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 16.sp,
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.03).em
     )
-    */
-)
+
+    val Body3 = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = (15 * 1.5).sp,
+        letterSpacing = (-0.03).em
+    )
+
+    // Label / Caption
+    val Label = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = (15 * 1.3).sp,
+        letterSpacing = (-0.03).em
+    )
+
+    val Caption = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = (14 * 1.3).sp,
+        letterSpacing = (-0.02).em
+    )
+}

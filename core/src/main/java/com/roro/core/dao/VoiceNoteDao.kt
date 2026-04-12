@@ -27,7 +27,8 @@ interface VoiceNoteDao {
         """
         SELECT f.id, f.name, COUNT(v.id) as noteCount
         FROM folder f
-        LEFT JOIN voice_note v ON f.id = v.folderId
+        LEFT JOIN voice_note v ON f.id = v.folderId AND v.deletedAt IS NULL
+        WHERE f.deletedAt IS NULL
         GROUP BY f.id
     """
     )
@@ -54,6 +55,33 @@ ORDER BY createdAt DESC
 """
     )
     fun observeFolderNullVoiceNote(): Flow<List<VoiceNoteEntity>>
+
+
+    // 휴지통 VoiceNote 조회
+    @Query(
+        """
+SELECT vn.* FROM voice_note vn
+LEFT JOIN folder f ON vn.folderId = f.id
+WHERE vn.deletedAt IS NOT NULL
+AND (
+    vn.folderId IS NULL
+    OR f.deletedAt IS NULL
+)
+ORDER BY vn.deletedAt DESC
+"""
+    )
+    fun observeTrashVoiceNotes(): Flow<List<VoiceNoteEntity>>
+
+    // 최근 업데이트된 VoiceNote 상위 5개 조회
+    @Query(
+        """
+SELECT * FROM voice_note
+WHERE deletedAt IS NULL
+ORDER BY updatedAt DESC
+LIMIT 5
+"""
+    )
+    fun observeRecentVoiceNote(): Flow<List<VoiceNoteEntity>>
 
     /**
      * 새 VoiceNote 생성
@@ -151,6 +179,34 @@ WHERE id IN (:noteIds)
     )
     suspend fun restoreVoiceNoteToRoot(
         noteId: UUID,
+        updatedAt: Long
+    )
+
+    // voiceNote 제거
+    @Delete
+    suspend fun removeVoiceNote(voiceNoteEntity: VoiceNoteEntity)
+
+    // 폴더가 있는 voiceNote 제거
+    @Query(
+        """
+DELETE FROM voice_note
+WHERE folderId = :folderId
+"""
+    )
+    suspend fun removeVoiceNotesByFolderId(folderId: UUID)
+
+
+    @Query(
+        """
+UPDATE voice_note
+SET title = :voiceNoteTitle,
+    updatedAt = :updatedAt
+WHERE id = :noteId
+"""
+    )
+    suspend fun renameVoiceNote(
+        noteId: UUID,
+        voiceNoteTitle: String,
         updatedAt: Long
     )
 }

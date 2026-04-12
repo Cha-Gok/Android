@@ -14,6 +14,7 @@ import com.roro.storage.domain.FileRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.String
 
 class FileRepositoryImpl @Inject constructor(
     private val local: LocalFileDataSource,
@@ -41,7 +42,7 @@ class FileRepositoryImpl @Inject constructor(
 
         val voiceNote = VoiceNote(
             id = voiceNoteId,
-            title = "임시 이름",
+            title = now.toString(),
             createdAt = now,
             updatedAt = now,
             folderId = if (folderName.isNullOrBlank()) {
@@ -101,14 +102,8 @@ class FileRepositoryImpl @Inject constructor(
     // 사용자 휴지통 이동 (폴더)
     override suspend fun moveToTrash(folder: Folder) {
         val now = System.currentTimeMillis()
-//        room.moveToTrash(
-//            folder.copy(
-//                deletedAt = now,
-//                updatedAt = now
-//            ).toEntity()
-//        )
         room.moveFolderWithVoiceNotesToTrash(
-            folder.copy(
+            folder = folder.copy(
                 deletedAt = now,
                 updatedAt = now
             ).toEntity()
@@ -121,10 +116,16 @@ class FileRepositoryImpl @Inject constructor(
 
     override suspend fun restoreFromTrash(folder: Folder) {
         room.restoreFolder(
-            folder.copy(
+            folder = folder.copy(
                 deletedAt = null,
                 updatedAt = System.currentTimeMillis()
             ).toEntity()
+        )
+    }
+
+    override suspend fun restoreVoiceNote(voiceNote: VoiceNote) {
+        room.restoreVoiceNote(
+            voiceNote = voiceNote
         )
     }
 
@@ -136,6 +137,10 @@ class FileRepositoryImpl @Inject constructor(
     // 휴지통 폴더 가져오기
     override fun observeTrashFolders(): Flow<List<Folder>> {
         return room.observeTrashFolders()
+    }
+
+    override fun observeTrashVoiceNotes(): Flow<List<VoiceNote>> {
+        return room.observeTrashVoiceNotes()
     }
 
     // 폴더가 가지고 있는 아이템 개수
@@ -150,8 +155,49 @@ class FileRepositoryImpl @Inject constructor(
 
     // 폴더가 있는 voiceNote 조회
     override fun observeVoiceNotesByNoneNullFolder(uuid: UUID): Flow<List<VoiceNote>> {
-        return room.observeNotNullVoiceNote(uuid)
+        return room.observeNotNullVoiceNote(folderId = uuid)
     }
 
+    // 최근 voiceNote 5개
+    override fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
+        return room.observeRecentVoiceNote()
+    }
 
+    override suspend fun removeVoiceNote(voiceNote: VoiceNote) {
+        room.removeVoiceNote(
+            voiceNoteEntity = voiceNote.copy(
+                id = voiceNote.id,
+                title = voiceNote.title,
+            ).toEntity()
+        )
+    }
+
+    override suspend fun removeFolder(folder: Folder) {
+        room.removeFolder(
+            folder = folder.copy(
+                id = folder.id,
+                name = folder.name
+            ).toEntity()
+        )
+    }
+
+    override suspend fun renameFolder(folder: Folder) {
+        room.renameFolder(
+            folder = folder.copy(
+                id = folder.id,
+                name = folder.name,
+                updatedAt = System.currentTimeMillis()
+            ).toEntity()
+        )
+    }
+
+    override suspend fun renameVoiceNote(voiceNote: VoiceNote) {
+        room.renameVoiceNote(
+            voiceNote = voiceNote.copy(
+                id = voiceNote.id,
+                title = voiceNote.title,
+                updatedAt = System.currentTimeMillis()
+            ).toEntity()
+        )
+    }
 }

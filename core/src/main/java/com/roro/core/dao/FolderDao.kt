@@ -96,6 +96,6 @@ interface FolderDao {
 
     // 폴더 완전 삭제
     @Delete
-    suspend fun deleteFolder(folder: FolderEntity)
+    suspend fun removeFolder(folder: FolderEntity)
 
 }

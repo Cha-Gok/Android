@@ -52,6 +52,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":feature:onboarding"))
     implementation(project(":feature:recorder"))
     implementation(project(":feature:storage"))
 

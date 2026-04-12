@@ -93,9 +93,36 @@ class RoomFileDataSource @Inject constructor(
             )
         )
         voiceNoteDao.restoreByFolderId(
-            folder.id,
+            folderId = folder.id,
             updatedAt = now
         )
+    }
+
+    // 원래 폴더가 있으면 해당 폴더로 복구 없으면 루트로 복구
+    suspend fun restoreVoiceNote(voiceNote: VoiceNote) {
+        val now = System.currentTimeMillis()
+        val folderId = voiceNote.folderId
+
+        if (folderId == null) {
+            voiceNoteDao.restoreVoiceNote(
+                noteId = voiceNote.id,
+                updatedAt = now
+            )
+            return
+        }
+
+        val folder = folderDao.getFolder(folderId)
+        if (folder != null) {
+            voiceNoteDao.restoreVoiceNote(
+                noteId = voiceNote.id,
+                updatedAt = now
+            )
+        } else {
+            voiceNoteDao.restoreVoiceNoteToRoot(
+                noteId = voiceNote.id,
+                updatedAt = now
+            )
+        }
     }
 
     // 단일 폴더 조회
@@ -132,6 +159,12 @@ class RoomFileDataSource @Inject constructor(
         }
     }
 
+    // 휴지통 VoiceNotes 목록 조회
+    fun observeTrashVoiceNotes(): Flow<List<VoiceNote>> {
+        return voiceNoteDao.observeTrashVoiceNotes()
+            .map { list -> list.map { it.toModel() } }
+    }
+
     // 각 폴더별 아이템 개수
     fun observeFolderItemCount(): Flow<List<FolderWithNoteCount>> {
         return voiceNoteDao.observeFolderNoteCount()
@@ -149,6 +182,11 @@ class RoomFileDataSource @Inject constructor(
             .map { list -> list.map { it.toModel() } }
     }
 
+    // 최근 voiceNote 5개 조회
+    fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
+        return voiceNoteDao.observeRecentVoiceNote().map { list -> list.map { it.toModel() } }
+    }
+
     // 폴더 이름 변경
     suspend fun renameFolder(
         folderId: UUID,
@@ -159,7 +197,32 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더 완전 삭제
-    suspend fun deleteFolder(folder: FolderEntity) {
-        folderDao.deleteFolder(folder)
+    suspend fun removeFolder(folder: FolderEntity) {
+        folderDao.removeFolder(folder)
+        voiceNoteDao.removeVoiceNotesByFolderId(folder.id)
     }
+
+    // voiceNote 제거
+    suspend fun removeVoiceNote(voiceNoteEntity: VoiceNoteEntity) {
+        voiceNoteDao.removeVoiceNote(voiceNoteEntity)
+    }
+
+    // 폴더 이름 변경
+    suspend fun renameFolder(folder: FolderEntity) {
+        folderDao.renameFolder(
+            folderId = folder.id,
+            name = folder.name,
+            updatedAt = folder.updatedAt
+        )
+    }
+
+    // VoiceNote 이름 변경
+    suspend fun renameVoiceNote(voiceNote: VoiceNoteEntity) {
+        voiceNoteDao.renameVoiceNote(
+            noteId = voiceNote.id,
+            voiceNoteTitle = voiceNote.title,
+            updatedAt = voiceNote.updatedAt
+        )
+    }
+
 }
