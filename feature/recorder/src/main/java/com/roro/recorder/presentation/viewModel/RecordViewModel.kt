@@ -50,6 +50,8 @@ import com.roro.recorder.domain.usecase.SaveRecordingUseCase
 import com.roro.recorder.domain.usecase.SummarizeTextUseCase
 import com.roro.recorder.domain.usecase.TranscribeAudioUseCase
 import dagger.hilt.android.internal.Contexts.getApplication
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
@@ -83,6 +85,10 @@ class RecordViewModel @Inject constructor(
     // 언어 선택 (기본: 한국어)
     private val _selectedLocale = MutableStateFlow(Locale("ko", "KR"))
     val selectedLocale: StateFlow<Locale> = _selectedLocale.asStateFlow()
+
+
+    private val _navigationEvent = MutableSharedFlow<String>() // voiceNoteId 전달
+    val navigationEvent = _navigationEvent.asSharedFlow()
 
     fun setLocale(locale: Locale) {
         _selectedLocale.value = locale
@@ -135,7 +141,7 @@ class RecordViewModel @Inject constructor(
 
                 // 5. 한번에 DB 저장
                 val durationSec = file.length() / (16000.0 * 2)
-                saveRecordingUseCase(
+                val voiceNoteId = saveRecordingUseCase(
                     audioFile = file,
                     durationSec = durationSec,
                     sttText = sttText,
@@ -147,6 +153,8 @@ class RecordViewModel @Inject constructor(
                 Timber.tag(TAG).d("💾 DB 저장 완료")
 
                 _state.value = RecordState.Success(sttText)
+                //_state.value = RecordState.Success(sttText)
+                _navigationEvent.emit(voiceNoteId.toString()) // ← 완료 후 ResultScreen으로
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "❌ 실패")

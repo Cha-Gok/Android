@@ -84,5 +84,8 @@ dependencies {
     // 번역 관련
     implementation("com.google.mlkit:translate:17.0.3")
 
+    // 아이콘
+    implementation("androidx.compose.material:material-icons-extended")
+
 
 }
