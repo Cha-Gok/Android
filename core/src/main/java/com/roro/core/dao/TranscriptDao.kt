@@ -24,4 +24,16 @@ interface TranscriptDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(transcript: TranscriptEntity)
 
+    /**
+     * voiceNoteId로 전사문 단건 조회
+     */
+    @Query("SELECT * FROM transcript WHERE voiceNoteId = :voiceNoteId LIMIT 1")
+    suspend fun getByVoiceNoteId(voiceNoteId: UUID): TranscriptEntity?
+
+    /**
+     * 전사문 업데이트 (STT 결과 갱신)
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(transcript: TranscriptEntity)
+
 }
