@@ -4,6 +4,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.roro.core.navigation.Routes
+import com.roro.recorder.presentation.screen.RecordResultScreen
 import com.roro.recorder.presentation.screen.RecorderDetailScreen
 import com.roro.recorder.presentation.screen.RecorderScreen
 
@@ -33,5 +34,11 @@ fun NavGraphBuilder.recorderGraph(
     composable(Routes.RECORD_DETAIL) { backStackEntry ->
         val fileId = backStackEntry.arguments?.getString("fileId").orEmpty()
         RecorderDetailScreen(navController = navController,fileId =fileId)
+    }
+
+    // 녹음 결과 화면
+    composable(Routes.RECORD_RESULT) { backStackEntry ->
+        val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
+        RecordResultScreen(navController = navController, voiceNoteId = voiceNoteId)
     }
 }

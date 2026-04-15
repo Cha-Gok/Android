@@ -44,7 +44,7 @@ class RecordRepositoryImpl @Inject constructor(
         summaryText: String, // 요약 결과 텍스트
         keywords: List<String>, // 추출된 키워드 목록
         folderId: UUID? // 저장할 폴더 ID (null이면 기본 폴더)
-    ) {
+    ): UUID {  // Unit → UUID 추가
         val now = System.currentTimeMillis()
         val voiceNoteId = UUID.randomUUID()
 
@@ -107,7 +107,8 @@ class RecordRepositoryImpl @Inject constructor(
                 }
             )
         }
-    }
 
+        return voiceNoteId  // ← 추가
+    }
 
 }

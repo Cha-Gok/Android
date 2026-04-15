@@ -1,5 +1,8 @@
 package com.roro.recorder.presentation.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,19 +17,25 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -47,6 +56,26 @@ fun RecorderScreen(
     navController: NavController,
     viewModel: RecordViewModel = hiltViewModel()
 ) {
+
+    // ------------------------------------ 테스트용 파일 ㅇ넣기
+    var pickedUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        pickedUri = uri
+        uri?.let { viewModel.startTranscribeFromUri(it, context.applicationContext) }
+    }
+    // navigationEvent 수신 → ResultScreen 이동
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { voiceNoteId ->
+            navController.navigate(Routes.recordResult(voiceNoteId))
+        }
+    }
+    //-----------------------------------------------------------------
+
+
 
     var showDropdown by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -82,9 +111,24 @@ fun RecorderScreen(
                 )
             },
             floatingActionButton = {
-                ChagokStartRecordFAB(
-                    onClick = { navController.navigate(Routes.RECORD_DETAIL) }
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 임시 테스트 버튼
+                    Button(
+                        onClick = { filePicker.launch("audio/*") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3D3D4E)
+                        )
+                    ) {
+                        Text("파일 STT 테스트", color = Color.White, fontSize = 12.sp)
+                    }
+
+                    ChagokStartRecordFAB(
+                        onClick = { navController.navigate(Routes.RECORD_DETAIL) }
+                    )
+                }
             }
         ) { paddingValues ->
 

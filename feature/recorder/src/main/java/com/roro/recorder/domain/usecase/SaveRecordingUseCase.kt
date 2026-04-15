@@ -15,8 +15,8 @@ class SaveRecordingUseCase @Inject constructor(
         summaryText: String,
         keywords: List<String>,
         folderId: UUID? = null
-    ) {
-        repository.saveRecording(
+    ): UUID {  // Unit → UUID
+        return repository.saveRecording(
             audioFile = audioFile,
             durationSec = durationSec,
             sttText = sttText,

@@ -47,6 +47,7 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.roro.recorder.data.datasource.RecordDataSource
 import com.roro.recorder.domain.usecase.ExtractKeywordsUseCase
 import com.roro.recorder.domain.usecase.SaveRecordingUseCase
+import com.roro.recorder.domain.usecase.SummarizeTextSimpleUseCase
 import com.roro.recorder.domain.usecase.SummarizeTextUseCase
 import com.roro.recorder.domain.usecase.TranscribeAudioUseCase
 import dagger.hilt.android.internal.Contexts.getApplication
@@ -62,7 +63,8 @@ class RecordViewModel @Inject constructor(
     private val recordDataSource: RecordDataSource,
     private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val saveRecordingUseCase: SaveRecordingUseCase,
-    private val summarizeTextUseCase: SummarizeTextUseCase,
+    //private val summarizeTextUseCase: SummarizeTextUseCase, // 다시
+    private val summarizeTextUseCase: SummarizeTextSimpleUseCase,
     private val extractKeywordsUseCase: ExtractKeywordsUseCase,
 ) : ViewModel() {
 

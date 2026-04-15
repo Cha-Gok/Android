@@ -19,6 +19,5 @@ interface RecordRepository {
         summaryText: String,
         keywords: List<String>,
         folderId: UUID? = null
-    )
-
+    ): UUID  // Unit → UUID
 }

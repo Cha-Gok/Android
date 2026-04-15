@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,8 +21,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.roro.core.navigation.Routes
 import com.roro.core.ui.component.ChaGokBackground
+import com.roro.core.ui.component.ChagokDialog
 import com.roro.recorder.presentation.RecordViewModel
+import com.roro.recorder.presentation.uiState.RecordState
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -33,16 +37,31 @@ fun RecorderDetailScreen(
     viewModel: RecordViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    // 타이머
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var isRunning by remember { mutableStateOf(true) }
+    var showStopDialog by remember { mutableStateOf(false) }
 
+
+    // 타이머
     LaunchedEffect(isRunning) {
         while (isRunning) {
             delay(1000L)
             elapsedSeconds++
         }
+    }
+
+    // 녹음 완료 → ResultScreen 이동
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { voiceNoteId ->
+            navController.navigate(Routes.recordResult(voiceNoteId)) {
+                popUpTo(Routes.RECORD_DETAIL) { inclusive = true }
+            }
+        }
+    }
+
+    // 화면 진입 시 녹음 시작
+    LaunchedEffect(Unit) {
+        viewModel.startRecording()
     }
 
     val hours = elapsedSeconds / 3600
@@ -52,6 +71,12 @@ fun RecorderDetailScreen(
 
     val now = remember {
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd · a hh:mm"))
+    }
+
+    // 로딩 중이면 로딩 화면
+    if (state == RecordState.Processing) {
+        RecordingLoadingScreen()
+        return
     }
 
     ChaGokBackground {
@@ -80,7 +105,9 @@ fun RecorderDetailScreen(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable {
-                        viewModel.stopRecording()
+                        isRunning = false
+                        showStopDialog = true
+                        //viewModel.stopRecording()
                         //navController.popBackStack()
                     }
                 )
@@ -135,8 +162,39 @@ fun RecorderDetailScreen(
         }
     }
 
-    // 화면 진입 시 녹음 시작
-    LaunchedEffect(Unit) {
-        viewModel.startRecording()
+    // 종료 다이얼로그
+    if (showStopDialog) {
+        ChagokDialog(
+            title = "녹음을 종료하고 저장할까요?",
+            description = "지금까지 녹음한 내용이 기록됩니다.",
+            dismissText = "아니오",
+            confirmText = "저장 후 종료",
+            onDismiss = {
+                showStopDialog = false
+                isRunning = true
+            },
+            onConfirm = {
+                showStopDialog = false
+                viewModel.stopRecording()
+            }
+        )
+    }
+}
+
+@Composable
+private fun RecordingLoadingScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator(color = Color(0xFF9B7FD4))
+            Text(text = "기록 요약이 진행중입니다...", color = Color.White, fontSize = 16.sp)
+        }
     }
 }
