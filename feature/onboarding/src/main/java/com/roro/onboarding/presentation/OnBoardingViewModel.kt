@@ -56,9 +56,16 @@ class OnBoardingViewModel @Inject constructor(
             }
 
             OnboardingIntent.ClickNext -> {
-                val nextPage = uiState.value.currentPage + 1
-                Timber.d("Onboarding onIntent: ClickNext, currentPage=${uiState.value.currentPage}, nextPage=$nextPage")
-                emitEffect(OnboardingEffect.ScrollToPage(nextPage))
+                val currentPage = uiState.value.currentPage
+                val nextPage = currentPage + 1
+                Timber.d("Onboarding onIntent: ClickNext, currentPage=$currentPage, nextPage=$nextPage")
+
+                if (currentPage == 2) {
+                    Timber.d("Onboarding requesting audio permission on page 2")
+                    emitEffect(OnboardingEffect.RequestAudioPermission)
+                } else {
+                    emitEffect(OnboardingEffect.ScrollToPage(nextPage))
+                }
             }
 
             OnboardingIntent.ClickBack -> {
