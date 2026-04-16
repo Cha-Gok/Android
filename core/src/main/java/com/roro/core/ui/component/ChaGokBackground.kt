@@ -1,11 +1,13 @@
 package com.roro.core.ui.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,10 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.roro.core.R
 import com.roro.core.ui.theme.Gray50
 
 @Composable
@@ -26,6 +32,17 @@ fun ChaGokBackground(
     content: @Composable () -> Unit
 ) {
     Box(
+        modifier = modifier.fillMaxSize()
+    ){
+        Image(
+            painter = painterResource(id = R.drawable.bg_original),
+            contentDescription = "배경화면",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        content()
+    }
+   /* Box(
         modifier = modifier
             .fillMaxSize()
             .background(Gray50) // 기본 배경색 (매우 밝은 회색)
@@ -75,9 +92,15 @@ fun ChaGokBackground(
                 )
         )
 
-        // 실제 컨텐츠 레이어
-        content()
-    }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 34.dp)
+        ) {
+            // 실제 컨텐츠 레이어
+            content()
+        }
+    }*/
 }
 
 @Preview(showBackground = true, widthDp = 390, heightDp = 844)
