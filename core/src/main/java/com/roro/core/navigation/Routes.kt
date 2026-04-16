@@ -24,4 +24,8 @@ object Routes {
     const val RECORD_DETAIL = "recoder/detail/{fileId}"
     fun recorderDetail(fileId: String) = "recoder/detail/$fileId"
 
+    // 녹음 결과 화면 추가
+    const val RECORD_RESULT = "record/result/{voiceNoteId}"
+    fun recordResult(voiceNoteId: String) = "record/result/$voiceNoteId"
+
 }

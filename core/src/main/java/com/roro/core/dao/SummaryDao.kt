@@ -24,4 +24,11 @@ interface SummaryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(summary: SummaryEntity)
 
+    //0414 추가
+    /**
+     * 요약문 불러오기
+     */
+    @Query("SELECT * FROM summary WHERE voiceNoteId = :voiceNoteId LIMIT 1")
+    suspend fun getByVoiceNoteId(voiceNoteId: UUID): SummaryEntity?
+
 }

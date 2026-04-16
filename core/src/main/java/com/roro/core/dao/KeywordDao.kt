@@ -30,4 +30,8 @@ interface KeywordDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(keywords: List<KeywordEntity>)
 
+    // 추가
+    @Query("SELECT * FROM keyword WHERE voiceNoteId = :voiceNoteId")
+    suspend fun getByVoiceNoteId(voiceNoteId: UUID): List<KeywordEntity>
+
 }
