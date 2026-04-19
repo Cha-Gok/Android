@@ -243,7 +243,7 @@ class RecordViewModel @Inject constructor(
 
                 // DB 저장
                 val durationSec = tmpFile.length() / (16000.0 * 2)
-                saveRecordingUseCase(
+                val voiceNoteId = saveRecordingUseCase(  // ✅ val로 받기
                     audioFile = tmpFile,
                     durationSec = durationSec,
                     sttText = sttText,
@@ -252,6 +252,7 @@ class RecordViewModel @Inject constructor(
                     folderId = null
                 )
                 Timber.tag(TAG).d("💾 DB 저장 완료")
+                _navigationEvent.emit(voiceNoteId.toString())  // ✅ 추가
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "🎤 URI STT 실패")
