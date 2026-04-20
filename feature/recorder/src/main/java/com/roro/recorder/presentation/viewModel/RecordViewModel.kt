@@ -117,53 +117,69 @@ class RecordViewModel @Inject constructor(
     /**
      * 녹음 종료 → STT → 저장 → 요약
      */
+    private var lastAudioFile: File? = null  // 파일 보관용
+
     fun stopRecording(folderId: UUID? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. 녹음 종료
                 val file = recordDataSource.stopRecording()
+                lastAudioFile = file  // ← 파일 저장
                 _state.value = RecordState.Processing
-                Timber.tag(TAG).d("🛑 녹음 종료")
-
-                // 2. STT
-                _sttResult.value = "인식 중..."
-                val sttText = transcribeAudioUseCase(file, _selectedLocale.value)
-                _sttResult.value = sttText
-                Timber.tag(TAG).d("🎤 STT 완료: $sttText")
-
-                // 4. 키워드 추출 (DB 저장 전)
-                val keywords = extractKeywordsUseCase(sttText)
-                Timber.tag(TAG).d("🔑 키워드 추출 완료: $keywords")
-
-                // 3. 요약
-                _summarizeState.value = SummarizeState.Loading
-                val summary = summarizeTextUseCase(sttText)
-                _summarizeState.value = SummarizeState.Success(summary)
-                Timber.tag(TAG).d("🤖 요약 완료: $summary")
-
-                // 5. 한번에 DB 저장
-                val durationSec = file.length() / (16000.0 * 2)
-                val voiceNoteId = saveRecordingUseCase(
-                    audioFile = file,
-                    durationSec = durationSec,
-                    sttText = sttText,
-                    summaryText = summary,
-                    keywords = keywords,
-                    folderId = folderId
-                )
-
-                Timber.tag(TAG).d("💾 DB 저장 완료")
-
-                _state.value = RecordState.Success(sttText)
-                //_state.value = RecordState.Success(sttText)
-                _navigationEvent.emit(voiceNoteId.toString()) // ← 완료 후 ResultScreen으로
-
+                processAudio(file, folderId)
             } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "❌ 실패")
-                _state.value = RecordState.Error(e.message ?: "실패")
-                _summarizeState.value = SummarizeState.Error(e.message ?: "요약 실패")
+                Timber.tag(TAG).e(e, "❌ 녹음 종료 실패")
+                _state.value = RecordState.Error(e.message ?: "녹음 종료 실패")
             }
         }
+    }
+
+    // STT ~ DB저장 로직을 별도 함수로 분리
+    private suspend fun processAudio(file: File, folderId: UUID? = null) {
+        try {
+            val sttText = transcribeAudioUseCase(file, _selectedLocale.value)
+            _sttResult.value = sttText
+
+            val keywords = extractKeywordsUseCase(sttText)
+
+            _summarizeState.value = SummarizeState.Loading
+            val summary = summarizeTextUseCase(sttText)
+            _summarizeState.value = SummarizeState.Success(summary)
+
+            val durationSec = file.length() / (16000.0 * 2)
+            val voiceNoteId = saveRecordingUseCase(
+                audioFile = file,
+                durationSec = durationSec,
+                sttText = sttText,
+                summaryText = summary,
+                keywords = keywords,
+                folderId = folderId
+            )
+
+            _state.value = RecordState.Success(sttText)
+            _navigationEvent.emit(voiceNoteId.toString())
+
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "❌ 처리 실패")
+            _state.value = RecordState.Error(e.message ?: "처리 실패")
+            _summarizeState.value = SummarizeState.Error(e.message ?: "요약 실패")
+        }
+    }
+
+    // 재시도 - 저장된 파일로 다시 처리
+    fun retry(folderId: UUID? = null) {
+        val file = lastAudioFile ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.value = RecordState.Processing
+            processAudio(file, folderId)
+        }
+    }
+
+    fun pauseRecording() {
+        recordDataSource.pauseRecording()
+    }
+
+    fun resumeRecording() {
+        recordDataSource.resumeRecording()
     }
 
     /**
@@ -243,7 +259,7 @@ class RecordViewModel @Inject constructor(
 
                 // DB 저장
                 val durationSec = tmpFile.length() / (16000.0 * 2)
-                saveRecordingUseCase(
+                val voiceNoteId = saveRecordingUseCase(  // ✅ val로 받기
                     audioFile = tmpFile,
                     durationSec = durationSec,
                     sttText = sttText,
@@ -252,6 +268,7 @@ class RecordViewModel @Inject constructor(
                     folderId = null
                 )
                 Timber.tag(TAG).d("💾 DB 저장 완료")
+                _navigationEvent.emit(voiceNoteId.toString())  // ✅ 추가
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "🎤 URI STT 실패")

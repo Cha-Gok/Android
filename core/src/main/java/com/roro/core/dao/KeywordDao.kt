@@ -1,10 +1,13 @@
 package com.roro.core.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.roro.core.entity.KeywordEntity
+import com.roro.core.entity.VoiceNoteEntity
 import java.util.UUID
 
 /**
@@ -30,8 +33,14 @@ interface KeywordDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(keywords: List<KeywordEntity>)
 
-    // 추가
+    // 키워드 가져오기
     @Query("SELECT * FROM keyword WHERE voiceNoteId = :voiceNoteId")
     suspend fun getByVoiceNoteId(voiceNoteId: UUID): List<KeywordEntity>
+
+    /**
+     * voiceNoteId에 해당하는 키워드 전체 삭제 (재생성 시 기존 키워드 제거용)
+     */
+    @Query("DELETE FROM keyword WHERE voiceNoteId = :voiceNoteId")
+    suspend fun deleteByVoiceNoteId(voiceNoteId: UUID)
 
 }

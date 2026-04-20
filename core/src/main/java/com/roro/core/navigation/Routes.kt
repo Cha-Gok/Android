@@ -28,4 +28,12 @@ object Routes {
     const val RECORD_RESULT = "record/result/{voiceNoteId}"
     fun recordResult(voiceNoteId: String) = "record/result/$voiceNoteId"
 
+    // 스크립트 편집 화면
+    const val SCRIPT_EDIT = "record/script-edit/{voiceNoteId}"
+    fun scriptEdit(voiceNoteId: String) = "record/script-edit/$voiceNoteId"
+
+    // 검색 화면
+    const val SEARCH = "record/search/{voiceNoteId}"
+    fun search(voiceNoteId: String) = "record/search/$voiceNoteId"
+
 }

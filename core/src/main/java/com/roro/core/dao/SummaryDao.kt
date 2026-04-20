@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
+import com.roro.core.entity.KeywordEntity
 import com.roro.core.entity.SummaryEntity
 import java.util.UUID
 
@@ -30,5 +32,11 @@ interface SummaryDao {
      */
     @Query("SELECT * FROM summary WHERE voiceNoteId = :voiceNoteId LIMIT 1")
     suspend fun getByVoiceNoteId(voiceNoteId: UUID): SummaryEntity?
+
+    /**
+     * 요약문 텍스트 업데이트 (재생성 시 사용)
+     */
+    @Query("UPDATE summary SET text = :text WHERE voiceNoteId = :voiceNoteId")
+    suspend fun updateText(voiceNoteId: UUID, text: String)
 
 }

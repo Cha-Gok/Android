@@ -1,9 +1,10 @@
 package com.roro.recorder.domain.usecase
 
-import com.roro.core.dao.VoiceNoteDao
-import com.roro.core.dao.TranscriptDao
-import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.KeywordDao
+import com.roro.core.dao.SummaryDao
+import com.roro.core.dao.TranscriptDao
+import com.roro.core.dao.VoiceNoteDao
+import com.roro.core.dao.VoiceRecordDao
 import java.util.UUID
 import javax.inject.Inject
 
@@ -11,17 +12,23 @@ data class VoiceNoteResult(
     val title: String,
     val sttText: String,
     val summaryText: String,
-    val keywords: List<String>
+    val keywords: List<String>,
+    val audioPath: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val durationSec: Double  // ✅ 추가 - VoiceRecordEntity.durationSec
 )
 
 class GetVoiceNoteUseCase @Inject constructor(
     private val voiceNoteDao: VoiceNoteDao,
+    private val voiceRecordDao: VoiceRecordDao,
     private val transcriptDao: TranscriptDao,
     private val summaryDao: SummaryDao,
     private val keywordDao: KeywordDao,
 ) {
     suspend operator fun invoke(voiceNoteId: UUID): VoiceNoteResult? {
         val voiceNote = voiceNoteDao.getNote(voiceNoteId) ?: return null
+        val voiceRecord = voiceRecordDao.getByVoiceNoteId(voiceNoteId)
         val transcript = transcriptDao.getByVoiceNoteId(voiceNoteId)
         val summary = summaryDao.getByVoiceNoteId(voiceNoteId)
         val keywords = keywordDao.getByVoiceNoteId(voiceNoteId)
@@ -30,7 +37,11 @@ class GetVoiceNoteUseCase @Inject constructor(
             title = voiceNote.title,
             sttText = transcript?.text.orEmpty(),
             summaryText = summary?.text.orEmpty(),
-            keywords = keywords.map { it.word }
+            keywords = keywords.map { it.word },
+            audioPath = voiceRecord?.audioPath.orEmpty(),
+            createdAt = voiceNote.createdAt,
+            updatedAt = voiceNote.updatedAt,
+            durationSec = voiceRecord?.durationSec ?: 0.0
         )
     }
 }

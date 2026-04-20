@@ -1,5 +1,8 @@
 package com.roro.recorder.navigation
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -7,6 +10,9 @@ import com.roro.core.navigation.Routes
 import com.roro.recorder.presentation.screen.RecordResultScreen
 import com.roro.recorder.presentation.screen.RecorderDetailScreen
 import com.roro.recorder.presentation.screen.RecorderScreen
+import com.roro.recorder.presentation.screen.ScriptEditScreen
+import com.roro.recorder.presentation.screen.SearchResultScreen
+import com.roro.recorder.presentation.viewModel.RecordResultViewModel
 
 /**
  * 기능 설명:
@@ -41,4 +47,40 @@ fun NavGraphBuilder.recorderGraph(
         val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
         RecordResultScreen(navController = navController, voiceNoteId = voiceNoteId)
     }
+
+    // 스크립트 편집 화면 ✅
+    composable(Routes.SCRIPT_EDIT) { backStackEntry ->
+        val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
+
+        val parentEntry = remember(backStackEntry) {
+            navController.getBackStackEntry(Routes.recordResult(voiceNoteId))
+        }
+        val recordResultViewModel: RecordResultViewModel = hiltViewModel(parentEntry)
+
+        ScriptEditScreen(
+            navController = navController,
+            voiceNoteId = voiceNoteId,
+            onScriptSaved = { recordResultViewModel.onScriptSaved() }
+        )
+    }
+
+    // 검색 화면
+    composable(Routes.SEARCH) { backStackEntry ->
+        val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
+
+        val parentEntry = remember(backStackEntry) {
+            navController.getBackStackEntry(Routes.recordResult(voiceNoteId))
+        }
+        val recordResultViewModel: RecordResultViewModel = hiltViewModel(parentEntry)
+        val uiState = recordResultViewModel.uiState.collectAsState()
+        val result = (uiState.value as? com.roro.recorder.presentation.viewModel.RecordResultUiState.Success)?.result
+
+        SearchResultScreen(
+            navController = navController,
+            summaryText = result?.summaryText.orEmpty(),
+            sttText = result?.sttText.orEmpty(),
+            onSeek = { recordResultViewModel.seekTo(it) }
+        )
+    }
 }
+

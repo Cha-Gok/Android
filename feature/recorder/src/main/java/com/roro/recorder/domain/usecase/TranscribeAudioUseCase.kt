@@ -18,7 +18,7 @@ import javax.inject.Inject
  * 기능 설명:
  * - 음성 파일을 텍스트로 변환하는 UseCase (STT)
  * - WAV 파일을 청크로 분할 후 MLKit SpeechRecognition으로 순차 인식
- * - 청크별 결과를 합쳐 전체 텍스트 반환
+ * - 청크별 결과를 \n으로 구분해 반환 → index * 6000ms = startTimeMs 계산 가능
  *
  * @author hyeonseo
  * @since 2026. 04. 12.
@@ -28,41 +28,29 @@ class TranscribeAudioUseCase @Inject constructor() {
     /**
      * 음성 파일 STT 변환
      * - WAV 파일을 청크로 분할 후 순차적으로 STT 처리
+     * - 청크 구분자: \n (index * 6000ms = startTimeMs)
      * - 처리 완료된 청크 파일은 즉시 삭제
      *
      * @param file STT 변환할 WAV 파일
      * @param value 인식 언어 Locale
-     * @return 전체 인식된 텍스트
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
+     * @return 청크별 결과를 \n으로 구분한 전체 텍스트
      */
     suspend operator fun invoke(file: File, value: Locale): String {
         val chunks = splitWavFileToChunks(file, chunkSeconds = 6)
-        val fullText = StringBuilder()
+        val results = mutableListOf<String>()
 
         chunks.forEachIndexed { index, chunkFile ->
             Timber.d("🎤 청크 ${index + 1}/${chunks.size} 처리 중")
             val result = recognizeChunk(chunkFile)
-            if (result.isNotBlank()) fullText.append(result).append(" ")
+            if (result.isNotBlank()) results.add(result)  // ✅ 빈 청크는 제외
             chunkFile.delete()
         }
 
-        return fullText.toString().trim()
+        return results.joinToString("\n")  // ✅ \n으로 구분 (index * 6000ms = startTimeMs)
     }
 
     /**
      * 청크 파일 단위 STT 인식
-     * - MLKit SpeechRecognizer로 청크 파일 인식
-     * - 인식 불가 상태이거나 실패 시 빈 문자열 반환
-     *
-     * @param chunkFile 인식할 청크 WAV 파일
-     * @return 인식된 텍스트, 실패 시 빈 문자열
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
      */
     private suspend fun recognizeChunk(chunkFile: File): String {
         var speechRecognizer: SpeechRecognizer? = null
@@ -102,16 +90,6 @@ class TranscribeAudioUseCase @Inject constructor() {
 
     /**
      * WAV 파일을 청크 단위로 분할
-     * - WAV 헤더에서 sampleRate, byteRate, blockAlign 파싱
-     * - chunkSeconds 단위로 PCM 데이터 분할 후 각각 WAV 파일로 저장
-     *
-     * @param file 분할할 WAV 파일
-     * @param chunkSeconds 청크 길이 (초)
-     * @return 분할된 청크 WAV 파일 목록
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
      */
     private fun splitWavFileToChunks(file: File, chunkSeconds: Int): List<File> {
         val wavBytes = file.readBytes()
@@ -137,15 +115,6 @@ class TranscribeAudioUseCase @Inject constructor() {
 
     /**
      * WAV 헤더 생성
-     *
-     * @param dataSize PCM 데이터 크기 (byte)
-     * @param sampleRate 샘플링 레이트 (Hz)
-     * @param blockAlign 블록 정렬 크기
-     * @return 44바이트 WAV 헤더
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
      */
     private fun buildWavHeader(dataSize: Int, sampleRate: Int, blockAlign: Short): ByteArray {
         val byteRate = sampleRate * blockAlign
