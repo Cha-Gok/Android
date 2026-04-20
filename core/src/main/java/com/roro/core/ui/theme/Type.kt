@@ -6,7 +6,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.em
 import com.roro.core.R
 
 /**
@@ -147,15 +146,16 @@ object ChaGokTextStyle {
         fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 28.sp,
-        lineHeight = 1.3.em,   // 28 * 1.3 = 36.4sp
-        letterSpacing = 0.em
+
+        lineHeight = (28 * 1.3).sp,
+        letterSpacing = 0.sp
     )
     val Header2 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        lineHeight = 1.3.em,   // 24 * 1.3 = 31.2sp
-        letterSpacing = (-0.02).em
+        lineHeight = (24 * 1.3).sp,
+        letterSpacing = (-0.02).sp
     )
 
     // Titles
@@ -163,22 +163,22 @@ object ChaGokTextStyle {
         fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
-        lineHeight = 1.3.em,   // 20 * 1.3 = 26sp
-        letterSpacing = (-0.02).em
+        lineHeight = (20 * 1.3).sp,
+        letterSpacing = (-0.02).sp
     )
     val Title2 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
-        lineHeight = 1.3.em,   // 18 * 1.3 = 23.4sp
-        letterSpacing = (-0.02).em
+        lineHeight = (18 * 1.3).sp,
+        letterSpacing = (-0.02).sp
     )
     val Title3 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
-        lineHeight = 1.3.em,   // 16 * 1.3 = 20.8sp
-        letterSpacing = (-0.02).em
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.02).sp
     )
 
     // Subtitles
@@ -186,15 +186,15 @@ object ChaGokTextStyle {
         fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp,
-        lineHeight = 1.5.em,   // 18 * 1.5 = 27sp
-        letterSpacing = 0.em
+        lineHeight = (18 * 1.5).sp,
+        letterSpacing = 0.sp
     )
     val Subtitle2 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
-        lineHeight = 1.3.em,   // 16 * 1.3 = 20.8sp
-        letterSpacing = (-0.03).em
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.03).sp
     )
 
     // Body
@@ -202,22 +202,22 @@ object ChaGokTextStyle {
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 1.5.em,   // 16 * 1.5 = 24sp
-        letterSpacing = (-0.03).em
+        lineHeight = (16 * 1.5).sp,
+        letterSpacing = (-0.03).sp
     )
     val Body2 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 1.3.em,   // 16 * 1.3 = 20.8sp
-        letterSpacing = (-0.03).em
+        lineHeight = (16 * 1.3).sp,
+        letterSpacing = (-0.03).sp
     )
     val Body3 = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        lineHeight = 1.5.em,   // 15 * 1.5 = 22.5sp
-        letterSpacing = (-0.03).em
+        lineHeight = (15 * 1.5).sp,
+        letterSpacing = (-0.03).sp
     )
 
     // Label / Caption
@@ -225,14 +225,14 @@ object ChaGokTextStyle {
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        lineHeight = 1.3.em,   // 15 * 1.3 = 19.5sp
-        letterSpacing = (-0.03).em
+        lineHeight = (15 * 1.3).sp,
+        letterSpacing = (-0.03).sp
     )
     val Caption = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 1.3.em,   // 14 * 1.3 = 18.2sp
-        letterSpacing = (-0.02).em
+        lineHeight = (14 * 1.3).sp,
+        letterSpacing = (-0.02).sp
     )
 }
