@@ -127,7 +127,7 @@ fun ChaGokAudioPlayer(
                     .height(52.dp)
                     .clip(RoundedCornerShape(50.dp))
                     .background(Color(0xFF764ACF))
-                    .pointerInput(Unit) {
+                    .pointerInput(isPlaying) {
                         detectTapGestures(onTap = {
                             if (isPlaying) onPause() else onPlay()
                         })

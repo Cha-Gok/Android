@@ -88,16 +88,18 @@ class RecordResultViewModel @Inject constructor(
         }
     }
 
-    // ✅ 재생 위치 100ms마다 업데이트, isActive로 코루틴 종료 시 자동 중단
+    // 재생 위치 100ms마다 업데이트, isActive로 코루틴 종료 시 자동 중단
     private fun startPositionUpdater() {
         viewModelScope.launch(Dispatchers.Main) {
             while (isActive) {
-                val player = exoPlayer ?: break
-                _playerUiState.value = PlayerUiState(
-                    currentPositionMs = player.currentPosition,
-                    durationMs = player.duration.coerceAtLeast(0L),
-                    isPlaying = player.isPlaying
-                )
+                val player = exoPlayer
+                if (player != null) {
+                    _playerUiState.value = PlayerUiState(
+                        currentPositionMs = player.currentPosition,
+                        durationMs = player.duration.coerceAtLeast(0L),
+                        isPlaying = player.isPlaying
+                    )
+                }
                 delay(100L)
             }
         }

@@ -1,5 +1,6 @@
 package com.roro.recorder.presentation.screen
 
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,15 @@ import com.roro.recorder.presentation.uiState.RecordState
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun RecorderDetailScreen(
@@ -40,7 +50,7 @@ fun RecorderDetailScreen(
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var isRunning by remember { mutableStateOf(true) }
     var showStopDialog by remember { mutableStateOf(false) }
-
+    var isNavigating by remember { mutableStateOf(false) }
 
     // 타이머
     LaunchedEffect(isRunning) {
@@ -48,6 +58,21 @@ fun RecorderDetailScreen(
             delay(1000L)
             elapsedSeconds++
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { voiceNoteId ->
+            isNavigating = true
+            navController.navigate(Routes.recordResult(voiceNoteId)) {
+                popUpTo(Routes.RECORD_DETAIL) { inclusive = true }
+            }
+        }
+    }
+
+    // 로딩 or 네비게이팅 중이면 스켈레톤 유지
+    if (state == RecordState.Processing || isNavigating) {
+        RecordingLoadingScreen()
+        return
     }
 
     // 녹음 완료 → ResultScreen 이동
@@ -64,6 +89,21 @@ fun RecorderDetailScreen(
         viewModel.startRecording()
     }
 
+    // 예외 처리 관련
+    if (state == RecordState.Processing || isNavigating) {
+        RecordingLoadingScreen()
+        return
+    }
+
+    if (state is RecordState.Error) {
+        RecordingErrorScreen(
+            message = (state as RecordState.Error).message,
+            onRetry = { viewModel.retry() },
+            onBack = { navController.popBackStack() }
+        )
+        return
+    }
+
     val hours = elapsedSeconds / 3600
     val minutes = (elapsedSeconds % 3600) / 60
     val seconds = elapsedSeconds % 60
@@ -71,12 +111,6 @@ fun RecorderDetailScreen(
 
     val now = remember {
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd · a hh:mm"))
-    }
-
-    // 로딩 중이면 로딩 화면
-    if (state == RecordState.Processing) {
-        RecordingLoadingScreen()
-        return
     }
 
     ChaGokBackground {
@@ -99,16 +133,18 @@ fun RecorderDetailScreen(
                         navController.popBackStack()
                     }
                 )
+                // 최소 녹음 시간 (3초)
+                val canStop = elapsedSeconds >= 3
+
+                // 종료 버튼
                 Text(
                     text = "종료",
-                    color = Color(0xFF9B7FD4),
+                    color = if (canStop) Color(0xFF9B7FD4) else Color(0xFF9B7FD4).copy(alpha = 0.3f),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.clickable(enabled = canStop) {
                         isRunning = false
                         showStopDialog = true
-                        //viewModel.stopRecording()
-                        //navController.popBackStack()
                     }
                 )
             }
@@ -147,7 +183,11 @@ fun RecorderDetailScreen(
                     .padding(bottom = 60.dp)
                     .clip(RoundedCornerShape(50.dp))
                     .background(Color(0xFF9B7FD4).copy(alpha = 0.6f))
-                    .clickable { isRunning = !isRunning }
+                    .clickable {
+                        isRunning = !isRunning
+                        if (isRunning) viewModel.resumeRecording()  // 재시작
+                        else viewModel.pauseRecording()             // 일시정지
+                    }
                     .padding(horizontal = 36.dp, vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -181,20 +221,448 @@ fun RecorderDetailScreen(
     }
 }
 
+
 @Composable
-private fun RecordingLoadingScreen() {
-    Box(
+private fun RecordingErrorScreen(
+    message: String,
+    onRetry: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212)),
-        contentAlignment = Alignment.Center
+            .background(Color(0xFF121218))
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        // TopBar - 뒤로가기만 활성화
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            CircularProgressIndicator(color = Color(0xFF9B7FD4))
-            Text(text = "기록 요약이 진행중입니다...", color = Color.White, fontSize = 16.sp)
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBackIosNew,
+                    contentDescription = "뒤로가기",
+                    tint = Color.White
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFF2A2A3A))
+            )
+            Spacer(modifier = Modifier.width(56.dp))
+        }
+
+        // TabRow 스켈레톤
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            repeat(2) {
+                Box(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF2A2A3A))
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFF2A2A3A))
+        )
+
+        // 에러 배너 (보라 → 빨간색)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF2E1A1A))
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = Color(0xFFFF4444),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = "오류가 발생했어요. 다시 시도해주세요.",
+                color = Color(0xFFFF4444),
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // 콘텐츠 영역 - 정적 스켈레톤 (shimmer 없이)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(80, 160, 60).forEach { width ->
+                    Box(
+                        modifier = Modifier
+                            .width(width.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF2A2A3A))
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF2A2A3A))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(Color(0xFF2A2A3A))
+                )
+            }
+
+            repeat(3) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E1E2E))
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF2A2A3A))
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(56, 72, 48, 64).forEach { width ->
+                        Box(
+                            modifier = Modifier
+                                .width(width.dp)
+                                .height(28.dp)
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(Color(0xFF2A2A3A))
+                        )
+                    }
+                }
+            }
+        }
+
+        // 하단 재시도 버튼
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A1A26))
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(Color(0xFF9B7FD4))
+                    .clickable { onRetry() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "다시 시도",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun RecordingLoadingScreen() {
+    val shimmerColors = listOf(
+        Color(0xFF2A2A3A),
+        Color(0xFF3A3A4E),
+        Color(0xFF2A2A3A)
+    )
+
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_translate"
+    )
+
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(translateAnim - 300f, 0f),
+        end = Offset(translateAnim, 0f)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121218))
+    ) {
+        // ── TopBar ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(brush)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(brush)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(2) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(brush)
+                    )
+                }
+            }
+        }
+
+        // ── TabRow ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            repeat(2) {
+                Box(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(brush)
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFF2A2A3A))
+        )
+
+        // ── "요약 생성 중..." 배너 ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1E1A2E))
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                color = Color(0xFF9B7FD4),
+                strokeWidth = 2.dp
+            )
+            Text(
+                text = "요약을 생성하고 있어요...",
+                color = Color(0xFF9B7FD4),
+                fontSize = 13.sp
+            )
+        }
+
+        // ── 콘텐츠 ──
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // 폴더 / 날짜 / 길이
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(80, 160, 60).forEach { width ->
+                    Box(
+                        modifier = Modifier
+                            .width(width.dp)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(brush)
+                    )
+                }
+            }
+
+            // 핵심 포인트 헤더
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(brush)
+                )
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(brush)
+                )
+            }
+
+            // 핵심 포인트 카드 3개
+            repeat(3) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E1E2E))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(brush)
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(13.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(brush)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f)
+                                .height(13.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(brush)
+                        )
+                    }
+                }
+            }
+
+            // 키워드
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(brush)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(56, 72, 48, 64).forEach { width ->
+                        Box(
+                            modifier = Modifier
+                                .width(width.dp)
+                                .height(28.dp)
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(brush)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── 하단 오디오 플레이어 ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A1A26))
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(brush)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(brush)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(brush)
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(brush)
+                )
+            }
         }
     }
 }

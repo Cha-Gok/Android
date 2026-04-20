@@ -41,6 +41,7 @@ class RecordDataSource @Inject constructor(
     private var recordingThread: Thread? = null
     private var isRecording = false
     private var currentFile: File? = null
+    private var isPaused = false
 
     // mlkit 최적화 녹음 파일 형식
     companion object {
@@ -48,6 +49,16 @@ class RecordDataSource @Inject constructor(
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private const val TAG = "RecordDataSource"
+    }
+
+    fun pauseRecording() {
+        isPaused = true
+        audioRecord?.stop()
+    }
+
+    fun resumeRecording() {
+        isPaused = false
+        audioRecord?.startRecording()
     }
 
     /**
@@ -168,6 +179,10 @@ class RecordDataSource @Inject constructor(
 
         // PCM 데이터 수집
         while (isRecording) {
+            if (isPaused) {
+                Thread.sleep(50)
+                continue  // 일시정지 중엔 수집 스킵
+            }
             val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
             if (read > 0) {
                 pcmData.addAll(buffer.take(read))
