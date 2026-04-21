@@ -141,7 +141,7 @@ fun ChaGokDialogCreateFolder(
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center
                 )
-                if (title == "새 폴더") {
+                if (title in listOf("새 폴더", "폴더 이름 수정")) { // 수정 예정
                     TextField(
                         value = inputText,
                         onValueChange = onValueChange,

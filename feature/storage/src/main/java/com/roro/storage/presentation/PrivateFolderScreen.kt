@@ -41,6 +41,7 @@ fun PrivateFolderScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val folders by viewModel.userFolders.collectAsState()
+    val folderCount by viewModel.folderItemCountMap.collectAsState()
     val context = LocalContext.current
     var folderName by rememberSaveable { mutableStateOf("") }
 
@@ -70,6 +71,7 @@ fun PrivateFolderScreen(
         navController = navController,
         folders = folders,
         folderName = folderName,
+        folderCount = folderCount,
         onFolderNameChange = { folderName = it },
         onCreateFolder = { viewModel.onIntent(StorageIntent.CreateFolder(it)) },
         onDeleteFolder = { folder -> viewModel.onIntent(StorageIntent.MoveToTrash(folder = folder)) },
@@ -83,6 +85,7 @@ internal fun PrivateFolderScreenContent(
     navController: NavController,
     folders: List<Folder>,
     folderName: String,
+    folderCount: Map<UUID?, Int>,
     onFolderNameChange: (String) -> Unit,
     onCreateFolder: (String) -> Unit,
     onDeleteFolder: (Folder) -> Unit,
@@ -112,6 +115,7 @@ internal fun PrivateFolderScreenContent(
                 PrivateFolderList(
                     navController = navController,
                     folders = folders,
+                    folderCount = folderCount,
                     // 리스트에서 수정 버튼 클릭 시 실행될 로직
                     onEditFolder = { folder ->
                         selectedFolder = folder
@@ -161,6 +165,7 @@ internal fun PrivateFolderScreenContent(
 fun PrivateFolderList(
     navController: NavController,
     folders: List<Folder>,
+    folderCount: Map<UUID?, Int>,
     onEditFolder: (Folder) -> Unit,
     onDeleteFolder: (Folder) -> Unit,
     modifier: Modifier = Modifier
@@ -176,10 +181,11 @@ fun PrivateFolderList(
         // 2. 리스트 아이템 구성
         items(items = folders, key = { it.id }) { folder ->
             // 여기에 이미 만들어둔 공통 컴포넌트를 호출합니다.
+            val count = folderCount[folder.id] ?: 0
             ChaGokSwipeableFolderItem(
                 id = folder.id,
                 text = folder.name,
-                count = "0", // 필요시 실제 데이터 연결
+                count = "$count", // 필요시 실제 데이터 연결
                 isRevealed = revealedFolderId == folder.id,
                 onExpand = { revealedFolderId = folder.id },
                 onCollapse = { if (revealedFolderId == folder.id) revealedFolderId = null },
@@ -209,5 +215,6 @@ fun PrivateFolderScreenPreview() {
         folders = emptyList(),
         onDeleteFolder = { TODO() },
         onRenameFolder = { TODO() },
+        folderCount = emptyMap(),
     )
 }
