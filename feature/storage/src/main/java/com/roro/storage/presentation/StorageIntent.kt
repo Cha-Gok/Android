@@ -6,6 +6,14 @@ import java.util.UUID
 
 sealed interface StorageIntent {
     data object Initialize : StorageIntent
+
+    // 4개 박스 클릭
+    data class ClickFolderType(val type: DefaultFolderType) : StorageIntent
+
+    // 파일목록 가져오기
+    data class FetchVoiceNote(val folderId: UUID) : StorageIntent
+
+    // 임시 인텐트
     data class CreateDummyVoiceNote(val folderName: String) : StorageIntent
     data class CreateFolder(val folderName: String) : StorageIntent
     data class MoveToTrash(val folder: Folder) : StorageIntent
@@ -17,6 +25,9 @@ sealed interface StorageIntent {
     data class RenameFolder(val folder: Folder) : StorageIntent
     data class RenameVoiceNote(val voiceNote: VoiceNote) : StorageIntent
     object RefreshDefaults : StorageIntent
+    object SortByCreatedAt : StorageIntent
+    object SortByUpdatedAt : StorageIntent
+
 }
 
 sealed interface StorageEffect {

@@ -1,18 +1,30 @@
 package com.roro.core.ui.component
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,8 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
+import com.roro.core.ui.theme.PrimaryColor
+import com.roro.core.ui.theme.TextPrimary
 
+
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import com.roro.core.ui.theme.Gray850
 
 @Composable
 fun ChaGokTopBar(
@@ -84,6 +104,200 @@ fun ChaGokTopBar(
     }
 }
 
+/**
+ * 차곡 프로젝트 공통 탑바
+ *
+ * @param title 화면 제목
+ * @param showBackButton 뒤로가기 버튼 표시 여부
+ * @param onBackClick 뒤로가기 클릭 이벤트
+ * @param actions 우측에 배치될 아이콘들 (RowScope를 사용하여 여러 개 배치 가능)
+ */
+@Composable
+fun ChaGokTopBar2(
+    title: String,
+    showBackButton: Boolean = false,
+    backIcon: ImageVector = Icons.Default.ArrowBackIosNew,
+    onBackClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {} // 우측 아이콘들을 자유롭게 넣을 수 있는 슬롯
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp) // 표준 탑바 높이
+            .padding(horizontal = 12.dp), // 아이콘 버튼의 내부 패딩을 고려하여 조절
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1. 왼쪽 영역: 뒤로가기 버튼
+        if (showBackButton) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = backIcon,
+                    contentDescription = "뒤로가기",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        } else {
+            // 뒤로가기가 없을 때 왼쪽 여백 (디자인에 따라 조절)
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+
+        // 2. 중간 영역: 타이틀
+        Text(
+            text = title,
+            color = TextPrimary,
+            style = ChaGokTextStyle.Header2,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = if (showBackButton) 0.dp else 4.dp)
+        )
+
+        // 3. 오른쪽 영역: 액션 버튼들
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+            content = actions
+        )
+    }
+}
+
+
+@Composable
+fun TopBarMoreMenu(
+    currentSortType: SortType,
+    onSortByCreate: () -> Unit,
+    onSortByUpdate: () -> Unit,
+    onSelectAll: () -> Unit,
+    onSelectMode: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        TopBarIcon(
+            imageVector = Icons.Outlined.MoreVert,
+            onClick = { expanded = true }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color(0xFF252525)) // 어두운 테마 배경
+        ) {
+            DropdownMenuItem(
+                text = { Text("생성일 순", color = Color.White) },
+                leadingIcon = {
+                    if (currentSortType == SortType.CREATED_AT) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Gray850)
+                    } else {
+                        // 체크가 없을 때도 공간을 확보하여 텍스트 정렬을 맞춤
+                        Spacer(modifier = Modifier.size(24.dp))
+                    }
+                },
+                onClick = {
+                    onSortByCreate()
+                    expanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("수정일 순", color = Color.White) },
+                leadingIcon = {
+                    if (currentSortType == SortType.UPDATED_AT) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Gray850)
+                    } else {
+                        Spacer(modifier = Modifier.size(24.dp))
+                    }
+                },
+                onClick = { onSortByUpdate(); expanded = false }
+            )
+
+            // 구분선
+            HorizontalDivider(
+                modifier = Modifier.padding(4.dp),
+                color = Color.Gray.copy(alpha = 0.5f)
+            )
+
+            DropdownMenuItem(
+                text = { Text("전체 선택하기", color = Color.White) },
+                modifier = Modifier.padding(start = 40.dp), // leadingIcon 공간만큼 패딩
+                onClick = { onSelectAll(); expanded = false }
+            )
+            DropdownMenuItem(
+                text = { Text("선택하기", color = Color.White) },
+                modifier = Modifier.padding(start = 40.dp), // leadingIcon 공간만큼 패딩
+                onClick = { onSelectMode(); expanded = false }
+            )
+        }
+    }
+}
+
+/**
+ * 공통으로 자주 쓰이는 탑바용 아이콘 버튼 컴포넌트
+ */
+@Composable
+fun TopBarIcon(
+    imageVector: ImageVector,
+    contentDescription: String? = null,
+    onClick: () -> Unit,
+    tint: Color = Color.White
+) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+// --- Preview 영역 ---
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+private fun MainScreenTopBarPreview() {
+    ChaGokTheme {
+        // 메인 화면 스타일 (검색 + 설정)
+        ChaGokTopBar2(
+            title = "차곡",
+            actions = {
+                TopBarIcon(imageVector = Icons.Default.Search, onClick = {})
+                TopBarIcon(imageVector = Icons.Default.MoreVert, onClick = {})
+            }
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+private fun SubScreenTopBarPreview() {
+    ChaGokTheme {
+        // 서브 화면 스타일 (뒤로가기 + 타이틀만)
+        ChaGokTopBar2(
+            title = "개인 폴더",
+            showBackButton = true,
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+private fun FullActionTopBarPreview() {
+    ChaGokTheme {
+        // 모든 기능이 포함된 스타일
+        ChaGokTopBar2(
+            title = "상세 보기",
+            showBackButton = true,
+            actions = {
+                TopBarIcon(imageVector = Icons.Default.Search, onClick = {})
+                // 필요한 경우 여기에 직접 Box와 DropdownMenu 등을 넣을 수 있음
+            }
+        )
+    }
+}
+
+
 @Preview
 @Composable
 private fun ChaGokTopBarDefaultPreview() {
@@ -103,4 +317,8 @@ private fun ChaGokTopBarWithBackPreview() {
             secondActionDescription = "메뉴"
         )
     }
+}
+
+enum class SortType {
+    CREATED_AT, UPDATED_AT
 }
