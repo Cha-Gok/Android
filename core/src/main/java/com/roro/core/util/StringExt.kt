@@ -26,3 +26,16 @@ fun Long.formatDate(pattern: String = "yyyy.MM.dd"): String {
     val sdf = SimpleDateFormat(pattern, Locale.getDefault())
     return sdf.format(Date(this))
 }
+
+/**
+ * Long 타입의 시간을 "오전/오후 h:mm" 형식으로 변환하는 확장 함수
+ * 예: 11:11 PM -> 오후 11:11
+ *
+ * @return 포맷된 시간 문자열
+ * @author sehoon
+ * @since 2026. 4. 19.
+ */
+fun Long.formatTime(): String {
+    val sdf = SimpleDateFormat("a h:mm", Locale.KOREAN)
+    return sdf.format(Date(this))
+}

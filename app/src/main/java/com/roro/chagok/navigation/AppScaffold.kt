@@ -19,14 +19,14 @@ fun AppScaffold() {
     val showBottomBar = currentRoute in bottomBarRoutes
 
     Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                BottomBar(
-                    navController = navController,
-                    currentRoute = currentRoute
-                )
-            }
-        }
+//        bottomBar = {
+//            if (showBottomBar) {
+//                BottomBar(
+//                    navController = navController,
+//                    currentRoute = currentRoute
+//                )
+//            }
+//        }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             AppNavHost(navController)

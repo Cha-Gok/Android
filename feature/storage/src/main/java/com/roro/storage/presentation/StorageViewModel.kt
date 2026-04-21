@@ -122,6 +122,39 @@ class StorageViewModel @Inject constructor(
             is StorageIntent.RemoveFolder -> removeFolder(intent.folder)
             is StorageIntent.RenameFolder -> renameFolder(intent.folder)
             is StorageIntent.RenameVoiceNote -> renameVoiceNote(intent.voiceNote)
+            is StorageIntent.ClickFolderType -> {
+                Timber.d("StorageLog: Folder clicked - ${intent.type}")
+                val filteredNotes = when (intent.type) {
+                    DefaultFolderType.RECENT -> voiceNoteRecentList.value
+                    DefaultFolderType.DEFAULT -> voiceNoteList.value
+                    DefaultFolderType.PRIVATE -> emptyList<VoiceNote>()
+                    DefaultFolderType.TRASH -> voiceNoteTrashList.value
+                }
+                Timber.d("StorageLog: Filtered list size - ${filteredNotes.size}")
+
+                _uiState.update {
+                    it.copy(
+                        selectedFolderType = intent.type,
+                        voiceNote = filteredNotes
+                    )
+                }
+            }
+
+            is StorageIntent.FetchVoiceNote -> {
+                observeVoiceNoteByFolder(intent.folderId)
+            }
+
+            is StorageIntent.SortByCreatedAt -> {
+                // 현재 리스트를 생성일 순으로 정렬 (최신순)
+                val sortedList = _voiceNoteFolderList.value.sortedByDescending { it.createdAt }
+                _voiceNoteFolderList.value = sortedList
+            }
+
+            is StorageIntent.SortByUpdatedAt -> {
+                // 수정일 필드가 있다면 해당 필드로 정렬
+                val sortedList = _voiceNoteFolderList.value.sortedByDescending { it.updatedAt }
+                _voiceNoteFolderList.value = sortedList
+            }
         }
     }
 
@@ -257,19 +290,26 @@ class StorageViewModel @Inject constructor(
         }
     }
 
+    // 폴더 이름 변경
     private fun renameFolder(folder: Folder) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
             runCatching {
                 renameFolderUseCase(folder)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 _effect.emit(StorageEffect.ShowToast("폴더 이름 변경"))
             }.onFailure { e ->
-                Timber.e(e, "moveToTrash failure")
+                Timber.e(e, "renameFolder failure")
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                _effect.emit(StorageEffect.ShowToast("이름 변경 실패: ${e.message ?: "알 수 없는 오류"}"))
+
+                // 에러 메시지에 "already exists" 등이 포함되어 있는지 체크하거나 공통 메시지 출력
+                val errorMsg = if (e.message?.contains("exists", ignoreCase = true) == true) {
+                    "이미 존재하거나 사용 중인 폴더 이름입니다."
+                } else {
+                    "이름 변경 실패: ${e.message ?: "알 수 없는 오류"}"
+                }
+                _effect.emit(StorageEffect.ShowToast(errorMsg))
             }
         }
     }
@@ -291,91 +331,114 @@ class StorageViewModel @Inject constructor(
         }
     }
 
-    // 화면 초기 갱신
-    private fun initialize() {
-        viewModelScope.launch {
-            observeUserFoldersUseCase()
-                .collect { folders ->
-                    _userFolders.value = folders
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-        }
-        viewModelScope.launch {
-            observeTrashFoldersUserCase()
-                .collect { folders ->
-                    _trashFolders.value = folders
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-        }
-        viewModelScope.launch {
-            observeFolderItemCount()
-                .collect { item ->
-                    _folderItemCountMap.value = item.associate { count ->
-                        count.id to count.noteCount
-                    }
-                }
-        }
-
-        viewModelScope.launch {
-            observeVoiceNotesByNoneNullFolderUseCase()
-                .collect { voiceNotes ->
-                    voiceNotes.forEach { note ->
-                        Timber.d("voiceNote -> id=${note.id}, title=${note.title}, folderId=${note.folderId}")
-                    }
-
-                    _voiceNoteList.value = voiceNotes
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-        }
-
-        viewModelScope.launch {
-            observeTrashVoiceNotesUseCase()
-                .collect { voiceNotes ->
-                    voiceNotes.forEach { note ->
-                        Timber.d(
-                            "voiceNote 휴지통 -> id=${note.id}, title=${note.title}, folderId = ${note.folderId}"
-                        )
-                    }
-                    _voiceNoteTrashList.value = voiceNotes
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-        }
-
+    // 최근 아이템 가져오기
+    private fun fetchRecentItem() {
         // 최근 문서
         viewModelScope.launch {
-            observeRecentVoiceNoteUseCase()
-                .collect { voiceNotes ->
-                    voiceNotes.forEach { note ->
-                        Timber.d("voiceNote Recent  = ${note.title}")
-                    }
-                    _voiceNoteRecentList.value = voiceNotes
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
+            observeRecentVoiceNoteUseCase().collect { voiceNotes ->
+                Timber.d("StorageLog: RecentNote fetch = ${voiceNotes.size}")
+                _voiceNoteRecentList.value = voiceNotes
+
+                // 현재 사용자가 '최근 기록' 탭을 보고 있다면 ui 갱신
+                if (_uiState.value.selectedFolderType == DefaultFolderType.RECENT) {
+                    _uiState.update { it.copy(voiceNote = voiceNotes) }
                 }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    // 기본 폴더 아이템 가져오기
+    private fun fetchDefaultItems() {
+        viewModelScope.launch {
+            observeVoiceNotesByNoneNullFolderUseCase().collect { voiceNotes ->
+                Timber.d("StorageLog: Default fetch = ${voiceNotes.size}")
+                _voiceNoteList.value = voiceNotes
+
+                // 현재 사용자가 '기본 폴더' 탭을 보고 있다면 ui 갱신
+                if (_uiState.value.selectedFolderType == DefaultFolderType.DEFAULT) {
+                    _uiState.update { it.copy(voiceNote = voiceNotes) }
+                }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    // 휴지통 아이템 가져오기
+    private fun fetchTrashItems() {
+        viewModelScope.launch {
+            observeTrashVoiceNotesUseCase().collect { voiceNotes ->
+                Timber.d("StorageLog: Trash fetch = ${voiceNotes.size}")
+                _voiceNoteTrashList.value = voiceNotes
+
+                // 현재 사용자가 '휴지통' 탭을 보고 있다면 ui 갱신
+                if (_uiState.value.selectedFolderType == DefaultFolderType.TRASH) {
+                    _uiState.update { it.copy(voiceNote = voiceNotes) }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+
+    // 화면 초기 갱신
+    private fun initialize() {
+        try {
+            fetchRecentItem()
+            fetchDefaultItems()
+            fetchTrashItems()
+
+            viewModelScope.launch {
+                observeUserFoldersUseCase()
+                    .collect { folders ->
+                        _userFolders.value = folders
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+                    }
+            }
+            viewModelScope.launch {
+                observeTrashFoldersUserCase()
+                    .collect { folders ->
+                        _trashFolders.value = folders
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+                    }
+            }
+            viewModelScope.launch {
+                observeFolderItemCount()
+                    .collect { item ->
+                        _folderItemCountMap.value = item.associate { count ->
+                            count.id to count.noteCount
+                        }
+                    }
+            }
+
+        } catch (e: Exception) {
+            Timber.d("viewModel e : ${e.message}")
         }
     }
 

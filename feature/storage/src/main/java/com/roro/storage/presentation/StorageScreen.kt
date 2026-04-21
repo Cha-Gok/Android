@@ -1,9 +1,11 @@
 package com.roro.storage.presentation
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
@@ -23,7 +27,11 @@ import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,25 +40,40 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.util.TimeUtils
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.model.Folder
 import com.roro.core.model.VoiceNote
 import com.roro.core.navigation.Routes
+import com.roro.core.ui.component.ChaGokBackground
+import com.roro.core.ui.component.ChaGokBox
+import com.roro.core.ui.component.ChaGokBoxSmall
+import com.roro.core.ui.component.ChaGokNoteList
+import com.roro.core.ui.component.ChaGokTopBar
+import com.roro.core.ui.component.ChagokStartRecordFAB
+import com.roro.core.ui.component.SummaryStatus
+import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
+import com.roro.core.ui.theme.TextTertiary
 import com.roro.core.util.formatDate
 import com.roro.core.util.toast
 import timber.log.Timber
@@ -67,8 +90,15 @@ fun StorageScreen(
     val folderItemCount by viewModel.folderItemCountMap.collectAsState()
     val context = LocalContext.current
     var folderName by rememberSaveable { mutableStateOf("") }
+
+    val defaultVoiceNote by viewModel.voiceNoteList.collectAsState()
     val trashVoiceNotes by viewModel.voiceNoteTrashList.collectAsState()
     val recentVoiceNotes by viewModel.voiceNoteRecentList.collectAsState()
+
+    Timber.d("folderItemCount = ${folderItemCount.size}")
+    Timber.d("trashFolders = ${trashFolders.size}")
+    Timber.d("defaultVoiceNote = ${defaultVoiceNote.size}")
+
 
     if (uiState.isLoading) {
         Timber.d("로딩 중~")
@@ -92,349 +122,171 @@ fun StorageScreen(
 
 
     StorageScreenContent(
+        uiState = uiState,
         navController = navController,
-        folderName = folderName,
-        onFolderNameChange = { folderName = it },
-        onCreateFolder = { folderName ->
-            viewModel.onIntent(StorageIntent.CreateFolder(folderName = folderName))
+        defaultCount = defaultVoiceNote.size,
+        privateFolderCount = folders.size,
+        trashFolderCount = trashVoiceNotes.size + trashFolders.size,
+        onClickFolderType = { type ->
+            if (type == DefaultFolderType.PRIVATE) {
+                viewModel.onIntent(StorageIntent.ClickFolderType(type = type))
+                navController.navigate(Routes.storageFolder())
+            } else {
+                viewModel.onIntent(StorageIntent.ClickFolderType(type = type))
+            }
         },
-        onCreateVoice = { folderName ->
-            viewModel.onIntent(StorageIntent.CreateDummyVoiceNote(folderName = folderName))
-        },
-        onMoveToTrash = { folder ->
-            viewModel.onIntent(StorageIntent.MoveToTrash(folder = folder))
-        },
-        folders = folders,
-        folderItem = folderItemCount,
-        onRestoreFolder = { folder ->
-            viewModel.onIntent(StorageIntent.RestoreFromTrash(folder = folder))
-        },
-        onRestoreVoiceNote = { voiceNote ->
-            viewModel.onIntent(StorageIntent.RestoreVoiceNote(voiceNote = voiceNote))
-        },
-        onRemoveVoiceNote = { voiceNote ->
-            viewModel.onIntent(StorageIntent.RemoveVoiceNote(voiceNote = voiceNote))
-        },
-        onRemoveFolder = { folder ->
-            viewModel.onIntent(StorageIntent.RemoveFolder(folder = folder))
-        },
-        renameFolder = { folder ->
-            viewModel.onIntent(StorageIntent.RenameFolder(folder = folder))
-        },
-        trashFolders = trashFolders,
-        trashVoiceNotes = trashVoiceNotes,
-        recentVoiceNotes = recentVoiceNotes
-    )
+
+        )
 }
 
 @Composable
 internal fun StorageScreenContent(
+    uiState: StorageUiState,
     navController: NavController,
-    folderName: String,
-    onFolderNameChange: (String) -> Unit,
-    onCreateFolder: (String) -> Unit,
-    onCreateVoice: (String) -> Unit,
-    onMoveToTrash: (Folder) -> Unit,
-    onRestoreFolder: (Folder) -> Unit,
-    onRestoreVoiceNote: (VoiceNote) -> Unit,
-    onRemoveVoiceNote: (VoiceNote) -> Unit,
-    onRemoveFolder: (Folder) -> Unit,
-    renameFolder: (Folder) -> Unit,
-    folders: List<Folder>,
-    folderItem: Map<UUID?, Int>,
-    trashFolders: List<Folder>,
-    trashVoiceNotes: List<VoiceNote>,
-    recentVoiceNotes: List<VoiceNote>
+    defaultCount: Int,
+    privateFolderCount: Int,
+    trashFolderCount: Int,
+    onClickFolderType: (DefaultFolderType) -> Unit,
 ) {
+    // 1. 스크롤 상태 기억
+    val listState = rememberLazyListState()
 
-    Surface(
-        modifier = Modifier.fillMaxSize()
+    // 2. 스크롤 여부 판단 (첫 번째 아이템이 화면 위로 넘어가면 collapsed 상태로 간주)
+    val isScrolled by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+        }
+    }
+
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column {
+                ChaGokTopBar(
+                    title = "차곡",
+                    onFirstActionClick = { },
+                    onSecondActionClick = {},
+                )
+                FolderList(
+                    isCollapse = isScrolled,
+                    selectedFolderType = uiState.selectedFolderType,
+                    onFolderTypeClick = onClickFolderType,
+                    defaultCount = defaultCount,
+                    privateFolderCount = privateFolderCount,
+                    trashFolderCount = trashFolderCount,
+                )
+
+                val displayList = uiState.voiceNote
+
+                // list empty check
+                if (displayList.isEmpty()) {
+                    // 2. 남은 공간 전체를 차지하여 텍스트를 정중앙에 배치
+                    Spacer(modifier = Modifier.height(96.dp))
+                    Text(
+                        text = "아직 녹음된 기록이 없습니다.\n녹음 버튼을 눌러 첫 기록을 시작해보세요.",
+                        color = TextTertiary,
+                        style = ChaGokTextStyle.Body1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(top = 32.dp, start = 20.dp, end = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(
+                            items = displayList,
+                            key = { it.id }
+                        ) { item ->
+                            FolderItemList(voiceNote = item)
+                        }
+                    }
+                }
+
+
+            }
+            // 5. 플로팅 버튼을 Box의 오른쪽 하단에 배치
+            ChagokStartRecordFAB(
+                onClick = {
+                    navController.navigate(Routes.RECORDER)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd) // 우측 하단 정렬
+                    .padding(end = 42.dp, bottom = 64.dp), // 화면 끝에서 여백
+            )
+        }
+    }
+}
+
+@Composable
+fun FolderItemList(
+    voiceNote: VoiceNote,
+    modifier: Modifier = Modifier
+) {
+    ChaGokNoteList(
+        title = voiceNote.title,
+        summaryStatus = SummaryStatus.COMPLETED,
+        onClick = { },
+        time = voiceNote.createdAt.formatDate(""),
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+fun FolderList(
+    isCollapse: Boolean,
+    defaultCount: Int,
+    privateFolderCount: Int,
+    trashFolderCount: Int,
+    selectedFolderType: DefaultFolderType,
+    onFolderTypeClick: (DefaultFolderType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // 높이 처리
+    val height by animateDpAsState(
+        targetValue = if (isCollapse) 48.dp else 120.dp,
+        label = "FolderListHeight"
+    )
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height),
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Text("Storage Screen")
-
-            TextField(
-                value = folderName,
-                onValueChange = onFolderNameChange,
-                label = { Text("폴더 이름") }
-            )
-
-            Row {
-                Button(
-                    onClick = { onCreateFolder(folderName.trim()) },
-                    enabled = folderName.isNotBlank()
-                ) {
-                    Text("폴더 생성")
-                }
-                Button(
-                    onClick = { onCreateVoice(folderName.trim()) },
-                    enabled = folderName.isNotBlank()
-                ) {
-                    Text("녹음 파일 생성")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-
-            Text(
-                text = "전체 노트", modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            )
-
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 30.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(folders) { folder ->
-                    val count = folderItem[folder.id] ?: 0
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(
-                                    Routes.storageDetail(
-                                        folderId =
-                                            folder.id.toString()
-                                    )
-                                )
-                            }
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFBABABB))
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF2B2B31),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = Color(0xFFEDEDED),
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = "${folder.name} (${count})",
-                            color = Color(0xFFF5F5F5),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = "Remove folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable { onMoveToTrash(folder) }
-                        )
-
-                        Spacer(modifier = Modifier.width(22.dp))
-
-                        Icon(
-                            imageVector = Icons.Default.Brush,
-                            contentDescription = "Remove folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable {
-                                    renameFolder(
-                                        folder.copy(
-                                            name = folderName.trim()
-                                        )
-                                    )
-                                }
-                        )
-                    }
-                }
-            }
-            Text(
-                text = "휴지통", modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 30.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(trashFolders) { folder ->
-                    val count = folderItem[folder.id] ?: 0
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFBABABB))
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF2B2B31),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = Color(0xFFEDEDED),
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = "${folder.name} ( $count )",
-                            color = Color(0xFFF5F5F5),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = "Restore folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable { onRestoreFolder(folder) }
-                        )
-                        Spacer(modifier = Modifier.width(22.dp))
-
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Remove folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable { onRemoveFolder(folder) }
-                        )
-
-                    }
-                }
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 30.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(trashVoiceNotes) { voiceNote ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFBABABB))
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF2B2B31),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AudioFile,
-                            contentDescription = null,
-                            tint = Color(0xFFEDEDED),
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = voiceNote.title,
-                            color = Color(0xFFF5F5F5),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = "Remove folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable { onRestoreVoiceNote(voiceNote) }
-                        )
-                        Spacer(modifier = Modifier.width(22.dp))
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Remove folder",
-                            tint = Color.Red,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .padding(2.dp)
-                                .clickable { onRemoveVoiceNote(voiceNote) }
-                        )
-                    }
-                }
-            }
-            Text(
-                text = "최근문서", modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 30.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(recentVoiceNotes) { voiceNote ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFBABABB))
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF2B2B31),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AudioFile,
-                            contentDescription = null,
-                            tint = Color(0xFFEDEDED),
-                            modifier = Modifier.size(20.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = "${voiceNote.title} \t ${voiceNote.updatedAt.formatDate("yy.MM.dd HH:mm")}",
-                            color = Color(0xFFF5F5F5),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+        items(DefaultFolderType.entries) { type ->
+            if (isCollapse) {
+                ChaGokBoxSmall(
+                    text = type.title,
+                    isSelected = type == selectedFolderType,
+                    icon = type.icon,
+                    onClick = { onFolderTypeClick(type) },
+                    modifier = Modifier
+                        .width(116.dp)
+                        .height(38.dp)
+                )
+            } else {
+                ChaGokBox(
+                    text = type.title,
+                    count = when (type) {
+                        DefaultFolderType.RECENT -> 0
+                        DefaultFolderType.DEFAULT -> defaultCount
+                        DefaultFolderType.PRIVATE -> privateFolderCount
+                        DefaultFolderType.TRASH -> trashFolderCount
+                    },
+                    isSelected = type == selectedFolderType,
+                    icon = type.icon,
+                    onClick = {
+                        onFolderTypeClick(type)
+                    },
+                    modifier = Modifier
+                        .width(92.dp)
+                        .height(120.dp)
+                )
             }
         }
     }
@@ -443,50 +295,28 @@ internal fun StorageScreenContent(
 @Preview
 @Composable
 fun StorageScreenPreview() {
-    ChaGokTheme {
-        StorageScreenContent(
-            navController = rememberNavController(),
-            folderName = "",
-            onFolderNameChange = {},
-            onCreateFolder = { /* preview no-op */ },
-            onMoveToTrash = { /* preview no-op */ },
-            folders = listOf(
-                Folder(name = "ㄱㄱ"),
-                Folder(name = "기본폴더"),
-            ),
-            onCreateVoice = { },
-            onRestoreFolder = {},
-            folderItem = mapOf(
-
-            ),
-            trashFolders = listOf(
-                Folder(name = "휴지통1"),
-                Folder(name = "휴지통2"),
-            ),
-            onRestoreVoiceNote = {},
-            onRemoveVoiceNote = {},
-            onRemoveFolder = {},
-            trashVoiceNotes = listOf(
-                VoiceNote(
-                    id = UUID.randomUUID(),
-                    title = "VoiceNote1",
-                ),
-                VoiceNote(
-                    id = UUID.randomUUID(),
-                    title = "VoiceNote2",
-                ),
-            ),
-            renameFolder = {},
-            recentVoiceNotes = listOf(
-                VoiceNote(
-                    id = UUID.randomUUID(),
-                    title = "recentVoiceNote1",
-                ),
-                VoiceNote(
-                    id = UUID.randomUUID(),
-                    title = "recentVoiceNote2",
-                ),
-            ),
-        )
-    }
+    StorageScreenContent(
+        navController = rememberNavController(),
+        uiState = StorageUiState(
+            selectedFolderType = DefaultFolderType.RECENT,
+            isLoading = false,
+            errorMessage = null
+        ),
+        onClickFolderType = {},
+        defaultCount = 0,
+        privateFolderCount = 0,
+        trashFolderCount = 0,
+    )
 }
+
+enum class DefaultFolderType(
+    val title: String,
+    val icon: ImageVector
+) {
+    RECENT("최근 기록", Icons.Default.Schedule),
+    DEFAULT("기본 폴더", Icons.Outlined.Folder),
+    PRIVATE("개인 폴더", Icons.Outlined.Folder),
+    TRASH("휴지통", Icons.Outlined.Delete),
+}
+
+enum class FolderDialogType { CREATE, RENAME, DELETE_SELECTED }
