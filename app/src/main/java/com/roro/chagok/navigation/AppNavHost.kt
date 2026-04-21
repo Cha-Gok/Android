@@ -32,11 +32,6 @@ fun AppNavHost(
         splashGraph(
             onNavigateToMain = {
 
-                // 테스트용 수정
-//                navController.navigate(Routes.RECORDER) {  // STORAGE → RECORDER
-//                    popUpTo(Routes.SPLASH) { inclusive = true }
-//                }
-
                 // 기존 코드
                 navController.navigate(Routes.STORAGE) {
                     popUpTo(Routes.SPLASH) { inclusive = true }

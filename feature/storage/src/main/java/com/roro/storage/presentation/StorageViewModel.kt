@@ -148,12 +148,18 @@ class StorageViewModel @Inject constructor(
                 // 현재 리스트를 생성일 순으로 정렬 (최신순)
                 val sortedList = _voiceNoteFolderList.value.sortedByDescending { it.createdAt }
                 _voiceNoteFolderList.value = sortedList
+                for (i in _voiceNoteFolderList.value) {
+                    Timber.d("최신순 = ${i.title}")
+                }
             }
 
             is StorageIntent.SortByUpdatedAt -> {
                 // 수정일 필드가 있다면 해당 필드로 정렬
                 val sortedList = _voiceNoteFolderList.value.sortedByDescending { it.updatedAt }
                 _voiceNoteFolderList.value = sortedList
+                for (i in _voiceNoteFolderList.value) {
+                    Timber.d("수정순 = ${i.title}")
+                }
             }
         }
     }
@@ -399,46 +405,56 @@ class StorageViewModel @Inject constructor(
 
     // 화면 초기 갱신
     private fun initialize() {
-        try {
-            fetchRecentItem()
-            fetchDefaultItems()
-            fetchTrashItems()
+        fetchRecentItem()
+        fetchDefaultItems()
+        fetchTrashItems()
+        fetchFolderCount()
 
-            viewModelScope.launch {
-                observeUserFoldersUseCase()
-                    .collect { folders ->
-                        _userFolders.value = folders
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = null
-                            )
-                        }
+        viewModelScope.launch {
+            observeUserFoldersUseCase()
+                .collect { folders ->
+                    _userFolders.value = folders
+                    _uiState.update {
+                        it.copy(
+                            folders = folders,
+//                            folderItemCountMap = _folderItemCountMap.value,
+                            isLoading = false,
+                            errorMessage = null
+                        )
                     }
-            }
-            viewModelScope.launch {
-                observeTrashFoldersUserCase()
-                    .collect { folders ->
-                        _trashFolders.value = folders
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = null
-                            )
-                        }
+                }
+        }
+        viewModelScope.launch {
+            observeTrashFoldersUserCase()
+                .collect { folders ->
+                    _trashFolders.value = folders
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = null
+                        )
                     }
-            }
-            viewModelScope.launch {
-                observeFolderItemCount()
-                    .collect { item ->
-                        _folderItemCountMap.value = item.associate { count ->
-                            count.id to count.noteCount
-                        }
+                }
+        }
+        viewModelScope.launch {
+            observeFolderItemCount()
+                .collect { item ->
+                    _folderItemCountMap.value = item.associate { count ->
+                        count.id to count.noteCount
                     }
-            }
+                }
+        }
+    }
 
-        } catch (e: Exception) {
-            Timber.d("viewModel e : ${e.message}")
+    fun fetchFolderCount() {
+        viewModelScope.launch {
+            observeFolderItemCount()
+                .collect { item ->
+                    val countMap = item.associate { it.id to it.noteCount }
+                    _folderItemCountMap.value = countMap
+
+//                    _uiState.update { it.copy(folderItemCountMap = countMap) }
+                }
         }
     }
 

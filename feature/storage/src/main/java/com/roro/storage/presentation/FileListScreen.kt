@@ -301,7 +301,7 @@ internal fun FileListScreenContent(
                         items(folders) { folder ->
                             ChaGokFolderBox(
                                 text = folder.name,
-                                count = "",
+                                count = "{0}",
                                 onClick = {
 
                                 },
@@ -352,7 +352,7 @@ fun FileVoiceNoteList(
             ChaGokSwipeableFileItem(
                 title = file.title,
                 time = file.createdAt.formatTime(),
-                duration = "03:00", // 예시
+                duration = "{03:00}", // 예시
                 isSelectionMode = isSelectionMode,
                 isSelected = selectedIds.contains(file.id), // 이제 부모 상태가 잘 반영됨
                 onChange = { isSelected ->
@@ -390,6 +390,6 @@ fun FileListScreenPreview() {
         onDeleteVoiceNote = { },
         onSortByCreate = { },
         onSortByUpdate = { },
-        folders = emptyList()
+        folders = emptyList(),
     )
 }

@@ -95,10 +95,6 @@ fun StorageScreen(
     val trashVoiceNotes by viewModel.voiceNoteTrashList.collectAsState()
     val recentVoiceNotes by viewModel.voiceNoteRecentList.collectAsState()
 
-    Timber.d("folderItemCount = ${folderItemCount.size}")
-    Timber.d("trashFolders = ${trashFolders.size}")
-    Timber.d("defaultVoiceNote = ${defaultVoiceNote.size}")
-
 
     if (uiState.isLoading) {
         Timber.d("로딩 중~")
