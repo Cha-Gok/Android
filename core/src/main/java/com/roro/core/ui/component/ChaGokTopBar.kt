@@ -233,7 +233,7 @@ fun ChaGokSettingsDropdown(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     onLanguageSettingClick: () -> Unit,
-    onTermsClick: () -> Unit,
+    onTosClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     DropdownMenu(
@@ -251,7 +251,7 @@ fun ChaGokSettingsDropdown(
         DropdownMenuItem(
             text = { Text("약관 보기", color = Gray850) },
             onClick = {
-                onTermsClick()
+                onTosClick()
                 onDismissRequest()
             }
         )
