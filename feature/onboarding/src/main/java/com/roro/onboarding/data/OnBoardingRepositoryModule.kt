@@ -1,6 +1,8 @@
 package com.roro.onboarding.data
 
+import com.roro.onboarding.data.repository.ModelDownloadRepositoryImpl
 import com.roro.onboarding.data.repository.OnBoardingRepositoryImpl
+import com.roro.onboarding.domain.ModelDownloadRepository
 import com.roro.onboarding.domain.OnBoardingRepository
 import dagger.Binds
 import dagger.Module
@@ -14,4 +16,9 @@ abstract class OnBoardingRepositoryModule {
     abstract fun bindOnBoardingRepository(
         impl: OnBoardingRepositoryImpl
     ): OnBoardingRepository
+
+    @Binds
+    abstract fun bindModelDownloadRepository(
+        impl: ModelDownloadRepositoryImpl
+    ): ModelDownloadRepository
 }

@@ -51,6 +51,7 @@ import com.roro.core.ui.component.SummaryStatus
 import com.roro.recorder.presentation.RecordViewModel
 
 // 여기가 곧 기본 녹음 화면으로 구현 (예정)
+// 사용 안해
 @Composable
 fun RecorderScreen(
     navController: NavController,

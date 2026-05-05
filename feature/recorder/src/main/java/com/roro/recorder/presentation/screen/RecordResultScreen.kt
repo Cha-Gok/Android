@@ -472,9 +472,44 @@ private fun ScriptTab(
     // \n 기준으로 세그먼트 파싱, index * 6000ms = startTimeMs
     val segments = remember(sttText) {
         sttText.split("\n")
-            .mapIndexed { index, text -> Pair(index * 6000L, text) }
+            .mapIndexed { index, text -> Pair(index * 7000L, text) }
             .filter { it.second.isNotBlank() }
     }
+
+//    val segments = remember(sttText) {
+//        // 1. \n 기준으로 청크 분리 (청크당 7000ms)
+//        val chunks = sttText.split("\n").filter { it.isNotBlank() }
+//
+//        val result = mutableListOf<Pair<Long, String>>()
+//        var chunkStartMs = 0L
+//
+//        chunks.forEach { chunk ->
+//            // 2. 청크 안에서 문장 분리 (마침표/느낌표/물음표 기준)
+//            val sentences = chunk
+//                .split(Regex("(?<=[.!?。?!])\\s*"))
+//                .map { it.trim() }
+//                .filter { it.isNotBlank() }
+//
+//            if (sentences.isEmpty()) {
+//                chunkStartMs += 7000L
+//                return@forEach
+//            }
+//
+//            // 3. 청크 안에서 문장별 타임스탬프 추정
+//            // 청크 시간을 문자 수 비율로 배분
+//            val totalChars = sentences.sumOf { it.length }.toFloat()
+//            var sentenceStartMs = chunkStartMs
+//
+//            sentences.forEach { sentence ->
+//                result.add(Pair(sentenceStartMs, sentence))
+//                val ratio = sentence.length / totalChars
+//                sentenceStartMs += (7000L * ratio).toLong()
+//            }
+//
+//            chunkStartMs += 7000L
+//        }
+//        result
+//    }
 
     // 현재 재생 위치에 해당하는 세그먼트 인덱스
     val activeIndex = remember(currentPositionMs) {

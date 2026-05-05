@@ -18,6 +18,8 @@ import com.roro.recorder.domain.repository.RecordRepository
 import com.roro.recorder.presentation.uiState.RecordState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
@@ -70,6 +72,7 @@ class RecordViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "RecordVM"
+        private const val AMPLITUDE_POLL_INTERVAL_MS = 100L
     }
 
     // 녹음 상태
@@ -88,9 +91,33 @@ class RecordViewModel @Inject constructor(
     private val _selectedLocale = MutableStateFlow(Locale("ko", "KR"))
     val selectedLocale: StateFlow<Locale> = _selectedLocale.asStateFlow()
 
-
     private val _navigationEvent = MutableSharedFlow<String>() // voiceNoteId 전달
     val navigationEvent = _navigationEvent.asSharedFlow()
+
+    // ── Amplitude (실시간 음량) ──────────────────────────────
+    private val _amplitude = MutableStateFlow(0)
+    val amplitude: StateFlow<Int> = _amplitude.asStateFlow()
+
+    private var amplitudeJob: Job? = null
+
+    private fun startAmplitudePolling() {
+        amplitudeJob?.cancel()
+        amplitudeJob = viewModelScope.launch(Dispatchers.IO) {
+            while (true) {
+                delay(AMPLITUDE_POLL_INTERVAL_MS)
+                val amp = recordDataSource.getMaxAmplitude()
+                //Timber.d("🎤 polling amp=$amp")  // 임시
+                _amplitude.value = amp
+            }
+        }
+    }
+
+    private fun stopAmplitudePolling() {
+        amplitudeJob?.cancel()
+        amplitudeJob = null
+        _amplitude.value = 0
+    }
+    // ────────────────────────────────────────────────────────
 
     fun setLocale(locale: Locale) {
         _selectedLocale.value = locale
@@ -106,6 +133,7 @@ class RecordViewModel @Inject constructor(
                 val file = recordDataSource.createAudioFile(folderName)
                 recordDataSource.startRecording(file)
                 _state.value = RecordState.Recording
+                startAmplitudePolling() // ← 추가
                 Timber.tag(TAG).d("🎤 녹음 시작: ${file.absolutePath}")
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "❌ 녹음 시작 실패")
@@ -117,13 +145,14 @@ class RecordViewModel @Inject constructor(
     /**
      * 녹음 종료 → STT → 저장 → 요약
      */
-    private var lastAudioFile: File? = null  // 파일 보관용
+    private var lastAudioFile: File? = null
 
     fun stopRecording(folderId: UUID? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                stopAmplitudePolling() // ← 추가
                 val file = recordDataSource.stopRecording()
-                lastAudioFile = file  // ← 파일 저장
+                lastAudioFile = file
                 _state.value = RecordState.Processing
                 processAudio(file, folderId)
             } catch (e: Exception) {
@@ -133,7 +162,6 @@ class RecordViewModel @Inject constructor(
         }
     }
 
-    // STT ~ DB저장 로직을 별도 함수로 분리
     private suspend fun processAudio(file: File, folderId: UUID? = null) {
         try {
             val sttText = transcribeAudioUseCase(file, _selectedLocale.value)
@@ -165,7 +193,6 @@ class RecordViewModel @Inject constructor(
         }
     }
 
-    // 재시도 - 저장된 파일로 다시 처리
     fun retry(folderId: UUID? = null) {
         val file = lastAudioFile ?: return
         viewModelScope.launch(Dispatchers.IO) {
@@ -175,15 +202,17 @@ class RecordViewModel @Inject constructor(
     }
 
     fun pauseRecording() {
+        stopAmplitudePolling() // ← 추가
         recordDataSource.pauseRecording()
     }
 
     fun resumeRecording() {
         recordDataSource.resumeRecording()
+        startAmplitudePolling() // ← 추가
     }
 
     /**
-     * STT 모델 상태 확인 + 다운로드
+     * STT 모델 상태 확인 + 다운로드 -> 온보딩
      */
     fun checkSTT() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -230,36 +259,30 @@ class RecordViewModel @Inject constructor(
         data class Error(val message: String) : SummarizeState()
     }
 
-    // 파일 선택 -> stt 변환 확인 (필수 x. 테스트 확인용)
     fun startTranscribeFromUri(uri: Uri, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _sttResult.value = "인식 중..."
 
-                // Uri → 임시 파일로 복사
                 val tmpFile = File(context.cacheDir, "test_audio.wav")
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     tmpFile.writeBytes(input.readBytes())
                 }
 
-                // STT
                 val sttText = transcribeAudioUseCase(tmpFile, _selectedLocale.value)
                 _sttResult.value = sttText
                 Timber.tag(TAG).d("🎤 STT 완료: $sttText")
 
-                // 키워드 추출 추가
                 val keywords = extractKeywordsUseCase(sttText)
                 Timber.tag(TAG).d("🔑 키워드 추출 완료: $keywords")
 
-                // 요약
                 _summarizeState.value = SummarizeState.Loading
                 val summary = summarizeTextUseCase(sttText)
                 _summarizeState.value = SummarizeState.Success(summary)
                 Timber.tag(TAG).d("🤖 요약 완료: $summary")
 
-                // DB 저장
                 val durationSec = tmpFile.length() / (16000.0 * 2)
-                val voiceNoteId = saveRecordingUseCase(  // ✅ val로 받기
+                val voiceNoteId = saveRecordingUseCase(
                     audioFile = tmpFile,
                     durationSec = durationSec,
                     sttText = sttText,
@@ -268,7 +291,7 @@ class RecordViewModel @Inject constructor(
                     folderId = null
                 )
                 Timber.tag(TAG).d("💾 DB 저장 완료")
-                _navigationEvent.emit(voiceNoteId.toString())  // ✅ 추가
+                _navigationEvent.emit(voiceNoteId.toString())
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "🎤 URI STT 실패")
@@ -277,7 +300,7 @@ class RecordViewModel @Inject constructor(
             }
         }
     }
-
+}
 
     // ====================================================
     // TODO: 키워드 추출 - Prompt API S25 지원 후 구현 예정
@@ -337,4 +360,3 @@ class RecordViewModel @Inject constructor(
 //    private val _translateState = MutableStateFlow<TranslateState>(TranslateState.Idle)
 //    val translateState = _translateState.asStateFlow()
 
-}

@@ -1,29 +1,18 @@
 package com.roro.recorder.data.datasource
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.os.Build
-import android.os.ParcelFileDescriptor
 import androidx.annotation.RequiresPermission
-//import com.google.mlkit.genai.common.DownloadStatus
-import com.google.mlkit.genai.common.FeatureStatus
-//import com.google.mlkit.genai.common.audio.AudioSource
-//import com.google.mlkit.genai.speechrecognition.SpeechRecognizerRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
-import javax.inject.Inject
-//import com.google.mlkit.genai.speechrecognition.*
-//import com.google.mlkit.genai.speechrecognition.SpeechRecognition
-//import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
-import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
+import javax.inject.Inject
+import kotlin.math.sqrt
 
 /**
  * 기능 설명:
@@ -43,7 +32,12 @@ class RecordDataSource @Inject constructor(
     private var currentFile: File? = null
     private var isPaused = false
 
-    // mlkit 최적화 녹음 파일 형식
+    // 실시간 amplitude (PCM RMS 기반, 0~32767)
+    private val _currentAmplitude = AtomicInteger(0)
+
+    /** ViewModel에서 polling해서 읽는 값 */
+    fun getMaxAmplitude(): Int = _currentAmplitude.get()
+
     companion object {
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
@@ -53,6 +47,7 @@ class RecordDataSource @Inject constructor(
 
     fun pauseRecording() {
         isPaused = true
+        _currentAmplitude.set(0)
         audioRecord?.stop()
     }
 
@@ -61,18 +56,7 @@ class RecordDataSource @Inject constructor(
         audioRecord?.startRecording()
     }
 
-    /**
-     * 녹음 파일 생성
-     *
-     * @param folderName 폴더명 (null이면 UUID로 대체)
-     * @return 생성된 WAV 파일
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
-     */
     fun createAudioFile(folderName: String? = null): File {
-
         val baseDir = context.getExternalFilesDir(null)
             ?: throw IllegalStateException("저장소 접근 불가")
 
@@ -86,27 +70,14 @@ class RecordDataSource @Inject constructor(
 
         return try {
             if (!file.exists()) file.createNewFile()
-
             Timber.d("파일 생성: ${file.absolutePath}")
             file
-
         } catch (e: Exception) {
             Timber.e(e)
             file
         }
     }
 
-    /**
-     * 녹음 시작
-     * - AudioRecord를 초기화하고 별도 스레드에서 PCM 데이터 수집 시작
-     *
-     * @param file 녹음 데이터를 저장할 WAV 파일
-     * @throws IllegalStateException 이미 녹음 중인 경우
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
-     */
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun startRecording(file: File) {
         if (isRecording) throw IllegalStateException("이미 녹음 중입니다.")
@@ -128,7 +99,6 @@ class RecordDataSource @Inject constructor(
         audioRecord?.startRecording()
         isRecording = true
 
-        // 별도 스레드에서 PCM 데이터 수집
         recordingThread = Thread {
             writeAudioToFile(file, bufferSize)
         }.also { it.start() }
@@ -136,60 +106,42 @@ class RecordDataSource @Inject constructor(
         Timber.tag(TAG).d("🎤 녹음 시작: ${file.absolutePath}")
     }
 
-    /**
-     * 녹음 중지 및 파일 저장
-     * - 녹음 스레드 종료 후 WAV 파일 반환
-     *
-     * @return 저장된 WAV 파일
-     * @throws IllegalStateException 녹음 중이 아닌 경우 또는 파일이 없는 경우
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
-     */
     fun stopRecording(): File {
         if (!isRecording) throw IllegalStateException("녹음 중이 아닙니다.")
 
         isRecording = false
+        _currentAmplitude.set(0)
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null
-        recordingThread?.join() // 스레드 종료 대기
+        recordingThread?.join()
 
         Timber.tag(TAG).d("🛑 녹음 종료: ${currentFile?.absolutePath}")
 
         return currentFile ?: throw IllegalStateException("녹음 파일 없음")
     }
 
-    /**
-     * PCM 데이터 수집 후 WAV 파일로 저장
-     * - 녹음이 진행되는 동안 PCM 데이터를 버퍼에 수집
-     * - 녹음 종료 후 WAV 헤더를 붙여 파일로 저장
-     *
-     * @param file 저장할 WAV 파일
-     * @param bufferSize AudioRecord 버퍼 크기
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
-     */
     private fun writeAudioToFile(file: File, bufferSize: Int) {
         val buffer = ByteArray(bufferSize)
         val pcmData = mutableListOf<Byte>()
 
-        // PCM 데이터 수집
         while (isRecording) {
             if (isPaused) {
                 Thread.sleep(50)
-                continue  // 일시정지 중엔 수집 스킵
+                continue
             }
             val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
+            // Timber.d("🎤 read=$read, rms=${calculateRms(buffer, read)}")  // 확인용
+
             if (read > 0) {
                 pcmData.addAll(buffer.take(read))
+
+                // ✅ PCM 버퍼에서 RMS amplitude 계산 후 업데이트
+                val rms = calculateRms(buffer, read)
+                _currentAmplitude.set(rms)
             }
         }
 
-        // WAV 파일로 저장 (헤더 + PCM 데이터)
         val pcmBytes = pcmData.toByteArray()
         file.outputStream().use { out ->
             out.write(buildWavHeader(pcmBytes.size))
@@ -200,18 +152,27 @@ class RecordDataSource @Inject constructor(
     }
 
     /**
-     * WAV 헤더 생성
-     * - PCM 데이터 앞에 붙는 44바이트 WAV 표준 헤더
-     *
-     * @param dataSize PCM 데이터 크기 (byte)
-     * @return 44바이트 WAV 헤더
-     *
-     * @author hyeonseo
-     * @since 2026. 04. 12.
-     * @modified
+     * PCM 16bit LE 버퍼 → RMS amplitude (0~32767)
      */
+    private fun calculateRms(buffer: ByteArray, read: Int): Int {
+        var sum = 0.0
+        var sampleCount = 0
+
+        var i = 0
+        while (i + 1 < read) {
+            val sample = (buffer[i].toInt() and 0xFF) or (buffer[i + 1].toInt() shl 8)
+            val signedSample = sample.toShort().toDouble()
+            sum += signedSample * signedSample
+            sampleCount++
+            i += 2
+        }
+
+        if (sampleCount == 0) return 0
+        return sqrt(sum / sampleCount).toInt().coerceIn(0, 32767)
+    }
+
     private fun buildWavHeader(dataSize: Int): ByteArray {
-        val byteRate = SAMPLE_RATE * 2 // 모노 * 16bit(2byte)
+        val byteRate = SAMPLE_RATE * 2
         val blockAlign: Short = 2
 
         return ByteArray(44).apply {
@@ -223,12 +184,12 @@ class RecordDataSource @Inject constructor(
             set(12, 'f'.code.toByte()); set(13, 'm'.code.toByte())
             set(14, 't'.code.toByte()); set(15, ' '.code.toByte())
             putIntLE(16, 16)
-            putShortLE(20, 1)          // PCM
-            putShortLE(22, 1)          // 모노
+            putShortLE(20, 1)
+            putShortLE(22, 1)
             putIntLE(24, SAMPLE_RATE)
             putIntLE(28, byteRate)
             putShortLE(32, blockAlign.toInt())
-            putShortLE(34, 16)         // 16bit
+            putShortLE(34, 16)
             set(36, 'd'.code.toByte()); set(37, 'a'.code.toByte())
             set(38, 't'.code.toByte()); set(39, 'a'.code.toByte())
             putIntLE(40, dataSize)

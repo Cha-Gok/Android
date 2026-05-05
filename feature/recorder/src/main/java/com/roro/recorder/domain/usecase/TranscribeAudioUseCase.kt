@@ -1,5 +1,6 @@
 package com.roro.recorder.domain.usecase
 
+import android.content.Context
 import android.os.ParcelFileDescriptor
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.audio.AudioSource
@@ -9,6 +10,7 @@ import com.google.mlkit.genai.speechrecognition.SpeechRecognition
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
 import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
+import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
 import java.util.Locale
@@ -23,8 +25,10 @@ import javax.inject.Inject
  * @author hyeonseo
  * @since 2026. 04. 12.
  */
-class TranscribeAudioUseCase @Inject constructor() {
-
+//class TranscribeAudioUseCase @Inject constructor() {
+class TranscribeAudioUseCase @Inject constructor(
+    @ApplicationContext private val context: Context  // ← 추가
+) {
     /**
      * 음성 파일 STT 변환
      * - WAV 파일을 청크로 분할 후 순차적으로 STT 처리
@@ -36,7 +40,7 @@ class TranscribeAudioUseCase @Inject constructor() {
      * @return 청크별 결과를 \n으로 구분한 전체 텍스트
      */
     suspend operator fun invoke(file: File, value: Locale): String {
-        val chunks = splitWavFileToChunks(file, chunkSeconds = 6)
+        val chunks = splitWavFileToChunks(file, chunkSeconds = 7)
         val results = mutableListOf<String>()
 
         chunks.forEachIndexed { index, chunkFile ->
@@ -47,6 +51,7 @@ class TranscribeAudioUseCase @Inject constructor() {
         }
 
         return results.joinToString("\n")  // ✅ \n으로 구분 (index * 6000ms = startTimeMs)
+
     }
 
     /**
@@ -88,6 +93,7 @@ class TranscribeAudioUseCase @Inject constructor() {
         }
     }
 
+
     /**
      * WAV 파일을 청크 단위로 분할
      */
@@ -108,6 +114,130 @@ class TranscribeAudioUseCase @Inject constructor() {
             val chunkFile = File(file.parent, "chunk_${chunks.size}.wav")
             chunkFile.writeBytes(chunkWav)
             chunks.add(chunkFile)
+            offset = end
+        }
+        return chunks
+    }
+//    private fun splitWavFileToChunks(
+//        file: File,
+//        chunkSeconds: Int = 6,
+//        overlapSeconds: Int = 1
+//    ): List<File> {
+//        val wavBytes = file.readBytes()
+//        val sampleRate = wavBytes.getIntLE(24)
+//        val byteRate = wavBytes.getIntLE(28)
+//        val blockAlign = wavBytes.getShortLE(32)
+//        val bytesPerChunk = byteRate * chunkSeconds
+//        val bytesPerOverlap = byteRate * overlapSeconds
+//        val stepBytes = bytesPerChunk - bytesPerOverlap // 한 번에 이동하는 크기
+//
+//        val chunks = mutableListOf<File>()
+//        var offset = 44 // WAV 헤더 스킵
+//
+//        while (offset < wavBytes.size) {
+//            val end = minOf(offset + bytesPerChunk, wavBytes.size)
+//            val chunkData = wavBytes.copyOfRange(offset, end)
+//            val chunkWav = buildWavHeader(chunkData.size, sampleRate, blockAlign) + chunkData
+//            val chunkFile = File(file.parent, "chunk_${chunks.size}.wav")
+//            chunkFile.writeBytes(chunkWav)
+//            chunks.add(chunkFile)
+//            offset += stepBytes
+//        }
+//        return chunks
+//    }
+
+    /**
+     * WAV 파일을 무음 구간 기준으로 분할
+     * - 무음 구간에서 자름 (자연스러운 끊김)
+     * - 무음 없이 maxChunkSeconds 초과 시 강제로 자름
+     *
+     * @param file WAV 파일
+     * @param maxChunkSeconds 최대 청크 길이 (기본 6초)
+     * @param silenceThresholdRms 무음 판단 기준 RMS (기본 300, 환경에 따라 조절)
+     * @param minSilenceSamples 최소 무음 길이 (기본 0.3초)
+     */
+    private fun splitWavBySilence(
+        file: File,
+        maxChunkSeconds: Int = 6,
+        silenceThresholdRms: Int = 150,
+        minSilenceSamples: Int = -1 // -1이면 sampleRate * 0.3으로 자동 계산
+    ): List<File> {
+        val wavBytes = file.readBytes()
+        val sampleRate = wavBytes.getIntLE(24)
+        val byteRate = wavBytes.getIntLE(28)
+        val blockAlign = wavBytes.getShortLE(32)
+
+        val pcmData = wavBytes.copyOfRange(44, wavBytes.size) // 헤더 제거
+        val maxChunkBytes = byteRate * maxChunkSeconds
+        val actualMinSilenceSamples = if (minSilenceSamples == -1) (sampleRate * 0.3).toInt() else minSilenceSamples
+
+        // 16bit mono 기준 2바이트 = 1샘플
+        val bytesPerSample = blockAlign.toInt()
+
+        val splitPoints = mutableListOf<Int>() // 자를 바이트 위치
+        var silenceStart = -1
+        var silenceSampleCount = 0
+        var lastSplitByte = 0
+
+        var i = 0
+        while (i < pcmData.size - bytesPerSample) {
+            // RMS 계산 (16bit little endian)
+            val sample = (pcmData[i].toInt() and 0xFF) or (pcmData[i + 1].toInt() shl 8)
+            val rms = Math.abs(sample.toShort().toInt())
+
+            if (rms < silenceThresholdRms) {
+                // 무음 구간
+                if (silenceStart == -1) silenceStart = i
+                silenceSampleCount++
+
+                // 최소 무음 길이 이상 && 청크가 너무 작지 않을 때
+                if (silenceSampleCount >= actualMinSilenceSamples &&
+                    (i - lastSplitByte) > byteRate * 1 // 최소 1초 이상
+                ) {
+                    splitPoints.add(silenceStart)
+                    lastSplitByte = silenceStart
+                    silenceStart = -1
+                    silenceSampleCount = 0
+                }
+            } else {
+                // 소리 구간 → 무음 카운트 리셋
+                silenceStart = -1
+                silenceSampleCount = 0
+            }
+
+            // 최대 청크 길이 초과 시 강제로 자름
+            if ((i - lastSplitByte) >= maxChunkBytes) {
+                splitPoints.add(i)
+                lastSplitByte = i
+                silenceStart = -1
+                silenceSampleCount = 0
+            }
+
+            i += bytesPerSample
+        }
+
+        // 마지막 포인트 추가
+        splitPoints.add(pcmData.size)
+
+        // 청크 파일 생성
+        val chunks = mutableListOf<File>()
+        var offset = 0
+        splitPoints.forEach { end ->
+            if (end <= offset) return@forEach
+            val chunkData = pcmData.copyOfRange(offset, end)
+
+            val chunkDurationSeconds = chunkData.size.toFloat() / byteRate
+            if (chunkDurationSeconds < 1f) {
+                Timber.d("🎤 청크 너무 짧아서 스킵: ${chunkDurationSeconds}초")
+                offset = end
+                return@forEach
+            }
+
+            val chunkWav = buildWavHeader(chunkData.size, sampleRate, blockAlign) + chunkData
+            val chunkFile = File(file.parent, "chunk_${chunks.size}.wav")
+            chunkFile.writeBytes(chunkWav)
+            chunks.add(chunkFile)
+            Timber.d("🎤 청크 ${chunks.size}: ${offset / byteRate}초 ~ ${end / byteRate}초")
             offset = end
         }
         return chunks

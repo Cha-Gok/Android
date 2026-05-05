@@ -53,7 +53,7 @@ import com.roro.onboarding.R
 import kotlinx.coroutines.flow.collectLatest
 import timber.log.Timber
 
-private const val ONBOARDING_PAGE_COUNT = 4
+private const val ONBOARDING_PAGE_COUNT = 5
 
 @Composable
 fun OnBoardingScreen(
@@ -154,6 +154,7 @@ private fun OnBoardingScreenUI(
                         page = page,
                         selectedLanguage = uiState.selectedLanguage,
                         onLanguageChange = { onIntent(OnboardingIntent.SelectLanguage(it)) },
+                        downloadState = uiState.modelDownloadState, // ← 추가
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -164,11 +165,19 @@ private fun OnBoardingScreenUI(
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val isLastPage = pagerState.currentPage == 3
+                val isLastPage = pagerState.currentPage == 4 // 3 → 4
+                val isDownloadPage = pagerState.currentPage == 3
+
+                val buttonText = when {
+                    isLastPage -> "시작하기"
+                    isDownloadPage && uiState.isDownloadStarted -> "다음"
+                    isDownloadPage -> "다운로드"
+                    else -> "다음"
+                }
+
                 val buttonModifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
-                val buttonText = if (isLastPage) "시작하기" else "다음"
 
                 if (isLastPage) {
                     ChaGokButton(
@@ -183,7 +192,7 @@ private fun OnBoardingScreenUI(
                         text = buttonText,
                         onClick = { onIntent(OnboardingIntent.ClickNext) },
                         modifier = buttonModifier,
-                        enabled = !uiState.isLoading,
+                        enabled = uiState.isNextEnabled, // ← isLoading 대신
                         isLoading = uiState.isLoading
                     )
                 }
@@ -199,7 +208,7 @@ private fun OnBoardingScreenUI(
                             Text(text = "건너뛰기", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
 
-                        1, 2 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickBack) }) {
+                        1, 2, 3 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickBack) }) {
                             Text(text = "이전", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
                     }
@@ -214,23 +223,26 @@ private fun OnBoardingPage(
     page: Int,
     selectedLanguage: Language,
     onLanguageChange: (Language) -> Unit,
+    downloadState: ModelDownloadState, // ← 추가
     modifier: Modifier = Modifier,
 ) {
     val title = when (page) {
         0 -> "녹음부터 요약까지,\n내 기기에서 한 번에"
         1 -> "하루가 끝나면,\n기억은 먼저 정리돼버려요."
         2 -> "필요한 권한만\n요청할게요."
-        else -> "기록할 언어를 선택해 주세요.."
+        3 -> "AI 모델을\n다운로드할게요."       // ← 임시 텍스트
+        else -> "기록할 언어를 선택해 주세요.." // 기존 3이 else로
     }
 
     val subTitle = when (page) {
         0 -> "서버 업로드 없이 저장되는\n프라이빗 기록"
         1 -> "놓치고 싶지 않은 말들이 있다면,\n내기기에 차곡차곡 기록하고 요약까지"
         2 -> "녹음을 시작하려면\n마이크 권한이 필요해요"
+        3 -> "음성 인식·요약·번역 모델을\n기기에 저장해요. 한 번만 진행돼요."  // ← 임시 텍스트
         else -> "텍스트 변환 정확도가 올라가요.\n언어는 나중에 변경할 수 있어요."
     }
     Box(modifier = modifier.padding(start = 20.dp)) {
-        if (page == 3) {
+        if (page == 4) { // 기존 page == 3 → 4로
             Column {
                 Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
                 Spacer(modifier = Modifier.height(32.dp))
@@ -250,7 +262,17 @@ private fun OnBoardingPage(
                 }
 
             }
-        } else {
+        }
+        if (page == 3){ // ← 모델 다운로드 페이지
+            Column {
+                Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(text = subTitle, style = ChaGokTextStyle.Subtitle1, color = TextPrimary)
+                Spacer(modifier = Modifier.height(36.dp))
+                ModelDownloadContent(downloadState = downloadState)
+            }
+        }
+        else {
             Column {
                 Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
                 Spacer(modifier = Modifier.height(32.dp))
@@ -351,6 +373,47 @@ private fun PageIndicator(
     }
 }
 
+@Composable
+private fun ModelDownloadContent(downloadState: ModelDownloadState) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        ModelDownloadItem(label = "음성 인식 (STT)", state = downloadState.stt)
+        ModelDownloadItem(label = "요약", state = downloadState.summarize)
+        ModelDownloadItem(label = "번역", state = downloadState.translate)
+    }
+}
+
+@Composable
+private fun ModelDownloadItem(
+    label: String,
+    state: DownloadItemState
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 20.dp)
+    ) {
+        Text(
+            text = label,
+            style = ChaGokTextStyle.Subtitle1,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        when (state) {
+            DownloadItemState.Idle ->
+                Text("대기 중", color = Gray400, style = ChaGokTextStyle.Body3)
+            DownloadItemState.Downloading ->
+                Text("다운로드 중...", color = PrimaryColor, style = ChaGokTextStyle.Body3)
+            DownloadItemState.Done ->
+                Text("✓ 완료", color = PrimaryColor, style = ChaGokTextStyle.Body3)
+            DownloadItemState.Unavailable ->
+                Text("미지원", color = Gray400, style = ChaGokTextStyle.Body3)
+            DownloadItemState.Failed ->
+                Text("실패", color = Color.Red, style = ChaGokTextStyle.Body3)
+        }
+    }
+}
+
 // --- 상세 화면별 Preview ---
 
 @Preview(showBackground = true, name = "1단계: 서비스 소개", device = "spec:width=360dp,height=800dp")
@@ -388,16 +451,30 @@ fun Step3Preview() {
 
 }
 
+@Preview(showBackground = true, name = "추가: 다운로드 관련", device = "spec:width=360dp,height=800dp")
+@Composable
+fun Step3_1KoreanPreview() {
+
+    OnBoardingScreenUI(
+        uiState = OnboardingUiState(
+            currentPage = 3,
+        ),
+        pagerState = rememberPagerState(initialPage = 3) { ONBOARDING_PAGE_COUNT },
+        onIntent = {}
+    )
+
+}
+
 @Preview(showBackground = true, name = "4단계: 언어 선택 (한국어 선택됨)", device = "spec:width=360dp,height=800dp")
 @Composable
 fun Step4KoreanPreview() {
 
     OnBoardingScreenUI(
         uiState = OnboardingUiState(
-            currentPage = 3,
+            currentPage = 4,
             selectedLanguage = Language.KOREAN
         ),
-        pagerState = rememberPagerState(initialPage = 3) { ONBOARDING_PAGE_COUNT },
+        pagerState = rememberPagerState(initialPage = 4) { ONBOARDING_PAGE_COUNT },
         onIntent = {}
     )
 
@@ -409,10 +486,10 @@ fun Step4EnglishPreview() {
 
     OnBoardingScreenUI(
         uiState = OnboardingUiState(
-            currentPage = 3,
+            currentPage = 4,
             selectedLanguage = Language.ENGLISH
         ),
-        pagerState = rememberPagerState(initialPage = 3) { ONBOARDING_PAGE_COUNT },
+        pagerState = rememberPagerState(initialPage = 4) { ONBOARDING_PAGE_COUNT },
         onIntent = {}
     )
 

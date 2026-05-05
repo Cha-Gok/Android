@@ -70,4 +70,13 @@ dependencies {
     // Hilt + KSP
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    // ML Kit - 모델 다운로드용 (stt, 요약, 번역)
+    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+    implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
+    implementation("com.google.mlkit:translate:17.0.3")
+
+    // 코루틴 + Task await
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
 }

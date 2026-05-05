@@ -9,71 +9,124 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.util.lerp
-import androidx.room.util.copy
 import androidx.compose.ui.graphics.lerp as lerpColor
 
+/**
+ * 녹음 화면 배경
+ * SVG 스펙 기준 (390x844):
+ *
+ * [Ellipse - 큰 타원]
+ *   최솟값: cx=195, cy=815.5, rx=211, ry=97.5,  blur=100, color=#250062
+ *   최댓값: cx=195, cy=591.5, rx=211, ry=321.5, blur=250, color=#5724AA
+ *
+ * [Path - 하단 호]
+ *   최솟값: blur=40,  color=#5724AA
+ *   최댓값: blur=100, color=#754ACF
+ *
+ * @param amplitude 0f(최솟값) ~ 1f(최댓값)
+ */
 @Composable
 fun RecordingBackground(
-    amplitude: Float, // 0f ~ 1f
+    amplitude: Float,
     modifier: Modifier = Modifier
 ) {
-    val bottomRadius by animateFloatAsState(
-        targetValue = lerp(400f, 700f, amplitude),
+    // Ellipse cy: 815.5 → 591.5
+    val ellipseCy by animateFloatAsState(
+        targetValue = lerp(815.5f, 591.5f, amplitude),
         animationSpec = tween(300),
-        label = "bottomRadius"
+        label = "ellipseCy"
     )
-    val topRadius by animateFloatAsState(
-        targetValue = lerp(200f, 400f, amplitude),
+    // Ellipse ry: 97.5 → 321.5
+    val ellipseRy by animateFloatAsState(
+        targetValue = lerp(97.5f, 321.5f, amplitude),
         animationSpec = tween(300),
-        label = "topRadius"
+        label = "ellipseRy"
+    )
+    // Ellipse blur: 100 → 250
+    val ellipseBlur by animateFloatAsState(
+        targetValue = lerp(100f, 250f, amplitude),
+        animationSpec = tween(300),
+        label = "ellipseBlur"
+    )
+    // Path blur: 40 → 100
+    val pathBlur by animateFloatAsState(
+        targetValue = lerp(40f, 100f, amplitude),
+        animationSpec = tween(300),
+        label = "pathBlur"
     )
 
     Canvas(modifier = modifier.fillMaxSize()) {
-        val bottomPaint = Paint().apply {
-            asFrameworkPaint().apply {
-                isAntiAlias = true
-                color = android.graphics.Color.TRANSPARENT
-                setShadowLayer(0f, 0f, 0f, android.graphics.Color.TRANSPARENT)
-                maskFilter = BlurMaskFilter(bottomRadius * 0.6f, BlurMaskFilter.Blur.NORMAL)
-            }
-        }
-        val topPaint = Paint().apply {
-            asFrameworkPaint().apply {
-                isAntiAlias = true
-                color = android.graphics.Color.TRANSPARENT
-                maskFilter = BlurMaskFilter(topRadius * 0.5f, BlurMaskFilter.Blur.NORMAL)
-            }
-        }
+        val scaleX = size.width / 390f
+        val scaleY = size.height / 844f
 
-        // Ellipse 14 - 아래 큰 빛
-        drawContext.canvas.drawCircle(
-            center = Offset(size.width / 2f, size.height),
-            radius = bottomRadius,
-            paint = bottomPaint.apply {
-                asFrameworkPaint().color = lerpColor(
-                    Color(0xFF7B4FCC), // purple500
-                    Color(0xFF6B3FBC), // purple600
-                    amplitude
-                ).copy(alpha = lerp(0.3f, 0.7f, amplitude)).toArgb()
-            }
+        // 배경
+        drawRect(color = Color(0xFF121212))
+
+        // ── Ellipse (큰 타원 빛) ──────────────────────────────
+        val ellipseColor = lerpColor(
+            Color(0xFF250062),
+            Color(0xFF5724AA),
+            amplitude
         )
 
-        // Ellipse 13 - 위 작은 빛
-        drawContext.canvas.drawCircle(
-            center = Offset(size.width / 2f, size.height * 0.3f),
-            radius = topRadius,
-            paint = topPaint.apply {
-                asFrameworkPaint().color = lerpColor(
-                    Color(0xFF9B7FD4), // purple300
-                    Color(0xFF7B4FCC), // purple500
-                    amplitude
-                ).copy(alpha = lerp(0.2f, 0.5f, amplitude)).toArgb()
+        val ellipsePaint = Paint().apply {
+            asFrameworkPaint().apply {
+                isAntiAlias = true
+                color = ellipseColor.toArgb()
+                maskFilter = BlurMaskFilter(
+                    ellipseBlur * scaleY,
+                    BlurMaskFilter.Blur.NORMAL
+                )
             }
+        }
+
+        val cx = 195f * scaleX
+        val cy = ellipseCy * scaleY
+        val rx = 211f * scaleX
+        val ry = ellipseRy * scaleY
+
+        drawContext.canvas.drawOval(
+            left = cx - rx,
+            top = cy - ry,
+            right = cx + rx,
+            bottom = cy + ry,
+            paint = ellipsePaint
+        )
+
+        // ── Path (하단 호형 빛) ───────────────────────────────
+        val pathColor = lerpColor(
+            Color(0xFF5724AA),
+            Color(0xFF754ACF),
+            amplitude
+        )
+
+        val pathPaint = Paint().apply {
+            asFrameworkPaint().apply {
+                isAntiAlias = true
+                color = pathColor.toArgb()
+                maskFilter = BlurMaskFilter(
+                    pathBlur * scaleY,
+                    BlurMaskFilter.Blur.NORMAL
+                )
+            }
+        }
+
+        // SVG path의 호형 → 타원 하단부로 근사
+        // 최솟값 시작y=886, 최댓값 시작y=844 (화면 하단 기준)
+        val pathStartY = lerp(886f, 844f, amplitude) * scaleY
+        val pathRx = 192f * scaleX  // (387-3)/2
+        val pathRy = (pathStartY - size.height) * -1f
+
+        drawContext.canvas.drawOval(
+            left = cx - pathRx,
+            top = pathStartY - pathRy * 2,
+            right = cx + pathRx,
+            bottom = pathStartY,
+            paint = pathPaint
         )
     }
 }

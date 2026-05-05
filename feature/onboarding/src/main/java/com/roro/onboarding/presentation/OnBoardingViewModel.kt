@@ -3,10 +3,12 @@ package com.roro.onboarding.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.datastore.Language
+import com.roro.onboarding.domain.DownloadModelsUseCase
 import com.roro.onboarding.domain.GetSelectedLanguageUseCase
 import com.roro.onboarding.domain.SetOnboardingCompletedUseCase
 import com.roro.onboarding.domain.SetSelectedLanguageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ class OnBoardingViewModel @Inject constructor(
     private val setSelectedLanguageUseCase: SetSelectedLanguageUseCase,
     private val getSelectedLanguageUseCase: GetSelectedLanguageUseCase,
     private val setOnboardingCompletedUseCase: SetOnboardingCompletedUseCase,
+    private val downloadModelsUseCase: DownloadModelsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -60,12 +63,20 @@ class OnBoardingViewModel @Inject constructor(
                 val nextPage = currentPage + 1
                 Timber.d("Onboarding onIntent: ClickNext, currentPage=$currentPage, nextPage=$nextPage")
 
-                if (currentPage == 2) {
-                    Timber.d("Onboarding requesting audio permission on page 2")
-                    emitEffect(OnboardingEffect.RequestAudioPermission)
-                } else {
-                    emitEffect(OnboardingEffect.ScrollToPage(nextPage))
+                when {
+                    currentPage == 2 -> emitEffect(OnboardingEffect.RequestAudioPermission)
+                    currentPage == 3 && !uiState.value.isDownloadStarted -> startModelDownload() // 시작하기
+                    currentPage == 3 && uiState.value.isDownloadStarted -> emitEffect(OnboardingEffect.ScrollToPage(4)) // 다음
+                    else -> emitEffect(OnboardingEffect.ScrollToPage(nextPage))
                 }
+
+                // 기존 코드
+//                if (currentPage == 2) {
+//                    Timber.d("Onboarding requesting audio permission on page 2")
+//                    emitEffect(OnboardingEffect.RequestAudioPermission)
+//                } else {
+//                    emitEffect(OnboardingEffect.ScrollToPage(nextPage))
+//                }
             }
 
             OnboardingIntent.ClickBack -> {
@@ -94,6 +105,30 @@ class OnBoardingViewModel @Inject constructor(
             OnboardingIntent.ClickStart -> {
                 Timber.d("Onboarding onIntent: ClickStart")
                 completeOnboarding()
+            }
+        }
+    }
+
+    // 다운로드 관련 추가
+    private fun startModelDownload() {
+        viewModelScope.launch(Dispatchers.IO) {
+            launch {
+                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Downloading)) }
+                runCatching { downloadModelsUseCase.downloadSTT() }
+                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Done)) } }
+                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Failed)) } }
+            }
+            launch {
+                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Downloading)) }
+                runCatching { downloadModelsUseCase.downloadSummarize() }
+                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Done)) } }
+                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Failed)) } }
+            }
+            launch {
+                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Downloading)) }
+                runCatching { downloadModelsUseCase.downloadTranslate() }
+                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Done)) } }
+                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Failed)) } }
             }
         }
     }

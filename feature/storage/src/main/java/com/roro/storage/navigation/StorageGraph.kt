@@ -27,13 +27,21 @@ import com.roro.storage.presentation.StorageScreen
  * @since 2026. 2. 28.
  */
 fun NavGraphBuilder.storageGraph(
-    navController: NavController
+    navController: NavController,
+    onStartRecord: () -> Unit,   // 추가
 ) {
     val animationDuration = 500
 
     // 바텀 네비게이션 O
+//    composable(Routes.STORAGE) {
+//        StorageScreen(navController = navController)
+//    }
+
     composable(Routes.STORAGE) {
-        StorageScreen(navController = navController)
+        StorageScreen(
+            navController = navController,
+            onStartRecord = onStartRecord,   // ✅ 전달
+        )
     }
 
     // 개인 폴더

@@ -82,7 +82,8 @@ import java.util.UUID
 @Composable
 fun StorageScreen(
     navController: NavController,
-    viewModel: StorageViewModel = hiltViewModel()
+    viewModel: StorageViewModel = hiltViewModel(),
+    onStartRecord: () -> Unit,   // 추가
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val folders by viewModel.userFolders.collectAsState()
@@ -131,8 +132,10 @@ fun StorageScreen(
                 viewModel.onIntent(StorageIntent.ClickFolderType(type = type))
             }
         },
+        onStartRecord = onStartRecord,   // ✅ 전달
 
         )
+
 }
 
 @Composable
@@ -143,6 +146,7 @@ internal fun StorageScreenContent(
     privateFolderCount: Int,
     trashFolderCount: Int,
     onClickFolderType: (DefaultFolderType) -> Unit,
+    onStartRecord: () -> Unit,   // ✅ 추가
 ) {
     // 1. 스크롤 상태 기억
     val listState = rememberLazyListState()
@@ -205,13 +209,19 @@ internal fun StorageScreenContent(
 
             }
             // 5. 플로팅 버튼을 Box의 오른쪽 하단에 배치
+//            ChagokStartRecordFAB(
+//                onClick = {
+//                    navController.navigate(Routes.RECORDER)
+//                },
+//                modifier = Modifier
+//                    .align(Alignment.BottomEnd) // 우측 하단 정렬
+//                    .padding(end = 42.dp, bottom = 64.dp), // 화면 끝에서 여백
+//            )
             ChagokStartRecordFAB(
-                onClick = {
-                    navController.navigate(Routes.RECORDER)
-                },
+                onClick = onStartRecord,   // navController.navigate(Routes.RECORDER) → onStartRecord
                 modifier = Modifier
-                    .align(Alignment.BottomEnd) // 우측 하단 정렬
-                    .padding(end = 42.dp, bottom = 64.dp), // 화면 끝에서 여백
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 42.dp, bottom = 64.dp),
             )
         }
     }
@@ -299,6 +309,7 @@ fun StorageScreenPreview() {
             errorMessage = null
         ),
         onClickFolderType = {},
+        onStartRecord = {},
         defaultCount = 0,
         privateFolderCount = 0,
         trashFolderCount = 0,

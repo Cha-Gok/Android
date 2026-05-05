@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.Gray100
@@ -42,8 +43,13 @@ fun ChagokDialog(
     confirmText: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    confirmColor: Color = Color(0xFF7B4FCC), // 기본값 기존 보라색, 필요시 빨간색 등으로 교체
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    )
+        {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,7 +97,7 @@ fun ChagokDialog(
                             .weight(1f)
                             .clip(RoundedCornerShape(20.dp))
                             .border(width = 0.5.dp, color = Color(0xFF7B4FCC), shape = RoundedCornerShape(20.dp))
-                            .background(Color(0xFF7B4FCC))
+                            .background(confirmColor)
                             .clickable(onClick = onConfirm)
                             .padding(horizontal = 12.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
