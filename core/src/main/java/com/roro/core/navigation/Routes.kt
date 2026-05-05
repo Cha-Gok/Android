@@ -12,6 +12,8 @@ object Routes {
     const val ONBOARDING = "onboarding"
     const val STORAGE = "storage"
     const val RECORDER = "record"
+    const val TRASH = "trassh"
+    const val TOS = "tos" // 이용약관
 
     // 바텀 네비게이션 X
     fun splash() = "splash"
@@ -24,7 +26,7 @@ object Routes {
 
     // 폴더 목록 > 파일 목록
     const val STORAGE_FILE = "storage/folder/file/{folderId}/{folderName}"
-    fun storageFile(folderId: String, folderName:String) = "storage/folder/file/${folderId}/${folderName}"
+    fun storageFile(folderId: String, folderName: String) = "storage/folder/file/${folderId}/${folderName}"
 
 
     const val RECORD_DETAIL = "recoder/detail/{fileId}"

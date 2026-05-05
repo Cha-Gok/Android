@@ -15,8 +15,11 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -35,14 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
-import com.roro.core.ui.theme.PrimaryColor
-import com.roro.core.ui.theme.TextPrimary
-
-
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import com.roro.core.ui.theme.Gray850
+import com.roro.core.ui.theme.TextPrimary
 
 @Composable
 fun ChaGokTopBar(
@@ -53,7 +50,7 @@ fun ChaGokTopBar(
     firstActionIcon: ImageVector = Icons.Default.Search,
     firstActionDescription: String = "검색",
     onFirstActionClick: () -> Unit = {},
-    secondActionIcon: ImageVector = Icons.Default.Settings,
+    secondActionIcon: ImageVector = Icons.Outlined.Settings,
     secondActionDescription: String = "설정",
     onSecondActionClick: () -> Unit = {},
     secondActionTrailingContent: @Composable () -> Unit = {} // ← 추가
@@ -228,6 +225,36 @@ fun TopBarMoreMenu(
                 onClick = { onSelectMode(); expanded = false }
             )
         }
+    }
+}
+
+@Composable
+fun ChaGokSettingsDropdown(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    onLanguageSettingClick: () -> Unit,
+    onTosClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.background(Color(0xFF252525)) // 어두운 테마 배경
+    ) {
+        DropdownMenuItem(
+            text = { Text("녹음 언어 설정", color = Gray850) },
+            onClick = {
+                onLanguageSettingClick()
+                onDismissRequest()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("약관 보기", color = Gray850) },
+            onClick = {
+                onTosClick()
+                onDismissRequest()
+            }
+        )
     }
 }
 

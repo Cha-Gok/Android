@@ -3,9 +3,9 @@ package com.roro.onboarding.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.datastore.Language
-import com.roro.onboarding.domain.GetSelectedLanguageUseCase
+import com.roro.core.domain.GetSelectedLanguageUseCase
+import com.roro.core.domain.SetSelectedLanguageUseCase
 import com.roro.onboarding.domain.SetOnboardingCompletedUseCase
-import com.roro.onboarding.domain.SetSelectedLanguageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
