@@ -2,6 +2,7 @@ package com.roro.storage.presentation
 
 import com.roro.core.model.Folder
 import com.roro.core.model.VoiceNote
+import com.roro.storage.presentation.home.DefaultFolderType
 import java.util.UUID
 
 sealed interface StorageIntent {
