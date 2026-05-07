@@ -34,6 +34,9 @@ object Routes {
     const val RECORD_RESULT = "record/result/{voiceNoteId}"
     fun recordResult(voiceNoteId: String) = "record/result/$voiceNoteId"
 
+    // ✅ 추가 - voiceNoteId 없이 스켈레톤만 보여주는 화면
+    const val RECORD_RESULT_WAITING = "record/result/waiting"
+
     // 스크립트 편집 화면
     const val SCRIPT_EDIT = "record/script-edit/{voiceNoteId}"
     fun scriptEdit(voiceNoteId: String) = "record/script-edit/$voiceNoteId"

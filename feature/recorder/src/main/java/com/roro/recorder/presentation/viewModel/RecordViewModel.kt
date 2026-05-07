@@ -46,6 +46,7 @@ import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.roro.core.datastore.Language
 import com.roro.recorder.data.datasource.RecordDataSource
 import com.roro.recorder.domain.usecase.ExtractKeywordsUseCase
 import com.roro.recorder.domain.usecase.SaveRecordingUseCase
@@ -87,12 +88,16 @@ class RecordViewModel @Inject constructor(
     private val _summarizeState = MutableStateFlow<SummarizeState>(SummarizeState.Idle)
     val summarizeState: StateFlow<SummarizeState> = _summarizeState.asStateFlow()
 
-    // 언어 선택 (기본: 한국어)
-    private val _selectedLocale = MutableStateFlow(Locale("ko", "KR"))
-    val selectedLocale: StateFlow<Locale> = _selectedLocale.asStateFlow()
+    // 언어 선택 - Locale → Language로 교체
+    private val _selectedLanguage = MutableStateFlow(Language.KOREAN)
+    val selectedLanguage: StateFlow<Language> = _selectedLanguage.asStateFlow()
 
     private val _navigationEvent = MutableSharedFlow<String>() // voiceNoteId 전달
     val navigationEvent = _navigationEvent.asSharedFlow()
+
+    // ✅ 추가
+    private val _navigateToResult = MutableSharedFlow<Unit>()
+    val navigateToResult = _navigateToResult.asSharedFlow()
 
     // ── Amplitude (실시간 음량) ──────────────────────────────
     private val _amplitude = MutableStateFlow(0)
@@ -119,8 +124,8 @@ class RecordViewModel @Inject constructor(
     }
     // ────────────────────────────────────────────────────────
 
-    fun setLocale(locale: Locale) {
-        _selectedLocale.value = locale
+    fun setLanguage(language: Language) {
+        _selectedLanguage.value = language
     }
 
     /**
@@ -147,24 +152,24 @@ class RecordViewModel @Inject constructor(
      */
     private var lastAudioFile: File? = null
 
+
     fun stopRecording(folderId: UUID? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                stopAmplitudePolling() // ← 추가
+                stopAmplitudePolling()
                 val file = recordDataSource.stopRecording()
                 lastAudioFile = file
                 _state.value = RecordState.Processing
-                processAudio(file, folderId)
+                _navigateToResult.emit(Unit) // ✅ 즉시 화면 이동
+                processAudio(file, folderId) // 백그라운드 처리
             } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "❌ 녹음 종료 실패")
                 _state.value = RecordState.Error(e.message ?: "녹음 종료 실패")
             }
         }
     }
-
     private suspend fun processAudio(file: File, folderId: UUID? = null) {
         try {
-            val sttText = transcribeAudioUseCase(file, _selectedLocale.value)
+            val sttText = transcribeAudioUseCase(file, _selectedLanguage.value)
             _sttResult.value = sttText
 
             val keywords = extractKeywordsUseCase(sttText)
@@ -269,7 +274,7 @@ class RecordViewModel @Inject constructor(
                     tmpFile.writeBytes(input.readBytes())
                 }
 
-                val sttText = transcribeAudioUseCase(tmpFile, _selectedLocale.value)
+                val sttText = transcribeAudioUseCase(tmpFile, _selectedLanguage.value)
                 _sttResult.value = sttText
                 Timber.tag(TAG).d("🎤 STT 완료: $sttText")
 

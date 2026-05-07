@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 
+// 사용X
 @Composable
 fun RecorderDetailScreen(
     navController: NavController,

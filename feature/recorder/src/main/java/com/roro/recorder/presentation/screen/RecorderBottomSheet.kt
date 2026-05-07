@@ -85,10 +85,18 @@ private fun RecorderBottomSheetContent(
     }
 
     // 녹음 완료 → ResultScreen으로 이동
+//    LaunchedEffect(Unit) {
+//        viewModel.navigationEvent.collect { voiceNoteId ->
+//            onDismiss()
+//            navController.navigate(Routes.recordResult(voiceNoteId))
+//        }
+//    }
+
+    // ✅ 추가 - 처리 시작하자마자 즉시 이동
     LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { voiceNoteId ->
+        viewModel.navigateToResult.collect {
             onDismiss()
-            navController.navigate(Routes.recordResult(voiceNoteId))
+            navController.navigate(Routes.RECORD_RESULT_WAITING)
         }
     }
 

@@ -1,8 +1,10 @@
 package com.roro.core.datastore
 
-enum class Language(val code: String) {
-    KOREAN("ko"),
-    ENGLISH("en");
+import java.util.Locale
+
+enum class Language(val code: String, val locale: Locale) {
+    KOREAN("ko", Locale("ko", "KR")),
+    ENGLISH("en", Locale("en", "US"));
 
     companion object {
         fun from(code: String): Language {

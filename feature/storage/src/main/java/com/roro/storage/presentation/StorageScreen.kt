@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.util.TimeUtils
+import androidx.core.util.TimeUtils.formatDuration
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -75,6 +76,7 @@ import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
 import com.roro.core.ui.theme.TextTertiary
 import com.roro.core.util.formatDate
+import com.roro.core.util.formatTime
 import com.roro.core.util.toast
 import timber.log.Timber
 import java.util.UUID
@@ -201,7 +203,10 @@ internal fun StorageScreenContent(
                             items = displayList,
                             key = { it.id }
                         ) { item ->
-                            FolderItemList(voiceNote = item)
+                            FolderItemList(
+                                voiceNote = item,
+                                navController = navController  // ✅ 추가
+                            )
                         }
                     }
                 }
@@ -230,13 +235,15 @@ internal fun StorageScreenContent(
 @Composable
 fun FolderItemList(
     voiceNote: VoiceNote,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
     ChaGokNoteList(
         title = voiceNote.title,
         summaryStatus = SummaryStatus.COMPLETED,
-        onClick = { },
-        time = voiceNote.createdAt.formatDate(""),
+        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },
+        //time = "${voiceNote.createdAt.formatTime()} · ${formatDuration(voiceNote.durationSec)}",
+        time = "${voiceNote.createdAt.formatTime()}" , // durationSec 가져오는 방법 고민
         modifier = modifier.fillMaxWidth()
     )
 }

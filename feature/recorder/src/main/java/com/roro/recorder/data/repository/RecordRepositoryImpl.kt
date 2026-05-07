@@ -52,7 +52,8 @@ class RecordRepositoryImpl @Inject constructor(
         voiceNoteDao.insert(
             VoiceNoteEntity(
                 id = voiceNoteId,
-                title = audioFile.nameWithoutExtension,
+                // title = audioFile.nameWithoutExtension,
+                title = "새 기록", // 처음 저장 시 디폴트
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,

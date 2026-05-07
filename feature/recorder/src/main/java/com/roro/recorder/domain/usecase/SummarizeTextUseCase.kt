@@ -5,6 +5,7 @@ import androidx.concurrent.futures.await
 import com.google.mlkit.genai.summarization.Summarization
 import com.google.mlkit.genai.summarization.SummarizationRequest
 import com.google.mlkit.genai.summarization.SummarizerOptions
+import com.roro.core.datastore.Language
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -40,17 +41,13 @@ class SummarizeTextUseCase @Inject constructor(
      * @since 2026. 04. 12.
      * @modified
      */
-    suspend operator fun invoke(text: String): String {
-        // 1. 청크 분할
-        val chunks = splitBySentence(text)
+    suspend operator fun invoke(text: String, language: Language): String {
+        val summary = summarize(text)  // 청크 분할 없이 전체 요약
 
-        // 2. 청크별 요약 후 합치기
-        val finalSummary = chunks.map { chunk ->
-            summarize(chunk)
-        }.joinToString("\n")
-
-        // 3. 영어 → 한국어 번역
-        return translateTextUseCase(finalSummary)
+        return when (language) {
+            Language.KOREAN -> translateTextUseCase(summary)  // 영→한 번역
+            Language.ENGLISH -> summary                       // 번역 없이 그대로
+        }
     }
 
     /**
