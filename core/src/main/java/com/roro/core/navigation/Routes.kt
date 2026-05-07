@@ -12,7 +12,7 @@ object Routes {
     const val ONBOARDING = "onboarding"
     const val STORAGE = "storage"
     const val RECORDER = "record"
-    const val TRASH = "trassh"
+    const val TRASH = "trash"
     const val TOS = "tos" // 이용약관
 
     // 바텀 네비게이션 X
