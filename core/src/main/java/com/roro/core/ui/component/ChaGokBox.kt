@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.roro.core.domain.model.TrashType
 import com.roro.core.ui.theme.BoxBackground
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
@@ -41,7 +43,6 @@ import com.roro.core.ui.theme.Gray500
 import com.roro.core.ui.theme.Gray700
 import com.roro.core.ui.theme.Gray850
 import com.roro.core.ui.theme.PrimaryColor
-import com.roro.core.ui.theme.Purple900
 import com.roro.core.ui.theme.TextDisabled
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
@@ -50,9 +51,9 @@ import com.roro.core.ui.theme.TextTertiary
 @Composable
 fun ChaGokBox(
     text: String,
-    count: Int = 0,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    count: Int = 0,
     isSelected: Boolean = false,
     enabled: Boolean = true,
     icon: ImageVector = Icons.Default.Error,
@@ -307,6 +308,80 @@ fun ChaGokFileListBox(
     }
 }
 
+@Composable
+fun ChaGokTrashBox(
+    title: String,
+    firstText: String,
+    secondText: String,
+    type: TrashType,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectedChange: (Boolean) -> Unit = {},
+    shape: Shape = RoundedCornerShape(20.dp)
+) {
+    // 1. 보더 색상을 더 밝게, 두께를 더 두껍게 설정
+    val borderColor = if (isSelected) PrimaryColor else Gray700
+    val borderStroke = if (isSelected) 2.dp else 1.dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(85.dp)
+            .clip(shape) // 1. 먼저 자르기
+            .background(BoxBackground) // 2. 배경 채우기
+            .border(borderStroke, borderColor, shape) // 3. 그 위에 보더 그리기
+            .clickable {
+                if (isSelectionMode) onSelectedChange(!isSelected)
+                else onClick()
+            }
+            .padding(16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // 1. 선택 모드
+            if (isSelectionMode) {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(16.dp) // 체크박스 크기
+                            .clip(CircleShape) // 동그라미 모양
+                            .background(if (isSelected) PrimaryColor else Gray850),
+                        contentAlignment = Alignment.Center
+
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp, 12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Icon(
+                imageVector = if (type == TrashType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Mic,
+                tint = TextSecondary,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = title, style = ChaGokTextStyle.Title2, color = TextPrimary)
+                Text(text = "$firstText · $secondText", style = ChaGokTextStyle.Body1, color = TextSecondary)
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0x121212)
 @Composable
 fun ChaGokBoxPreview() {
@@ -409,6 +484,14 @@ fun ChaGokFileBoxPreview() {
                 isSelected = true,
                 summaryStatus = SummaryStatus.COMPLETED,
                 duration = "2시간 12분",
+            )
+            ChaGokTrashBox(
+                title = "회의록",
+                firstText = "오후 3:23",
+                isSelectionMode = true,
+                isSelected = true,
+                type = TrashType.FOLDER,
+                secondText = "1개월 전 삭제",
             )
         }
     }
