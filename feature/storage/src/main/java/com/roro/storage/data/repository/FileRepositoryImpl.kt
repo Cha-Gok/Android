@@ -114,19 +114,12 @@ class FileRepositoryImpl @Inject constructor(
         room.moveToTrashVoiceNotes(voiceNoteIds)
     }
 
-    override suspend fun restoreFromTrash(folder: Folder) {
-        room.restoreFolder(
-            folder = folder.copy(
-                deletedAt = null,
-                updatedAt = System.currentTimeMillis()
-            ).toEntity()
-        )
+    override suspend fun restoreFolder(folderId: UUID) {
+        room.restoreFolder(folderId = folderId)
     }
 
-    override suspend fun restoreVoiceNote(voiceNote: VoiceNote) {
-        room.restoreVoiceNote(
-            voiceNote = voiceNote
-        )
+    override suspend fun restoreVoiceNote(voiceNoteId: UUID) {
+        room.restoreVoiceNote(voiceNoteId = voiceNoteId)
     }
 
     // 사용자 폴더 가져오기
@@ -148,6 +141,11 @@ class FileRepositoryImpl @Inject constructor(
         return room.observeFolderItemCount()
     }
 
+    // 휴지통 폴더가 가지고 있는 아이템 개수
+    override fun observeTrashFolderItemCount(): Flow<List<FolderWithNoteCount>> {
+        return room.observeTrashFolderItemCount()
+    }
+
     // 폴더를 갖고 있지 않는 voiceNote조회
     override fun observeVoiceNotesByNullFolder(): Flow<List<VoiceNote>> {
         return room.observeFolderNullVoiceNote()
@@ -163,22 +161,12 @@ class FileRepositoryImpl @Inject constructor(
         return room.observeRecentVoiceNote()
     }
 
-    override suspend fun removeVoiceNote(voiceNote: VoiceNote) {
-        room.removeVoiceNote(
-            voiceNoteEntity = voiceNote.copy(
-                id = voiceNote.id,
-                title = voiceNote.title,
-            ).toEntity()
-        )
+    override suspend fun removeVoiceNote(voiceNoteId: UUID) {
+        room.removeVoiceNote(voiceNoteId = voiceNoteId)
     }
 
-    override suspend fun removeFolder(folder: Folder) {
-        room.removeFolder(
-            folder = folder.copy(
-                id = folder.id,
-                name = folder.name
-            ).toEntity()
-        )
+    override suspend fun removeFolder(folderId: UUID) {
+        room.removeFolder(folderId = folderId)
     }
 
     override suspend fun renameFolder(folder: Folder) {

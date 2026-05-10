@@ -20,10 +20,10 @@ interface FileRepository {
     suspend fun moveToVoiceNotes(voiceNoteIds: List<UUID>)
 
     // 폴더 휴지통 복원
-    suspend fun restoreFromTrash(folder: Folder)
+    suspend fun restoreFolder(folderId: UUID)
 
     // voiceNote 휴지통 복원
-    suspend fun restoreVoiceNote(voiceNote: VoiceNote)
+    suspend fun restoreVoiceNote(voiceNoteId: UUID)
 
     // 폴더 리스트 fetch
     fun observeUserFolders(): Flow<List<Folder>>
@@ -37,6 +37,9 @@ interface FileRepository {
     // FolderItem안에 개수 확인
     fun observeFolderItemCount(): Flow<List<FolderWithNoteCount>>
 
+    // 휴지통 파일 개수 확인
+    fun observeTrashFolderItemCount(): Flow<List<FolderWithNoteCount>>
+
     // 폴더가 없는 voiceNote fetch
     fun observeVoiceNotesByNullFolder(): Flow<List<VoiceNote>>
 
@@ -47,10 +50,10 @@ interface FileRepository {
     fun observeRecentVoiceNote(): Flow<List<VoiceNote>>
 
     // voiceNote 영구삭제
-    suspend fun removeVoiceNote(voiceNote: VoiceNote)
+    suspend fun removeVoiceNote(voiceNoteId: UUID)
 
     // folder 영구삭제
-    suspend fun removeFolder(folder: Folder)
+    suspend fun removeFolder(folderId: UUID)
 
     // 폴더 이름 변경
     suspend fun renameFolder(folder: Folder)
