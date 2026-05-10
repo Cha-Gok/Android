@@ -16,4 +16,5 @@ data class Transcript(
     val text: String,
     val createdAt: Long = System.currentTimeMillis(),
     val voiceNoteId: UUID,
+    // 스탬프가 들어갈 수도...
 )

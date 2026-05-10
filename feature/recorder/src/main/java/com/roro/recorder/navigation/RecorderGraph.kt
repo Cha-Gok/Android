@@ -7,6 +7,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.roro.core.navigation.Routes
+import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.screen.RecordResultScreen
 import com.roro.recorder.presentation.screen.RecorderDetailScreen
 import com.roro.recorder.presentation.screen.RecorderScreen
@@ -29,7 +30,8 @@ import com.roro.recorder.presentation.viewModel.RecordResultViewModel
  * @since 2026. 2. 28.
  */
 fun NavGraphBuilder.recorderGraph(
-    navController: NavController
+    navController: NavController,
+    recordViewModel: RecordViewModel
 ){
     // 바텀 네비게이션 O
     composable(Routes.RECORDER) {
@@ -46,6 +48,15 @@ fun NavGraphBuilder.recorderGraph(
     composable(Routes.RECORD_RESULT) { backStackEntry ->
         val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
         RecordResultScreen(navController = navController, voiceNoteId = voiceNoteId)
+    }
+
+    // ✅ 추가 - 처리 중 스켈레톤 화면
+    composable(Routes.RECORD_RESULT_WAITING) {
+        RecordResultScreen(
+            navController = navController,
+            voiceNoteId = "",
+            recordViewModel = recordViewModel  // ✅ 전달
+        )
     }
 
     // 스크립트 편집 화면 ✅

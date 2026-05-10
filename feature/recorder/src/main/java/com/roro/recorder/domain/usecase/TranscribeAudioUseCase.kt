@@ -1,5 +1,6 @@
 package com.roro.recorder.domain.usecase
 
+import android.content.Context
 import android.os.ParcelFileDescriptor
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.audio.AudioSource
@@ -9,6 +10,8 @@ import com.google.mlkit.genai.speechrecognition.SpeechRecognition
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
 import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
+import com.roro.core.datastore.Language
+import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
 import java.util.Locale
@@ -19,12 +22,16 @@ import javax.inject.Inject
  * - 음성 파일을 텍스트로 변환하는 UseCase (STT)
  * - WAV 파일을 청크로 분할 후 MLKit SpeechRecognition으로 순차 인식
  * - 청크별 결과를 \n으로 구분해 반환 → index * 6000ms = startTimeMs 계산 가능
+ * - 설정언어가 영어인 경우 -> 영어로 stt 진행 및 요약(원래 영어)
+ * - 설정 언어가 한국어인 경우 -> 한국어로 stt 진행 및 요약 (+ 요약 결과 영한 번역)
  *
  * @author hyeonseo
  * @since 2026. 04. 12.
  */
-class TranscribeAudioUseCase @Inject constructor() {
-
+//class TranscribeAudioUseCase @Inject constructor() {
+class TranscribeAudioUseCase @Inject constructor(
+    @ApplicationContext private val context: Context  // ← 추가
+) {
     /**
      * 음성 파일 STT 변환
      * - WAV 파일을 청크로 분할 후 순차적으로 STT 처리
@@ -35,29 +42,37 @@ class TranscribeAudioUseCase @Inject constructor() {
      * @param value 인식 언어 Locale
      * @return 청크별 결과를 \n으로 구분한 전체 텍스트
      */
-    suspend operator fun invoke(file: File, value: Locale): String {
-        val chunks = splitWavFileToChunks(file, chunkSeconds = 6)
+    suspend operator fun invoke(file: File, language: Language): String {
+
+        val locale = language.locale
+        val chunks = splitWavFileToChunks(file, chunkSeconds = 7)
         val results = mutableListOf<String>()
 
         chunks.forEachIndexed { index, chunkFile ->
-            Timber.d("🎤 청크 ${index + 1}/${chunks.size} 처리 중")
-            val result = recognizeChunk(chunkFile)
-            if (result.isNotBlank()) results.add(result)  // ✅ 빈 청크는 제외
+            Timber.d("🎤 청크 ${index + 1}/${chunks.size} 처리 중 (언어: $locale)")
+            val result = recognizeChunk(chunkFile, locale)
+            if (result.isNotBlank()) results.add(result)
             chunkFile.delete()
         }
 
-        return results.joinToString("\n")  // ✅ \n으로 구분 (index * 6000ms = startTimeMs)
+        return results.joinToString("\n")
     }
 
     /**
      * 청크 파일 단위 STT 인식
      */
-    private suspend fun recognizeChunk(chunkFile: File): String {
+    /**
+     * 청크 파일 단위 STT 인식
+     *
+     * @param chunkFile 인식할 WAV 청크 파일
+     * @param locale 인식 언어 Locale
+     */
+    private suspend fun recognizeChunk(chunkFile: File, locale: Locale): String {
         var speechRecognizer: SpeechRecognizer? = null
         var pfd: ParcelFileDescriptor? = null
         return try {
             val options = speechRecognizerOptions {
-                locale = Locale("ko", "KR")
+                this.locale = locale  // 언어 설정 사용
                 preferredMode = SpeechRecognizerOptions.Mode.MODE_BASIC
             }
             speechRecognizer = SpeechRecognition.getClient(options)
@@ -87,6 +102,7 @@ class TranscribeAudioUseCase @Inject constructor() {
             speechRecognizer?.close()
         }
     }
+
 
     /**
      * WAV 파일을 청크 단위로 분할

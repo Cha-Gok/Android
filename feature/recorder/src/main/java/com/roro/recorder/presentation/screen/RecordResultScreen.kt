@@ -51,18 +51,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.android.identity.util.UUID
+import com.roro.recorder.presentation.RecordViewModel
 
 
 @Composable
 fun RecordResultScreen(
     navController: NavController,
     voiceNoteId: String,
-    viewModel: RecordResultViewModel = hiltViewModel()
+    viewModel: RecordResultViewModel = hiltViewModel(),
+    recordViewModel: RecordViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // voiceNoteId 있으면 바로 로드, 없으면 navigationEvent 기다림
     LaunchedEffect(voiceNoteId) {
-        viewModel.load(voiceNoteId)
+        if (voiceNoteId.isNotEmpty()) {
+            viewModel.load(voiceNoteId)
+        }
+    }
+
+    // ✅ 추가 - 처리 완료 시 voiceNoteId 받아서 로드
+    LaunchedEffect(Unit) {
+        if (voiceNoteId.isEmpty()) {
+            recordViewModel.navigationEvent.collect { id ->
+                viewModel.load(id)
+            }
+        }
     }
 
     when (val state = uiState) {
@@ -139,7 +157,7 @@ private fun RecordResultContent(
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(focusRequester),
-                    textStyle = androidx.compose.ui.text.TextStyle(
+                    textStyle = TextStyle(
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -472,7 +490,7 @@ private fun ScriptTab(
     // \n 기준으로 세그먼트 파싱, index * 6000ms = startTimeMs
     val segments = remember(sttText) {
         sttText.split("\n")
-            .mapIndexed { index, text -> Pair(index * 6000L, text) }
+            .mapIndexed { index, text -> Pair(index * 7000L, text) }
             .filter { it.second.isNotBlank() }
     }
 
@@ -800,6 +818,8 @@ private fun RecordResultLoadingScreen() {
     }
 }
 
+
+// 오류 발생 화면 -> 수정 예정
 @Composable
 private fun RecordResultErrorScreen(message: String) {
     Box(
@@ -832,3 +852,43 @@ private fun formatDuration(durationSec: Double): String {
         append("${seconds}초")
     }
 }
+
+
+// ── 프리뷰 ─────────────────────────────────────────
+//@Preview(showBackground = true)
+//@Composable
+//private fun RecordResultLoadingPreview() {
+//    RecordResultLoadingScreen()
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//private fun RecordResultErrorPreview() {
+//    RecordResultErrorScreen(message = "오류가 발생했어요. 다시 시도해주세요.")
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//private fun RecordResultContentPreview() {
+//    val fakeResult = VoiceNoteResult(
+//        id = UUID.randomUUID(),
+//        title = "오전 취업 관련 강의",
+//        audioPath = "",
+//        durationSec = 4350.0,
+//        sttText = "오늘은 취업 관련 강의를 들었습니다.\n면접 준비 방법에 대해 배웠습니다.\n자기소개서 작성 팁도 공유되었습니다.",
+//        summaryText = "취업 준비의 핵심은 자기분석이다*면접에서는 구체적인 경험을 말해야 한다*자기소개서는 직무 중심으로 작성해야 한다",
+//        keywords = listOf("취업", "면접", "자기소개서", "직무"),
+//        createdAt = System.currentTimeMillis(),
+//        updatedAt = System.currentTimeMillis(),
+//        folderId = null
+//    )
+//
+//    // RecordResultContent는 RecordResultViewModel이 필요해서
+//    // 직접 호출 대신 Success 상태 분기만 확인
+//    RecordResultContent(
+//        navController = rememberNavController(),
+//        voiceNoteId = fakeResult.id.toString(),
+//        result = fakeResult,
+//        viewModel = TODO(),
+//    )
+//}
