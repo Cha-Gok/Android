@@ -8,6 +8,7 @@ import com.roro.core.navigation.Routes
 import com.roro.onboarding.navigation.onBoardingGraph
 import com.roro.recorder.navigation.recorderGraph
 import com.roro.storage.navigation.storageGraph
+import com.roro.storage.navigation.trashGraph
 
 /**
  * 기능 설명:
@@ -46,6 +47,7 @@ fun AppNavHost(
         )
         onBoardingGraph(navController = navController)
         storageGraph(navController = navController)
+        trashGraph(navController = navController)
         recorderGraph(navController = navController)
     }
 }
