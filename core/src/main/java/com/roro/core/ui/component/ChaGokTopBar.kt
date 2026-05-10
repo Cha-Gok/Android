@@ -41,6 +41,107 @@ import com.roro.core.ui.theme.ChaGokTheme
 import com.roro.core.ui.theme.Gray850
 import com.roro.core.ui.theme.TextPrimary
 
+/**
+ * 1. 새롭게 정의된 범용 메뉴 아이템
+ */
+data class ChaGokMenuItem(
+    val text: String,
+    val textColor: Color = Color.White, // 기본 하얀색
+    val onClick: () -> Unit
+)
+
+/**
+ * 2. [신규] 범용 탑바 (팀원들이 차례로 갈아탈 대상)
+ * 아이콘 유무에 따라 유연하게 대응합니다.
+ */
+@Composable
+fun ChaGokTopBarV2(
+    title: String,
+    modifier: Modifier = Modifier,
+    showBackButton: Boolean = false,
+    backButtonIcon: ImageVector = Icons.Default.ArrowBackIosNew,
+    onBackClick: () -> Unit = {},
+    firstActionIcon: ImageVector? = null,
+    firstActionDescription: String? = null,
+    onFirstActionClick: () -> Unit = {},
+    secondActionIcon: ImageVector? = null,
+    secondActionDescription: String? = null,
+    onSecondActionClick: () -> Unit = {},
+    secondActionTrailingContent: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (showBackButton) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = backButtonIcon,
+                    contentDescription = "뒤로가기",
+                    tint = Color.White
+                )
+            }
+        }
+
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        firstActionIcon?.let {
+            TopBarIcon(
+                imageVector = it,
+                contentDescription = firstActionDescription,
+                onClick = onFirstActionClick
+            )
+        }
+
+        Box {
+            secondActionIcon?.let {
+                TopBarIcon(
+                    imageVector = it,
+                    contentDescription = secondActionDescription,
+                    onClick = onSecondActionClick
+                )
+            }
+            secondActionTrailingContent()
+        }
+    }
+}
+
+/**
+ * 3. [신규] 범용 드롭다운 메뉴
+ */
+@Composable
+fun ChaGokMoreMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    items: List<ChaGokMenuItem>,
+    modifier: Modifier = Modifier
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.background(Color(0xFF252525))
+    ) {
+        items.forEach { item ->
+            DropdownMenuItem(
+                text = { Text(text = item.text, color = item.textColor) },
+                onClick = {
+                    item.onClick()
+                    onDismissRequest()
+                }
+            )
+        }
+    }
+}
+
+@Deprecated("새로운 ChaGokTopBarV2를 사용하세요. 이 컴포넌트는 제거될 예정입니다.")
 @Composable
 fun ChaGokTopBar(
     title: String,
@@ -109,13 +210,14 @@ fun ChaGokTopBar(
  * @param onBackClick 뒤로가기 클릭 이벤트
  * @param actions 우측에 배치될 아이콘들 (RowScope를 사용하여 여러 개 배치 가능)
  */
+@Deprecated("새로운 ChaGokTopBarV2를 사용하세요. 이 컴포넌트는 제거될 예정입니다.")
 @Composable
 fun ChaGokTopBar2(
     title: String,
+    modifier: Modifier = Modifier,
     showBackButton: Boolean = false,
     backIcon: ImageVector = Icons.Default.ArrowBackIosNew,
     onBackClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {} // 우측 아이콘들을 자유롭게 넣을 수 있는 슬롯
 ) {
     Row(
@@ -159,7 +261,7 @@ fun ChaGokTopBar2(
     }
 }
 
-
+@Deprecated("새로운 ChaGokMoreMenu 사용하세요. 이 컴포넌트는 제거될 예정입니다.")
 @Composable
 fun TopBarMoreMenu(
     currentSortType: SortType,
@@ -228,6 +330,7 @@ fun TopBarMoreMenu(
     }
 }
 
+@Deprecated("새로운 ChaGokMoreMenu 사용하세요. 이 컴포넌트는 제거될 예정입니다.")
 @Composable
 fun ChaGokSettingsDropdown(
     expanded: Boolean,
