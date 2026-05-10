@@ -1,4 +1,4 @@
-package com.roro.onboarding.data.datasource
+package com.roro.core.data.datasource
 
 import com.roro.core.datastore.AppDataStore
 import com.roro.core.datastore.Language

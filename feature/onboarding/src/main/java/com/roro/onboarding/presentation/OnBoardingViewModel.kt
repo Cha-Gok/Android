@@ -3,10 +3,11 @@ package com.roro.onboarding.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.datastore.Language
+import com.roro.core.domain.GetSelectedLanguageUseCase
+import com.roro.core.domain.SetSelectedLanguageUseCase
 import com.roro.onboarding.domain.DownloadModelsUseCase
-import com.roro.onboarding.domain.GetSelectedLanguageUseCase
+
 import com.roro.onboarding.domain.SetOnboardingCompletedUseCase
-import com.roro.onboarding.domain.SetSelectedLanguageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -69,14 +70,6 @@ class OnBoardingViewModel @Inject constructor(
                     currentPage == 3 && uiState.value.isDownloadStarted -> emitEffect(OnboardingEffect.ScrollToPage(4)) // 다음
                     else -> emitEffect(OnboardingEffect.ScrollToPage(nextPage))
                 }
-
-                // 기존 코드
-//                if (currentPage == 2) {
-//                    Timber.d("Onboarding requesting audio permission on page 2")
-//                    emitEffect(OnboardingEffect.RequestAudioPermission)
-//                } else {
-//                    emitEffect(OnboardingEffect.ScrollToPage(nextPage))
-//                }
             }
 
             OnboardingIntent.ClickBack -> {

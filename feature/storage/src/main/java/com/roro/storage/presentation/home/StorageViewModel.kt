@@ -1,6 +1,5 @@
-package com.roro.storage.presentation
+package com.roro.storage.presentation.home
 
-import android.util.Printer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.model.Folder
@@ -22,6 +21,8 @@ import com.roro.storage.domain.RenameFolderUseCase
 import com.roro.storage.domain.RenameVoiceNoteUseCase
 import com.roro.storage.domain.RestoreFromTrashUseCase
 import com.roro.storage.domain.RestoreVoiceNoteUseCase
+import com.roro.storage.presentation.StorageEffect
+import com.roro.storage.presentation.StorageIntent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.collections.iterator
 
 @HiltViewModel
 class StorageViewModel @Inject constructor(
@@ -452,7 +454,9 @@ class StorageViewModel @Inject constructor(
                 .collect { item ->
                     val countMap = item.associate { it.id to it.noteCount }
                     _folderItemCountMap.value = countMap
-
+                    for (i in _folderItemCountMap.value) {
+                        Timber.d("count = ${i.value}")
+                    }
 //                    _uiState.update { it.copy(folderItemCountMap = countMap) }
                 }
         }

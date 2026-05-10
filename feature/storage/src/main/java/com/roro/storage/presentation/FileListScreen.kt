@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,12 +31,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.model.Folder
@@ -54,10 +51,12 @@ import com.roro.core.ui.component.TopBarMoreMenu
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.Gray100
-import com.roro.core.ui.theme.PrimaryColor
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.util.formatTime
 import com.roro.core.util.toast
+import com.roro.storage.presentation.home.DefaultFolderType
+import com.roro.storage.presentation.home.StorageUiState
+import com.roro.storage.presentation.home.StorageViewModel
 import timber.log.Timber
 import java.util.UUID
 
