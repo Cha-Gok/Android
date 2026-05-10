@@ -177,7 +177,7 @@ private fun RecordResultContent(
                     Text(text = "완료", color = Color(0xFF9B7FD4), fontSize = 16.sp)
                 }
             } else {
-                IconButton(onClick = { navController.navigate(Routes.search(voiceNoteId)) }) {
+                IconButton(onClick = { navController.navigate(Routes.SEARCH) }) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "검색",
@@ -277,6 +277,7 @@ private fun RecordResultContent(
                     isScriptModified = isScriptModified,
                     onRegenerate = viewModel::regenerateSummary
                 )
+
                 1 -> ScriptTab(
                     sttText = result.sttText,
                     currentPositionMs = playerState.currentPositionMs,

@@ -139,5 +139,4 @@ fun NavGraphBuilder.storageGraph(
     ) {
         TosScreen(navController = navController)
     }
-
 }

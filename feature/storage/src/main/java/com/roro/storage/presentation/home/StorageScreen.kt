@@ -65,21 +65,18 @@ import java.time.ZoneId.systemDefault
 
 @Composable
 fun StorageScreen(
-    navController: NavController, viewModel: HomeViewModel = hiltViewModel()
+    navController: NavController,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-
-    if (uiState.isLoading) {
-        Timber.d("로딩 중~")
-    }
-
+    
     uiState.errorMessage?.let {
         Timber.d("text $it")
     }
 
     LaunchedEffect(Unit) {
-//        viewModel.onIntent(HomeIntent.Initialize)
+        viewModel.onIntent(HomeIntent.Initialize)
 
         viewModel.effect.collect { effect ->
             when (effect) {

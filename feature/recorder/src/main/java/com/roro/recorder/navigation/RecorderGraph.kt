@@ -30,7 +30,7 @@ import com.roro.recorder.presentation.viewModel.RecordResultViewModel
  */
 fun NavGraphBuilder.recorderGraph(
     navController: NavController
-){
+) {
     // 바텀 네비게이션 O
     composable(Routes.RECORDER) {
         RecorderScreen(navController = navController)
@@ -39,7 +39,7 @@ fun NavGraphBuilder.recorderGraph(
     // 바텀 네비게이션 X
     composable(Routes.RECORD_DETAIL) { backStackEntry ->
         val fileId = backStackEntry.arguments?.getString("fileId").orEmpty()
-        RecorderDetailScreen(navController = navController,fileId =fileId)
+        RecorderDetailScreen(navController = navController, fileId = fileId)
     }
 
     // 녹음 결과 화면
