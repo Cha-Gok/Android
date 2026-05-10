@@ -1,6 +1,6 @@
 package com.roro.onboarding.data.repository
 
-import com.roro.onboarding.data.datasource.ModelDownloadDataSource
+import com.roro.onboarding.data.ModelDownloadDataSource
 import com.roro.onboarding.domain.ModelDownloadRepository
 import javax.inject.Inject
 

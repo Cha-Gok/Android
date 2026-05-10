@@ -1,4 +1,4 @@
-package com.roro.onboarding.data.datasource
+package com.roro.onboarding.data
 
 import android.content.Context
 import com.google.mlkit.genai.common.DownloadCallback
@@ -30,13 +30,13 @@ class ModelDownloadDataSource @Inject constructor(
         val speechRecognizer = SpeechRecognition.getClient(options)
         try {
             when (speechRecognizer.checkStatus()) {
-                FeatureStatus.AVAILABLE -> Timber.d("STT 사용 가능")
+                FeatureStatus.AVAILABLE -> Timber.Forest.d("STT 사용 가능")
                 FeatureStatus.DOWNLOADABLE -> {
                     speechRecognizer.download().collect { }
-                    Timber.d("STT 다운로드 완료")
+                    Timber.Forest.d("STT 다운로드 완료")
                 }
                 FeatureStatus.UNAVAILABLE -> throw Exception("STT 미지원 기기")
-                FeatureStatus.DOWNLOADING -> Timber.d("STT 다운로드 중")
+                FeatureStatus.DOWNLOADING -> Timber.Forest.d("STT 다운로드 중")
             }
         } finally {
             speechRecognizer.close()
@@ -52,7 +52,7 @@ class ModelDownloadDataSource @Inject constructor(
         val summarizer = Summarization.getClient(options)
         try {
             when (summarizer.checkFeatureStatus().await()) {
-                3 -> Timber.d("요약 사용 가능")
+                3 -> Timber.Forest.d("요약 사용 가능")
                 1 -> {
                     summarizer.downloadFeature(object : DownloadCallback {
                         override fun onDownloadStarted(b: Long) {}
@@ -62,10 +62,10 @@ class ModelDownloadDataSource @Inject constructor(
                             throw e
                         }
                     }).await()
-                    Timber.d("요약 다운로드 완료")
+                    Timber.Forest.d("요약 다운로드 완료")
                 }
                 0 -> throw Exception("요약 미지원 기기")
-                2 -> Timber.d("요약 다운로드 중")
+                2 -> Timber.Forest.d("요약 다운로드 중")
             }
         } finally {
             summarizer.close()
@@ -80,7 +80,7 @@ class ModelDownloadDataSource @Inject constructor(
         val translator = Translation.getClient(options)
         try {
             translator.downloadModelIfNeeded().await()
-            Timber.d("번역 다운로드 완료")
+            Timber.Forest.d("번역 다운로드 완료")
         } finally {
             translator.close()
         }
