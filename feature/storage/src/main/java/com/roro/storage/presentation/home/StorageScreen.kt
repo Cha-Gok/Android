@@ -65,7 +65,9 @@ import java.time.ZoneId.systemDefault
 
 @Composable
 fun StorageScreen(
-    navController: NavController, viewModel: HomeViewModel = hiltViewModel()
+    navController: NavController,
+    viewModel: HomeViewModel = hiltViewModel(),
+    onStartRecord: () -> Unit,   // 0510 추가
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -247,7 +249,7 @@ internal fun StorageScreenContent(
                                     }
                                     items(
                                         items = notesInSection, key = { it.id }) { item ->
-                                        FolderItemList(voiceNote = item)
+                                        FolderItemList(voiceNote = item, navController = navController) // 0511 수정
                                     }
                                 }
                             }
@@ -255,7 +257,7 @@ internal fun StorageScreenContent(
                             // 3. 최근 기록(RECENT) 등 다른 타입일 때 (일반 리스트)
                             items(
                                 items = displayList, key = { it.id }) { item ->
-                                FolderItemList(voiceNote = item)
+                                FolderItemList(voiceNote = item, navController = navController) // 0511 수정
                             }
                         }
                     }
@@ -284,10 +286,17 @@ internal fun StorageScreenContent(
 
 @Composable
 fun FolderItemList(
-    voiceNote: VoiceNote, modifier: Modifier = Modifier
+    voiceNote: VoiceNote,
+    navController: NavController,  // 0511 추가
+    modifier: Modifier = Modifier
 ) {
+   // 0511 수정
     ChaGokNoteList(
-        title = voiceNote.title, summaryStatus = SummaryStatus.COMPLETED, onClick = { }, time = voiceNote.createdAt.formatDate(""), modifier = modifier.fillMaxWidth()
+        title = voiceNote.title,
+        summaryStatus = SummaryStatus.COMPLETED,
+        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },  // ✅ 추가
+        time = voiceNote.createdAt.formatDate(""),
+        modifier = modifier.fillMaxWidth()
     )
 }
 

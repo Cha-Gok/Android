@@ -35,13 +35,16 @@ fun NavGraphBuilder.recorderGraph(
 ){
     // 바텀 네비게이션 O
     composable(Routes.RECORDER) {
-        RecorderScreen(navController = navController)
+        RecorderDetailScreen(
+            navController = navController,
+            viewModel = recordViewModel  // ✅ 추가
+        )
     }
 
     // 바텀 네비게이션 X
     composable(Routes.RECORD_DETAIL) { backStackEntry ->
         val fileId = backStackEntry.arguments?.getString("fileId").orEmpty()
-        RecorderDetailScreen(navController = navController,fileId =fileId)
+        RecorderDetailScreen(navController = navController, viewModel = recordViewModel)
     }
 
     // 녹음 결과 화면
@@ -50,7 +53,8 @@ fun NavGraphBuilder.recorderGraph(
         RecordResultScreen(navController = navController, voiceNoteId = voiceNoteId)
     }
 
-    // ✅ 추가 - 처리 중 스켈레톤 화면
+
+    // 처리 중 스켈레톤 화면
     composable(Routes.RECORD_RESULT_WAITING) {
         RecordResultScreen(
             navController = navController,

@@ -39,18 +39,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import com.roro.core.ui.component.RecordingBackground
 
-// 사용X
+
+// 녹음 화면
 @Composable
 fun RecorderDetailScreen(
     navController: NavController,
-    fileId: String,
     viewModel: RecordViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val amplitude by viewModel.amplitude.collectAsStateWithLifecycle()
+    val amplitudeNormalized = (amplitude / 2000f).coerceIn(0f, 1f)
+
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var isRunning by remember { mutableStateOf(true) }
     var showStopDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     var isNavigating by remember { mutableStateOf(false) }
 
     // 타이머
@@ -61,27 +66,11 @@ fun RecorderDetailScreen(
         }
     }
 
+    // 처리 완료 → 이동
     LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { voiceNoteId ->
+        viewModel.navigateToResult.collect {
             isNavigating = true
-            navController.navigate(Routes.recordResult(voiceNoteId)) {
-                popUpTo(Routes.RECORD_DETAIL) { inclusive = true }
-            }
-        }
-    }
-
-    // 로딩 or 네비게이팅 중이면 스켈레톤 유지
-    if (state == RecordState.Processing || isNavigating) {
-        RecordingLoadingScreen()
-        return
-    }
-
-    // 녹음 완료 → ResultScreen 이동
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { voiceNoteId ->
-            navController.navigate(Routes.recordResult(voiceNoteId)) {
-                popUpTo(Routes.RECORD_DETAIL) { inclusive = true }
-            }
+            navController.navigate(Routes.RECORD_RESULT_WAITING)
         }
     }
 
@@ -90,12 +79,13 @@ fun RecorderDetailScreen(
         viewModel.startRecording()
     }
 
-    // 예외 처리 관련
+    // 로딩 / 네비게이팅
     if (state == RecordState.Processing || isNavigating) {
         RecordingLoadingScreen()
         return
     }
 
+    // 에러
     if (state is RecordState.Error) {
         RecordingErrorScreen(
             message = (state as RecordState.Error).message,
@@ -114,15 +104,27 @@ fun RecorderDetailScreen(
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd · a hh:mm"))
     }
 
-    ChaGokBackground {
-        Box(modifier = Modifier.fillMaxSize()) {
+    // ── UI ──
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+    ) {
+        RecordingBackground(
+            amplitude = amplitudeNormalized,
+            modifier = Modifier.matchParentSize()
+        )
 
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+        ) {
             // 상단 취소 / 종료
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
-                    .align(Alignment.TopCenter),
+                    .padding(vertical = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -131,13 +133,15 @@ fun RecorderDetailScreen(
                     color = Color.White,
                     fontSize = 16.sp,
                     modifier = Modifier.clickable {
-                        navController.popBackStack()
+                        if (elapsedSeconds < 3) {
+                            navController.popBackStack()
+                        } else {
+                            isRunning = false
+                            showCancelDialog = true
+                        }
                     }
                 )
-                // 최소 녹음 시간 (3초)
                 val canStop = elapsedSeconds >= 3
-
-                // 종료 버튼
                 Text(
                     text = "종료",
                     color = if (canStop) Color(0xFF9B7FD4) else Color(0xFF9B7FD4).copy(alpha = 0.3f),
@@ -152,26 +156,20 @@ fun RecorderDetailScreen(
 
             // 중앙 제목 + 날짜 + 타이머
             Column(
-                modifier = Modifier.align(Alignment.Center),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "새 기록",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = now,
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 13.sp
-                )
-                Spacer(modifier = Modifier.height(24.dp))
+                Text(text = "새 기록", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = now, color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(28.dp))
                 Text(
                     text = timerText,
                     color = Color.White,
-                    fontSize = 36.sp,
+                    fontSize = 38.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp
                 )
@@ -180,20 +178,19 @@ fun RecorderDetailScreen(
             // 하단 일시정지/재시작 버튼
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 60.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 48.dp)
                     .clip(RoundedCornerShape(50.dp))
                     .background(Color(0xFF9B7FD4).copy(alpha = 0.6f))
                     .clickable {
                         isRunning = !isRunning
-                        if (isRunning) viewModel.resumeRecording()  // 재시작
-                        else viewModel.pauseRecording()             // 일시정지
+                        if (isRunning) viewModel.resumeRecording()
+                        else viewModel.pauseRecording()
                     }
                     .padding(horizontal = 36.dp, vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    // Icons.Default.Mic
                     imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isRunning) "일시정지" else "재시작",
                     tint = Color.White,
@@ -220,9 +217,26 @@ fun RecorderDetailScreen(
             }
         )
     }
+
+    // 취소 다이얼로그
+    if (showCancelDialog) {
+        ChagokDialog(
+            title = "녹음을 취소할까요?",
+            description = "지금까지 녹음한 내용은 저장되지 않아요",
+            dismissText = "계속 녹음",
+            confirmText = "녹음 취소",
+            confirmColor = Color(0xFFE53935),
+            onDismiss = {
+                showCancelDialog = false
+                isRunning = true
+            },
+            onConfirm = {
+                showCancelDialog = false
+                navController.popBackStack()
+            }
+        )
+    }
 }
-
-
 
 @Composable
 private fun RecordingErrorScreen(

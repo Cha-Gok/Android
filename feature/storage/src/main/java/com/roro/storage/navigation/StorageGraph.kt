@@ -42,7 +42,7 @@ fun NavGraphBuilder.storageGraph(
     composable(Routes.STORAGE) {
         StorageScreen(
             navController = navController,
-            //onStartRecord = onStartRecord,   // ✅ 전달
+            onStartRecord = onStartRecord,   // ✅ 전달
         )
     }
 
