@@ -47,12 +47,15 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.roro.core.datastore.Language
+import com.roro.recorder.data.GemmaManager
 import com.roro.recorder.data.datasource.RecordDataSource
 import com.roro.recorder.domain.usecase.ExtractKeywordsUseCase
 import com.roro.recorder.domain.usecase.SaveRecordingUseCase
 import com.roro.recorder.domain.usecase.SummarizeTextSimpleUseCase
 import com.roro.recorder.domain.usecase.SummarizeTextUseCase
 import com.roro.recorder.domain.usecase.TranscribeAudioUseCase
+import com.roro.recorder.domain.usecase.gemma.ExtractKeywordsWithGemmaUseCase
+import com.roro.recorder.domain.usecase.gemma.SummarizeWithGemmaUseCase
 import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -66,10 +69,15 @@ class RecordViewModel @Inject constructor(
     private val recordDataSource: RecordDataSource,
     private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val saveRecordingUseCase: SaveRecordingUseCase,
-    //private val summarizeTextUseCase: SummarizeTextUseCase, // 다시
-    private val summarizeTextUseCase: SummarizeTextSimpleUseCase,
-    private val extractKeywordsUseCase: ExtractKeywordsUseCase,
-) : ViewModel() {
+    //private val summarizeTextUseCase: SummarizeTextSimpleUseCase,
+    //private val extractKeywordsUseCase: ExtractKeywordsUseCase,
+
+    // Gemma
+    private val summarizeTextUseCase: SummarizeWithGemmaUseCase,
+    private val extractKeywordsUseCase: ExtractKeywordsWithGemmaUseCase,
+    private val gemmaManager: GemmaManager,
+
+    ) : ViewModel() {
 
     companion object {
         private const val TAG = "RecordVM"
@@ -126,6 +134,17 @@ class RecordViewModel @Inject constructor(
 
     fun setLanguage(language: Language) {
         _selectedLanguage.value = language
+    }
+
+    init {
+        gemmaManager.initialize()
+
+        // 테스트 확인용
+//        viewModelScope.launch {
+//            delay(10000L) // 초기화 기다리기
+//            val result = gemmaManager.generate("안녕하세요! 간단히 자기소개 해주세요.")
+//            Timber.tag("GemmaTest").d("🤖 응답: $result")
+//        }
     }
 
     /**
