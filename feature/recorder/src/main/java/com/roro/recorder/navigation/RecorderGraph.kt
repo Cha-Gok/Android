@@ -7,6 +7,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.roro.core.navigation.Routes
+import com.roro.recorder.domain.usecase.VoiceNoteResult
 import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.screen.RecordResultScreen
 import com.roro.recorder.presentation.screen.RecorderDetailScreen
@@ -80,6 +81,7 @@ fun NavGraphBuilder.recorderGraph(
     }
 
     // 검색 화면
+    // 검색 화면
     composable(Routes.SEARCH) { backStackEntry ->
         val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
 
@@ -90,10 +92,15 @@ fun NavGraphBuilder.recorderGraph(
         val uiState = recordResultViewModel.uiState.collectAsState()
         val result = (uiState.value as? com.roro.recorder.presentation.viewModel.RecordResultUiState.Success)?.result
 
+        // result null이면 검색 화면 진입 자체 막기
+        if (result == null) {
+            navController.popBackStack()
+            return@composable
+        }
+
         SearchResultScreen(
             navController = navController,
-            summaryText = result?.summaryText.orEmpty(),
-            sttText = result?.sttText.orEmpty(),
+            result = result,
             onSeek = { recordResultViewModel.seekTo(it) }
         )
     }

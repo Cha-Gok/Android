@@ -10,13 +10,10 @@ class ProofreadWithGemmaUseCase @Inject constructor(
     suspend operator fun invoke(text: String): String {
         return try {
             val prompt = """
-                아래 텍스트는 음성 인식(STT)으로 생성된 결과입니다.
-                맞춤법, 띄어쓰기, 어색한 표현을 자연스럽게 교정해주세요.
-                내용은 절대 바꾸지 말고, 교정된 텍스트만 반환하세요.
-                
-                텍스트:
-                $text
-            """.trimIndent()
+            다음 STT 텍스트의 맞춤법과 띄어쓰기만 교정해. 내용 변경 금지. 결과만 출력.
+            
+            $text
+        """.trimIndent()
 
             gemmaManager.generate(prompt)
         } catch (e: Exception) {

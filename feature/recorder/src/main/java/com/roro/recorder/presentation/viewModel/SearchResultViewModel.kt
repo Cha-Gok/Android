@@ -76,21 +76,31 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
     private fun searchInSummary(query: String): List<SearchMatch> {
         val results = mutableListOf<SearchMatch>()
         val lowerQuery = query.lowercase()
-        val lowerText = summaryText.lowercase()
-        var searchFrom = 0
-        while (true) {
-            val idx = lowerText.indexOf(lowerQuery, searchFrom)
-            if (idx < 0) break
-            results.add(
-                SearchMatch(
-                    segmentIndex = 0,
-                    startTimeMs = 0,
-                    text = summaryText,
-                    matchStart = idx,
-                    matchEnd = idx + query.length
+
+        // ✅ * 기준으로 포인트 나눠서 각각 검색
+        val keyPoints = summaryText
+            .split("*")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .take(3)
+
+        keyPoints.forEachIndexed { pointIndex, point ->
+            val lowerPoint = point.lowercase()
+            var searchFrom = 0
+            while (true) {
+                val idx = lowerPoint.indexOf(lowerQuery, searchFrom)
+                if (idx < 0) break
+                results.add(
+                    SearchMatch(
+                        segmentIndex = pointIndex,  // ✅ 포인트 인덱스
+                        startTimeMs = 0,
+                        text = point,               // ✅ 포인트 텍스트만
+                        matchStart = idx,
+                        matchEnd = idx + query.length
+                    )
                 )
-            )
-            searchFrom = idx + 1
+                searchFrom = idx + 1
+            }
         }
         return results
     }
@@ -103,7 +113,7 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
         val segments = sttText.split("\n").filter { it.isNotBlank() }
 
         segments.forEachIndexed { segIndex, segText ->
-            val startTimeMs = segIndex * 6000L
+            val startTimeMs = segIndex * 30000L
             val lowerSeg = segText.lowercase()
             var searchFrom = 0
             while (true) {

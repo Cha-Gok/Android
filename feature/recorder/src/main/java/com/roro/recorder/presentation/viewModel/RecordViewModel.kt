@@ -55,6 +55,8 @@ import com.roro.recorder.domain.usecase.SummarizeTextSimpleUseCase
 import com.roro.recorder.domain.usecase.SummarizeTextUseCase
 import com.roro.recorder.domain.usecase.TranscribeAudioUseCase
 import com.roro.recorder.domain.usecase.gemma.ExtractKeywordsWithGemmaUseCase
+import com.roro.recorder.domain.usecase.gemma.ProofreadWithGemmaUseCase
+import com.roro.recorder.domain.usecase.gemma.SttWithGemmaUseCase
 import com.roro.recorder.domain.usecase.gemma.SummarizeWithGemmaUseCase
 import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -67,7 +69,7 @@ import kotlinx.coroutines.tasks.await
 @HiltViewModel
 class RecordViewModel @Inject constructor(
     private val recordDataSource: RecordDataSource,
-    private val transcribeAudioUseCase: TranscribeAudioUseCase,
+    //private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val saveRecordingUseCase: SaveRecordingUseCase,
     //private val summarizeTextUseCase: SummarizeTextSimpleUseCase,
     //private val extractKeywordsUseCase: ExtractKeywordsUseCase,
@@ -76,6 +78,8 @@ class RecordViewModel @Inject constructor(
     private val summarizeTextUseCase: SummarizeWithGemmaUseCase,
     private val extractKeywordsUseCase: ExtractKeywordsWithGemmaUseCase,
     private val gemmaManager: GemmaManager,
+    private val proofreadWithGemmaUseCase: ProofreadWithGemmaUseCase,
+    private val transcribeAudioUseCase: SttWithGemmaUseCase
 
     ) : ViewModel() {
 
@@ -188,20 +192,36 @@ class RecordViewModel @Inject constructor(
     }
     private suspend fun processAudio(file: File, folderId: UUID? = null) {
         try {
+            val t0 = System.currentTimeMillis()
+
             val sttText = transcribeAudioUseCase(file, _selectedLanguage.value)
+            Timber.tag(TAG).d("⏱️ STT: ${System.currentTimeMillis() - t0}ms")
+
+            val t1 = System.currentTimeMillis()
+            val proofreadText = proofreadWithGemmaUseCase(sttText)
+            Timber.tag(TAG).d("⏱️ 교정: ${System.currentTimeMillis() - t1}ms")
+
             _sttResult.value = sttText
 
-            val keywords = extractKeywordsUseCase(sttText)
+            val t2 = System.currentTimeMillis()
+            val keywords = extractKeywordsUseCase(proofreadText)
+            Timber.tag(TAG).d("⏱️ 키워드: ${System.currentTimeMillis() - t2}ms")
 
             _summarizeState.value = SummarizeState.Loading
-            val summary = summarizeTextUseCase(sttText)
+
+            val t3 = System.currentTimeMillis()
+            val summary = summarizeTextUseCase(proofreadText)
+            Timber.tag(TAG).d("⏱️ 요약: ${System.currentTimeMillis() - t3}ms")
+
+            Timber.tag(TAG).d("⏱️ 전체: ${System.currentTimeMillis() - t0}ms")
+
             _summarizeState.value = SummarizeState.Success(summary)
 
             val durationSec = file.length() / (16000.0 * 2)
             val voiceNoteId = saveRecordingUseCase(
                 audioFile = file,
                 durationSec = durationSec,
-                sttText = sttText,
+                sttText = proofreadText,
                 summaryText = summary,
                 keywords = keywords,
                 folderId = folderId
@@ -325,62 +345,4 @@ class RecordViewModel @Inject constructor(
         }
     }
 }
-
-    // ====================================================
-    // TODO: 키워드 추출 - Prompt API S25 지원 후 구현 예정
-    // ====================================================
-//    fun extractKeywords(sttText: String) {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            try {
-//                val model = Generation.getClient()
-//                val status = model.checkStatus()
-//
-//                when (status) {
-//                    FeatureStatus.UNAVAILABLE -> Timber.w("🤖 이 기기는 미지원")
-//                    FeatureStatus.DOWNLOADABLE -> {
-//                        model.download().collect { Timber.d("🤖 다운로드: $it") }
-//                    }
-//                    FeatureStatus.AVAILABLE -> {
-//                        model.warmup()
-//                        val result = model.generateContent(
-//                            "Extract 5 keywords from this text. " +
-//                            "Return only the keywords separated by commas, no explanation.\n\n" +
-//                            "Text: $sttText"
-//                        )
-//                        Timber.tag(TAG).d("🤖 키워드: ${result.candidates.first()}")
-//                        // TODO: KeywordDao에 저장
-//                    }
-//                }
-//                model.close()
-//            } catch (e: Exception) {
-//                Timber.e(e, "🤖 키워드 추출 실패")
-//            }
-//        }
-//    }
-
-
-    // ====================================================
-    // TODO: 번역 - 필요 시 TranslateTextUseCase 연결
-    // ====================================================
-//    fun translateAndSummarize(context: Context, koreanText: String) {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            try {
-//                _translateState.value = TranslateState.Loading
-//                val englishText = translateTextUseCase(koreanText)  // 한국어 → 영어
-//                _translateState.value = TranslateState.Success(englishText)
-//                summarizeTextUseCase(englishText)
-//            } catch (e: Exception) {
-//                _translateState.value = TranslateState.Error(e.message ?: "번역 실패")
-//            }
-//        }
-//    }
-//
-//    sealed class TranslateState {
-//        object Idle : TranslateState()
-//        object Loading : TranslateState()
-//        data class Success(val text: String) : TranslateState()
-//        data class Error(val message: String) : TranslateState()
-//    }
-//    private val _translateState = MutableStateFlow<TranslateState>(TranslateState.Idle)
-//    val translateState = _translateState.asStateFlow()
 

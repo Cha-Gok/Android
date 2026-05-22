@@ -52,7 +52,7 @@ class ScriptEditViewModel @Inject constructor(
                     originalText = result.sttText
                     _segments.value = result.sttText
                         .split("\n")
-                        .mapIndexed { index, text -> ScriptSegment(index * 6000L, text) }
+                        .mapIndexed { index, text -> ScriptSegment(index * 30000L, text) }
                         .filter { it.text.isNotBlank() }
                     _uiState.value = ScriptEditUiState.Idle
                 } else {

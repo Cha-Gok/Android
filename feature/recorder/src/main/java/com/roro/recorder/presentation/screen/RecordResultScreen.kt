@@ -465,8 +465,11 @@ private fun AiSummaryTab(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(result.keywords) { keyword ->
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                result.keywords.forEach { keyword ->
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50.dp))
@@ -490,7 +493,7 @@ private fun ScriptTab(
     // \n 기준으로 세그먼트 파싱, index * 6000ms = startTimeMs
     val segments = remember(sttText) {
         sttText.split("\n")
-            .mapIndexed { index, text -> Pair(index * 7000L, text) }
+            .mapIndexed { index, text -> Pair(index * 30000L, text) }  // 7000 → 30000
             .filter { it.second.isNotBlank() }
     }
 

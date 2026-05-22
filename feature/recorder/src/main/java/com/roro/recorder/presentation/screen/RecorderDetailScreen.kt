@@ -70,10 +70,11 @@ fun RecorderDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.navigateToResult.collect {
             isNavigating = true
-            navController.navigate(Routes.RECORD_RESULT_WAITING)
+            navController.navigate(Routes.RECORD_RESULT_WAITING) {
+                popUpTo(Routes.RECORDER) { inclusive = true }  // 녹음 화면 백스택에서 제거
+            }
         }
     }
-
     // 화면 진입 시 녹음 시작
     LaunchedEffect(Unit) {
         viewModel.startRecording()
