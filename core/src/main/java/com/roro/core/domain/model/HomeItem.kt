@@ -1,10 +1,11 @@
 package com.roro.core.domain.model
 
-data class VoiceNoteItem(
+data class HomeItem(
     val id: String,
     val title: String,
     val createAt: String,
     val duration: String,
-    val summary: String, // 이넘 변경 예정
-    val folderName: String
+    val state: String,
+    val type: FileType
 )
+

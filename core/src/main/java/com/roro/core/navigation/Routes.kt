@@ -55,5 +55,11 @@ enum class SearchType {
     HOME,       // 홈 - 휴지통 빼고 전체 조회
     FOLDER,     // 폴더목록 - 폴더만 조회
     VOICE_NOTE, // 폴더 상세 내 파일 목록 - voiceNote만 조회
-    TRASH,      // 휴지통 - 휴지통만 조회
+    TRASH;     // 휴지통 - 휴지통만 조회
+
+    companion object {
+        fun fromString(value: String?): SearchType {
+            return entries.find { it.name == value } ?: HOME
+        }
+    }
 }

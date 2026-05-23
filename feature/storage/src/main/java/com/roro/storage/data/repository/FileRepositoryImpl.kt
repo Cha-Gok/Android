@@ -1,5 +1,7 @@
 package com.roro.storage.data.repository
 
+import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.mapper.toEntity
 import com.roro.core.model.Folder
@@ -17,8 +19,7 @@ import javax.inject.Inject
 import kotlin.String
 
 class FileRepositoryImpl @Inject constructor(
-    private val local: LocalFileDataSource,
-    private val room: RoomFileDataSource
+    private val local: LocalFileDataSource, private val room: RoomFileDataSource
 ) : FileRepository {
     // 사용자 폴더 생성
     override suspend fun createUserFolder(folderName: String): Boolean {
@@ -41,11 +42,7 @@ class FileRepositoryImpl @Inject constructor(
         }
 
         val voiceNote = VoiceNote(
-            id = voiceNoteId,
-            title = now.toString(),
-            createdAt = now,
-            updatedAt = now,
-            folderId = if (folderName.isNullOrBlank()) {
+            id = voiceNoteId, title = now.toString(), createdAt = now, updatedAt = now, folderId = if (folderName.isNullOrBlank()) {
                 null
             } else {
                 UUID.fromString(tempFolder)
@@ -53,49 +50,30 @@ class FileRepositoryImpl @Inject constructor(
         )
 
         val voiceRecord = VoiceRecord(
-            id = UUID.randomUUID(),
-            audioFilePath = file.absolutePath,
-            duration = 0.0,
-            createdAt = now,
-            voiceNoteId = voiceNoteId
+            id = UUID.randomUUID(), audioFilePath = file.absolutePath, duration = 0.0, createdAt = now, voiceNoteId = voiceNoteId
         )
 
         val transcript = Transcript(
-            id = UUID.randomUUID(),
-            text = "임시 전사문",
-            voiceNoteId = voiceNoteId
+            id = UUID.randomUUID(), text = "임시 전사문", voiceNoteId = voiceNoteId
 
         )
 
         val summary = Summary(
-            id = UUID.randomUUID(),
-            text = "임시 요약문",
-            voiceNoteId = voiceNoteId
+            id = UUID.randomUUID(), text = "임시 요약문", voiceNoteId = voiceNoteId
 
         )
 
         val keywords = listOf(
             Keyword(
-                id = UUID.randomUUID(),
-                word = "회의",
-                voiceNoteId = voiceNoteId
+                id = UUID.randomUUID(), word = "회의", voiceNoteId = voiceNoteId
 
-            ),
-            Keyword(
-                id = UUID.randomUUID(),
-                word = "메모",
-                voiceNoteId = voiceNoteId
+            ), Keyword(
+                id = UUID.randomUUID(), word = "메모", voiceNoteId = voiceNoteId
             )
         )
 
         room.createVoiceNote(
-            voiceNote = voiceNote.toEntity(),
-            voiceRecord = voiceRecord.toEntity(),
-            transcript = transcript.toEntity(),
-            summary = summary.toEntity(),
-            keywords = keywords.map
-            { it.toEntity() }
-        )
+            voiceNote = voiceNote.toEntity(), voiceRecord = voiceRecord.toEntity(), transcript = transcript.toEntity(), summary = summary.toEntity(), keywords = keywords.map { it.toEntity() })
 
     }
 
@@ -104,8 +82,7 @@ class FileRepositoryImpl @Inject constructor(
         val now = System.currentTimeMillis()
         room.moveFolderWithVoiceNotesToTrash(
             folder = folder.copy(
-                deletedAt = now,
-                updatedAt = now
+                deletedAt = now, updatedAt = now
             ).toEntity()
         )
     }
@@ -152,8 +129,8 @@ class FileRepositoryImpl @Inject constructor(
     }
 
     // 폴더가 있는 voiceNote 조회
-    override fun observeVoiceNotesByNoneNullFolder(uuid: UUID): Flow<List<VoiceNote>> {
-        return room.observeNotNullVoiceNote(folderId = uuid)
+    override fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNote>> {
+        return room.observeNotNullVoiceNote(folderId = folderId)
     }
 
     // 최근 voiceNote 5개
@@ -172,9 +149,7 @@ class FileRepositoryImpl @Inject constructor(
     override suspend fun renameFolder(folder: Folder) {
         room.renameFolder(
             folder = folder.copy(
-                id = folder.id,
-                name = folder.name,
-                updatedAt = System.currentTimeMillis()
+                id = folder.id, name = folder.name, updatedAt = System.currentTimeMillis()
             ).toEntity()
         )
     }
@@ -182,10 +157,56 @@ class FileRepositoryImpl @Inject constructor(
     override suspend fun renameVoiceNote(voiceNote: VoiceNote) {
         room.renameVoiceNote(
             voiceNote = voiceNote.copy(
-                id = voiceNote.id,
-                title = voiceNote.title,
-                updatedAt = System.currentTimeMillis()
+                id = voiceNote.id, title = voiceNote.title, updatedAt = System.currentTimeMillis()
             ).toEntity()
         )
+    }
+
+    override suspend fun searchFolders(query: String): List<FolderItem> {
+        return room.searchFolders(query = query).map {
+            FolderItem(
+                id = it.id,
+                title = it.title,
+                count = it.count,
+                createAt = it.createAt
+            )
+        }
+    }
+
+    override suspend fun searchVoiceNotes(query: String): List<VoiceNoteItem> {
+        return room.searchVoiceNotes(query = query).map {
+            VoiceNoteItem(
+                id = it.id,
+                title = it.title,
+                createAt = it.createAt,
+                duration = it.duration,
+                folderName = it.folderName,
+                summary = it.summary
+            )
+        }
+    }
+
+    override suspend fun searchTrashFolder(query: String): List<FolderItem> {
+        return room.searchTrashFolders(query = query).map {
+            FolderItem(
+                id = it.id,
+                title = it.title,
+                count = it.count,
+                createAt = it.createAt,
+            )
+        }
+    }
+
+    override suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItem> {
+        return room.searchTrashVoiceNotes(query = query).map {
+            VoiceNoteItem(
+                id = it.id,
+                title = it.title,
+                createAt = it.createAt,
+                duration = it.duration,
+                folderName = it.folderName,
+                summary = it.summary
+            )
+        }
     }
 }

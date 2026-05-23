@@ -44,6 +44,7 @@ import androidx.navigation.compose.rememberNavController
 import com.roro.core.datastore.Language
 import com.roro.core.model.VoiceNote
 import com.roro.core.navigation.Routes
+import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
@@ -70,7 +71,7 @@ fun StorageScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    
+
     uiState.errorMessage?.let {
         Timber.d("text $it")
     }
@@ -95,7 +96,7 @@ fun StorageScreen(
                 }
 
                 HomeEffect.NavigateToSearch -> {
-                    Timber.d("검색창 이동")
+                    navController.navigate(Routes.searchTemp(SearchType.HOME))
                 }
 
                 HomeEffect.NavigateToTos -> {
@@ -175,17 +176,23 @@ internal fun StorageScreenContent(
         ) {
             Column {
                 var isMenuExpanded by remember { mutableStateOf(false) }
-                ChaGokTopBar(title = "차곡", onFirstActionClick = { onSearchClick() }, onSecondActionClick = {
-                    isMenuExpanded = true
-                }, secondActionTrailingContent = {
-                    ChaGokSettingsDropdown(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }, onLanguageSettingClick = {
-                        onSettingClick()
-                        isMenuExpanded = false
-                    }, onTosClick = {
-                        onTosClick()
-                        isMenuExpanded = false
+                ChaGokTopBar(
+                    title = "차곡",
+                    onFirstActionClick = { onSearchClick() },
+                    onSecondActionClick = {
+                        isMenuExpanded = true
+                    }, secondActionTrailingContent = {
+                        ChaGokSettingsDropdown(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = { isMenuExpanded = false },
+                            onLanguageSettingClick = {
+                                onSettingClick()
+                                isMenuExpanded = false
+                            }, onTosClick = {
+                                onTosClick()
+                                isMenuExpanded = false
+                            })
                     })
-                })
                 FolderList(
                     isCollapse = isCollapsed,
                     selectedFolderType = uiState.selectedFolderType,

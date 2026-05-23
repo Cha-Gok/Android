@@ -65,3 +65,33 @@ fun Long.toDeletedAtString(): String {
         }
     }
 }
+
+/**
+ * Double 타입의 초(seconds) 데이터를 "n시간 n분 n초" 형식으로 변환하는 확장 함수
+ * 예: 3661.0 -> "1시간 1분 1초", 65.0 -> "1분 5초"
+ *
+ * @return 포맷된 시간 문자열
+ * @author sehoon
+ * @since 2026. 05. 15.
+ */
+fun Double.toTimeFormat(): String {
+    val totalSeconds = this.toLong()
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    val result = StringBuilder()
+
+    if (hours > 0) {
+        result.append("${hours}시간 ")
+    }
+    if (minutes > 0) {
+        result.append("${minutes}분 ")
+    }
+    // 초는 앞의 단위가 있어도 0초가 아니면 표시, 혹은 전체가 0일 때 "0초" 표시
+    if (seconds > 0 || (hours == 0L && minutes == 0L)) {
+        result.append("${seconds}초")
+    }
+
+    return result.toString().trim()
+}

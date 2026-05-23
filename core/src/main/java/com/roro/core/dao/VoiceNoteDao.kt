@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.roro.core.domain.model.VoiceNoteItemResult
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.model.FolderWithNoteCount
 import kotlinx.coroutines.flow.Flow
@@ -113,4 +114,47 @@ interface VoiceNoteDao {
 
     @Query("UPDATE voice_note SET title = :voiceNoteTitle, updatedAt = :updatedAt WHERE id = :noteId")
     suspend fun renameVoiceNote(noteId: UUID, voiceNoteTitle: String, updatedAt: Long)
+
+    // 전체 음성 메모 검색 (정상 상태, 폴더명 포함)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createAt,
+            vr.durationSec as duration,
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.deletedAt IS NULL -- 👈 정상 상태인 파일만 필터링
+        AND vn.title LIKE '%' || :query || '%'
+        ORDER BY vn.createdAt DESC
+        """
+    )
+    suspend fun searchVoiceNotes(query: String): List<VoiceNoteItemResult>
+
+
+    // 휴지통 검색 (폴더명 포함)
+    @Query(
+        """
+    SELECT 
+        vn.id as id,
+        vn.title as title,
+        vn.createdAt as createAt,
+        vr.durationSec as duration,
+        s.text as summary,
+        f.name as folderName -- 👈 폴더 테이블의 이름을 가져옴
+    FROM voice_note vn
+    LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+    LEFT JOIN summary s ON vn.id = s.voiceNoteId
+    LEFT JOIN folder f ON vn.folderId = f.id -- 👈 폴더 테이블 조인 추가
+    WHERE vn.deletedAt IS NOT NULL 
+    AND vn.title LIKE '%' || :query || '%'
+    ORDER BY vn.deletedAt DESC
+"""
+    )
+    suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItemResult>
 }

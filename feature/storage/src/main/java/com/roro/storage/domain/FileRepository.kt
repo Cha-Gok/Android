@@ -1,5 +1,7 @@
 package com.roro.storage.domain
 
+import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.Folder
 import com.roro.core.model.VoiceNote
@@ -44,7 +46,7 @@ interface FileRepository {
     fun observeVoiceNotesByNullFolder(): Flow<List<VoiceNote>>
 
     // 폴더가 있는 voiceNote fetch
-    fun observeVoiceNotesByNoneNullFolder(uuid: UUID): Flow<List<VoiceNote>>
+    fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNote>>
 
     // 최근 voiceNote 5개
     fun observeRecentVoiceNote(): Flow<List<VoiceNote>>
@@ -60,4 +62,15 @@ interface FileRepository {
 
     // VoiceNote 이름 변경
     suspend fun renameVoiceNote(voiceNote: VoiceNote)
+
+    /*      검색 선언       */
+    // 홈 검색
+    suspend fun searchFolders(query: String): List<FolderItem>
+    suspend fun searchVoiceNotes(query: String): List<VoiceNoteItem>
+
+    // 휴지통 검색
+    suspend fun searchTrashFolder(query: String): List<FolderItem>
+    suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItem>
+
+
 }

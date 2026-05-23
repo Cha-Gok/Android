@@ -6,15 +6,18 @@ import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.TranscriptDao
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
+import com.roro.core.domain.mapper.toItem
+import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.entity.FolderEntity
 import com.roro.core.entity.KeywordEntity
 import com.roro.core.entity.SummaryEntity
 import com.roro.core.entity.TranscriptEntity
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.entity.VoiceRecordEntity
-import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.mapper.toModel
 import com.roro.core.model.Folder
+import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -223,6 +226,38 @@ class RoomFileDataSource @Inject constructor(
             voiceNoteTitle = voiceNote.title,
             updatedAt = voiceNote.updatedAt
         )
+    }
+
+    /*          검색 로직          */
+
+    // 홈 검색
+    suspend fun searchFolders(query: String): List<FolderItem> {
+        return folderDao.searchFolders(query = query).map { result ->
+            result.toItem()
+        }
+    }
+
+
+    // 홈 검색
+    suspend fun searchVoiceNotes(query: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchVoiceNotes(query = query).map { result ->
+            result.toItem()
+        }
+    }
+
+
+    // 휴지통 내 폴더 검색
+    suspend fun searchTrashFolders(query: String): List<FolderItem> {
+        return folderDao.searchTrashFolders(query).map { result ->
+            result.toItem()
+        }
+    }
+
+    // 휴지통 내 VoiceNote 검색
+    suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchTrashVoiceNotes(query).map { result ->
+            result.toItem()
+        }
     }
 
 }

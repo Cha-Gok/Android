@@ -9,6 +9,6 @@ class ObserveVoiceNotesInFolderUseCase @Inject constructor(
     private val repository: FileRepository
 ) {
     operator fun invoke(uuid: UUID): Flow<List<VoiceNote>> {
-        return repository.observeVoiceNotesByNoneNullFolder(uuid = uuid)
+        return repository.observeVoiceNotesByNoneNullFolder(folderId = uuid)
     }
 }

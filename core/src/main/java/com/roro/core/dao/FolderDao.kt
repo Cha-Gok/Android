@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.roro.core.domain.model.FolderItemResult
 import com.roro.core.entity.FolderEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
@@ -104,4 +105,46 @@ interface FolderDao {
     // 폴더 영구 삭제 (Hard Delete)
     @Query("DELETE FROM folder WHERE id = :folderId")
     suspend fun removeFolder(folderId: UUID)
+
+
+    // --- 검색 (Search) ---
+
+
+    /**
+     * 전체 폴더 검색 (정상 + 휴지통 상태 모두 포함)
+     * - 각 폴더에 포함된 음성 메모(voice_note)의 개수를 합산하여 가져옵니다.
+     */
+    @Query(
+        """
+        SELECT 
+            f.id as id,
+            f.name as title, 
+            f.createdAt as createAt,
+            COUNT(vn.id) as count
+        FROM folder f
+        LEFT JOIN voice_note vn ON f.id = vn.folderId
+        WHERE f.name LIKE '%' || :query || '%' -- 삭제 조건 제거
+        GROUP BY f.id
+        ORDER BY f.updatedAt DESC
+    """
+    )
+    suspend fun searchFolders(query: String): List<FolderItemResult>
+
+    // 폴더 검색 (휴지통)
+    @Query(
+        """
+        SELECT 
+            f.id as id,
+            f.name as title, 
+            f.createdAt as createAt,
+            COUNT(vn.id) as count
+        FROM folder f
+        LEFT JOIN voice_note vn ON f.id = vn.folderId
+        WHERE f.deletedAt IS NOT NULL 
+        AND f.name LIKE '%' || :query || '%'
+        GROUP BY f.id
+        ORDER BY f.deletedAt DESC
+    """
+    )
+    suspend fun searchTrashFolders(query: String): List<FolderItemResult>
 }
