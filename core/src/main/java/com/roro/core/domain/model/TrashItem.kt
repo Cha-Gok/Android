@@ -8,7 +8,7 @@ data class TrashItem(
     val deletedAt: Long,
     val firstText: String,
     val secondText: String,
-    val type: TrashType
+    val type: FileType
 )
 
-enum class TrashType { FOLDER, VOICE_NOTE }
+enum class FileType { FOLDER, VOICE_NOTE }

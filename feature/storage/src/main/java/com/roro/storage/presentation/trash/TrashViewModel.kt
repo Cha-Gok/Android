@@ -3,7 +3,7 @@ package com.roro.storage.presentation.trash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.domain.model.TrashItem
-import com.roro.core.domain.model.TrashType
+import com.roro.core.domain.model.FileType
 import com.roro.core.util.formatTime
 import com.roro.core.util.toDeletedAtString
 import com.roro.storage.domain.ObserveTrashFolderItemCountUseCase
@@ -130,8 +130,8 @@ class TrashViewModel @Inject constructor(
                 val itemsToRemove = _uiState.value.item.filter { it.id in ids }
                 itemsToRemove.forEach { item ->
                     when (item.type) {
-                        TrashType.FOLDER -> removeFolderUseCase(item.id)
-                        TrashType.VOICE_NOTE -> removeVoiceNoteUseCase(item.id)
+                        FileType.FOLDER -> removeFolderUseCase(item.id)
+                        FileType.VOICE_NOTE -> removeVoiceNoteUseCase(item.id)
                     }
                 }
 
@@ -155,8 +155,8 @@ class TrashViewModel @Inject constructor(
                 val itemsToRestore = _uiState.value.item.filter { it.id in ids }
                 itemsToRestore.forEach { item ->
                     when (item.type) {
-                        TrashType.FOLDER -> restoreFolderUseCase(item.id)
-                        TrashType.VOICE_NOTE -> restoreVoiceNoteUseCase(item.id)
+                        FileType.FOLDER -> restoreFolderUseCase(item.id)
+                        FileType.VOICE_NOTE -> restoreVoiceNoteUseCase(item.id)
                     }
                 }
 
@@ -178,8 +178,8 @@ class TrashViewModel @Inject constructor(
                 val allItems = _uiState.value.item
                 allItems.forEach { item ->
                     when (item.type) {
-                        TrashType.FOLDER -> removeFolderUseCase(item.id)
-                        TrashType.VOICE_NOTE -> removeVoiceNoteUseCase(item.id)
+                        FileType.FOLDER -> removeFolderUseCase(item.id)
+                        FileType.VOICE_NOTE -> removeVoiceNoteUseCase(item.id)
                     }
                 }
                 _uiState.update { it.copy(isDialog = false, activeDialogType = null) }
@@ -209,7 +209,7 @@ class TrashViewModel @Inject constructor(
                         deletedAt = f.deletedAt ?: 0L,
                         firstText = "${countInfo?.noteCount ?: 0}개 항목",
                         secondText = (f.deletedAt ?: 0L).toDeletedAtString(),
-                        type = TrashType.FOLDER
+                        type = FileType.FOLDER
                     )
                 }
 
@@ -220,7 +220,7 @@ class TrashViewModel @Inject constructor(
                         deletedAt = note.deletedAt ?: 0L,
                         firstText = note.createdAt.formatTime(),
                         secondText = (note.deletedAt ?: 0L).toDeletedAtString(),
-                        type = TrashType.VOICE_NOTE,
+                        type = FileType.VOICE_NOTE,
                     )
                 }
 
