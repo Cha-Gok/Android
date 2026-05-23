@@ -6,15 +6,18 @@ import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.TranscriptDao
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
+import com.roro.core.domain.mapper.toItem
+import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.entity.FolderEntity
 import com.roro.core.entity.KeywordEntity
 import com.roro.core.entity.SummaryEntity
 import com.roro.core.entity.TranscriptEntity
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.entity.VoiceRecordEntity
-import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.mapper.toModel
 import com.roro.core.model.Folder
+import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -84,44 +87,39 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 휴지통에서 폴더 복원
-    suspend fun restoreFolder(folder: FolderEntity) {
+    suspend fun restoreFolder(folderId: UUID) {
         val now = System.currentTimeMillis()
-        folderDao.updateFolder(
-            folder.copy(
-                deletedAt = null,
-                updatedAt = now
-            )
-        )
-        voiceNoteDao.restoreByFolderId(
-            folderId = folder.id,
-            updatedAt = now
-        )
+        // 1. 폴더 자체를 복원 (deletedAt = null)
+        folderDao.restoreFolder(folderId, now)
+        // 2. 해당 폴더 안에 있던 모든 VoiceNote들도 같이 복원
+        voiceNoteDao.restoreByFolderId(folderId, now)
     }
 
-    // 원래 폴더가 있으면 해당 폴더로 복구 없으면 루트로 복구
-    suspend fun restoreVoiceNote(voiceNote: VoiceNote) {
+    // 원래 폴더가 있으면 해당 폴더로 복구, 없으면 루트로 복구
+    suspend fun restoreVoiceNote(voiceNoteId: UUID) {
         val now = System.currentTimeMillis()
+
+        // 1. 먼저 해당 VoiceNote의 정보를 DB에서 가져옴
+        // (VoiceNoteEntity? 타입을 반환하도록 Dao가 수정되어 있어야 합니다)
+        val voiceNote = voiceNoteDao.getNote(voiceNoteId) ?: return
         val folderId = voiceNote.folderId
 
         if (folderId == null) {
-            voiceNoteDao.restoreVoiceNote(
-                noteId = voiceNote.id,
-                updatedAt = now
-            )
+            // 처음부터 폴더가 없었던 경우 바로 복원
+            voiceNoteDao.restoreVoiceNote(voiceNoteId, now)
             return
         }
 
+        // 2. 부모 폴더가 여전히 존재하는지 확인
+        // (deletedAt이 NULL인 정상 폴더만 가져옴)
         val folder = folderDao.getFolder(folderId)
-        if (folder != null) {
-            voiceNoteDao.restoreVoiceNote(
-                noteId = voiceNote.id,
-                updatedAt = now
-            )
+
+        if (folder != null && folder.deletedAt == null) {
+            // 부모 폴더가 존재하면 원래 위치로 복원
+            voiceNoteDao.restoreVoiceNote(voiceNoteId, now)
         } else {
-            voiceNoteDao.restoreVoiceNoteToRoot(
-                noteId = voiceNote.id,
-                updatedAt = now
-            )
+            // 부모 폴더가 이미 영구 삭제되었거나 휴지통에 있다면 루트(null)로 복원
+            voiceNoteDao.restoreVoiceNoteToRoot(voiceNoteId, now)
         }
     }
 
@@ -170,6 +168,11 @@ class RoomFileDataSource @Inject constructor(
         return voiceNoteDao.observeFolderNoteCount()
     }
 
+    // 각 휴지통 아이템 개수
+    fun observeTrashFolderItemCount(): Flow<List<FolderWithNoteCount>> {
+        return voiceNoteDao.observeTrashFolderNoteCount()
+    }
+
     // 폴더를 가지고 있는 voiceNote 조회
     fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNote>> {
         return voiceNoteDao.observeVoiceNote(folderId)
@@ -197,14 +200,14 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더 완전 삭제
-    suspend fun removeFolder(folder: FolderEntity) {
-        folderDao.removeFolder(folder)
-        voiceNoteDao.removeVoiceNotesByFolderId(folder.id)
+    suspend fun removeFolder(folderId: UUID) {
+        folderDao.removeFolder(folderId)
+        voiceNoteDao.removeVoiceNotesByFolderId(folderId)
     }
 
     // voiceNote 제거
-    suspend fun removeVoiceNote(voiceNoteEntity: VoiceNoteEntity) {
-        voiceNoteDao.removeVoiceNote(voiceNoteEntity)
+    suspend fun removeVoiceNote(voiceNoteId: UUID) {
+        voiceNoteDao.removeVoiceNote(voiceNoteId)
     }
 
     // 폴더 이름 변경
@@ -223,6 +226,38 @@ class RoomFileDataSource @Inject constructor(
             voiceNoteTitle = voiceNote.title,
             updatedAt = voiceNote.updatedAt
         )
+    }
+
+    /*          검색 로직          */
+
+    // 홈 검색
+    suspend fun searchFolders(query: String): List<FolderItem> {
+        return folderDao.searchFolders(query = query).map { result ->
+            result.toItem()
+        }
+    }
+
+
+    // 홈 검색
+    suspend fun searchVoiceNotes(query: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchVoiceNotes(query = query).map { result ->
+            result.toItem()
+        }
+    }
+
+
+    // 휴지통 내 폴더 검색
+    suspend fun searchTrashFolders(query: String): List<FolderItem> {
+        return folderDao.searchTrashFolders(query).map { result ->
+            result.toItem()
+        }
+    }
+
+    // 휴지통 내 VoiceNote 검색
+    suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchTrashVoiceNotes(query).map { result ->
+            result.toItem()
+        }
     }
 
 }

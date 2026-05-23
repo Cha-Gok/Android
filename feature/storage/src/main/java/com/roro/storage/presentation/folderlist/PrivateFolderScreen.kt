@@ -1,4 +1,4 @@
-package com.roro.storage.presentation
+package com.roro.storage.presentation.folderlist
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,12 +28,16 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.model.Folder
 import com.roro.core.navigation.Routes
+import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokDialogCreateFolder
 import com.roro.core.ui.component.ChaGokSwipeableFolderItem
 import com.roro.core.ui.component.ChaGokTopBar2
+import com.roro.core.ui.component.ChaGokTopBarV2
 import com.roro.core.ui.component.TopBarIcon
 import com.roro.core.util.toast
+import com.roro.storage.presentation.StorageEffect
+import com.roro.storage.presentation.StorageIntent
 import com.roro.storage.presentation.home.DefaultFolderType
 import com.roro.storage.presentation.home.FolderDialogType
 import com.roro.storage.presentation.home.StorageUiState
@@ -102,20 +108,32 @@ internal fun PrivateFolderScreenContent(
     ChaGokBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
-                ChaGokTopBar2(
+                ChaGokTopBarV2(
                     title = "개인폴더",
-                    onBackClick = { navController.popBackStack() },
                     showBackButton = true,
-                    actions = {
-                        TopBarIcon(
-                            imageVector = Icons.Outlined.CreateNewFolder,
-                            onClick = {
-                                onFolderNameChange("") // 이름 초기화
-                                dialogType = FolderDialogType.CREATE
-                            }
-                        )
-                    }
+                    onBackClick = { navController.popBackStack() },
+                    firstActionIcon = Icons.Outlined.Search,
+                    onFirstActionClick = { navController.navigate(Routes.searchTemp(SearchType.FOLDER)) },
+                    secondActionIcon = Icons.Outlined.CreateNewFolder,
+                    onSecondActionClick = {
+                        onFolderNameChange("")
+                        dialogType = FolderDialogType.CREATE
+                    },
                 )
+//                ChaGokTopBar2(
+//                    title = "개인폴더",
+//                    onBackClick = { navController.popBackStack() },
+//                    showBackButton = true,
+//                    actions = {
+//                        TopBarIcon(
+//                            imageVector = Icons.Outlined.CreateNewFolder,
+//                            onClick = {
+//                                onFolderNameChange("") // 이름 초기화
+//                                dialogType = FolderDialogType.CREATE
+//                            }
+//                        )
+//                    }
+//                )
                 PrivateFolderList(
                     navController = navController,
                     folders = folders,

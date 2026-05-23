@@ -1,4 +1,4 @@
-package com.roro.storage.presentation
+package com.roro.storage.presentation.filelist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +40,8 @@ import androidx.navigation.compose.rememberNavController
 import com.roro.core.model.VoiceNote
 import com.roro.core.ui.theme.ChaGokTheme
 import com.roro.core.util.toast
+import com.roro.storage.presentation.StorageEffect
+import com.roro.storage.presentation.StorageIntent
 import com.roro.storage.presentation.home.StorageViewModel
 import timber.log.Timber
 import java.util.UUID

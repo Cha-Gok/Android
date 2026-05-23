@@ -15,6 +15,7 @@ import com.roro.recorder.navigation.recorderGraph
 import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.screen.RecorderBottomSheet
 import com.roro.storage.navigation.storageGraph
+import com.roro.storage.navigation.trashGraph
 
 /**
  * 기능 설명:
@@ -58,6 +59,7 @@ fun AppNavHost(
                 }
             },
         )
+
         onBoardingGraph(navController = navController)
 
         // onStartRecord 콜백 전달

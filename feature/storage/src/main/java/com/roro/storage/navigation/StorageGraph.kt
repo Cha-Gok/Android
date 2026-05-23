@@ -8,9 +8,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.roro.core.navigation.Routes
-import com.roro.storage.presentation.FileListScreen
-import com.roro.storage.presentation.PrivateFolderScreen
+import com.roro.core.navigation.SearchType
+import com.roro.storage.presentation.filelist.FileListScreen
+import com.roro.storage.presentation.folderlist.PrivateFolderScreen
 import com.roro.storage.presentation.home.StorageScreen
+import com.roro.storage.presentation.search.SearchScreen
 import com.roro.storage.presentation.tos.TosScreen
 import com.roro.storage.presentation.trash.TrashScreen
 
@@ -148,4 +150,31 @@ fun NavGraphBuilder.storageGraph(
         TosScreen(navController = navController)
     }
 
+    composable(
+        Routes.SEARCH_TEMP,
+        arguments = listOf(navArgument("searchType") { type = NavType.StringType }),
+        enterTransition = {
+            // 1번 -> 2번으로 올 때: 왼쪽으로 밀면서 들어옴
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
+        },
+        exitTransition = {
+            // 2번 -> 3번으로 갈 때: 왼쪽으로 밀면서 나감 (이부분이 수정됨)
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
+        },
+        popEnterTransition = {
+            // 3번 -> 2번으로 돌아올 때: 오른쪽으로 밀면서 들어옴 (추가)
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
+        },
+        popExitTransition = {
+            // 2번 -> 1번으로 돌아갈 때: 오른쪽으로 밀면서 나감 (추가)
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
+        }
+    ) { backStackEntry ->
+        val searchType = backStackEntry.arguments?.getString("searchType") ?: SearchType.TRASH.name
+
+        SearchScreen(
+            searchType = searchType,
+            navController = navController
+        )
+    }
 }

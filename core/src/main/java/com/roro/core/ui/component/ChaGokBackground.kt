@@ -33,7 +33,7 @@ fun ChaGokBackground(
 ) {
     Box(
         modifier = modifier.fillMaxSize()
-    ){
+    ) {
         Image(
             painter = painterResource(id = R.drawable.bg_original),
             contentDescription = "배경화면",
@@ -42,65 +42,6 @@ fun ChaGokBackground(
         )
         content()
     }
-   /* Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Gray50) // 기본 배경색 (매우 밝은 회색)
-    ) {
-        // 1. 뒤쪽의 큰 타원 (더 넓고 은은하게 퍼지는 보라색 광채)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp) // 높이를 충분히 주어 부드럽게 감춤
-                .align(Alignment.BottomCenter)
-                .offset(y = 150.dp) // 화면 아래로 절반 정도 걸치게 배치
-                .graphicsLayer {
-                    scaleX = 2.5f // 가로로 아주 넓게 확장
-                    scaleY = 1.0f
-                    alpha = 0.6f  // 투명도 조절
-                }
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF7B3FF2).copy(alpha = 0.4f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        // 2. 앞쪽의 작은 타원 (더 밝고 집중된 하단 광채)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .align(Alignment.BottomCenter)
-                .offset(y = 120.dp)
-                .graphicsLayer {
-                    scaleX = 1.8f // 적당한 너비
-                    scaleY = 0.8f // 위아래로 약간 납작하게
-                }
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF9C6BFF).copy(alpha = 0.7f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 34.dp)
-        ) {
-            // 실제 컨텐츠 레이어
-            content()
-        }
-    }*/
 }
 
 @Preview(showBackground = true, widthDp = 390, heightDp = 844)

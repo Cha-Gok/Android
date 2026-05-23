@@ -18,7 +18,7 @@ import java.util.UUID
  * @modified
  */
 sealed interface HomeIntent {
-//    data object Initialize : HomeIntent
+    data object Initialize : HomeIntent
 
     // 녹음 화면 이동
     data object ClickRecordButton : HomeIntent
