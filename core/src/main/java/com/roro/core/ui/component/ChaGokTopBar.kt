@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.roro.core.domain.model.SortType
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
 import com.roro.core.ui.theme.Gray850
@@ -447,8 +448,4 @@ private fun ChaGokTopBarWithBackPreview() {
             secondActionDescription = "메뉴"
         )
     }
-}
-
-enum class SortType {
-    CREATED_AT, UPDATED_AT
 }

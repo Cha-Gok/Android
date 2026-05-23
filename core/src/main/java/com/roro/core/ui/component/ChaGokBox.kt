@@ -31,10 +31,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.roro.core.domain.model.TrashType
+import com.roro.core.domain.model.FileType
 import com.roro.core.ui.theme.BoxBackground
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
@@ -313,7 +314,7 @@ fun ChaGokTrashBox(
     title: String,
     firstText: String,
     secondText: String,
-    type: TrashType,
+    type: FileType,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     isSelectionMode: Boolean = false,
@@ -367,7 +368,7 @@ fun ChaGokTrashBox(
                 }
             }
             Icon(
-                imageVector = if (type == TrashType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Mic,
+                imageVector = if (type == FileType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Mic,
                 tint = TextSecondary,
                 contentDescription = null,
                 modifier = Modifier.padding(end = 16.dp)
@@ -445,6 +446,105 @@ fun ChaGokBoxSmallPreview() {
     }
 }
 
+@Composable
+fun ChaGokItemBox(
+    modifier: Modifier = Modifier,
+    title: String,
+    createAt: String,
+    type: FileType,
+    count: String? = null,
+    duration: String? = null,
+    folderName: String? = null,
+    onClick: () -> Unit = {},
+    shape: Shape = RoundedCornerShape(20.dp)
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(85.dp) // 세 줄일 경우 높이가 타이트할 수 있으니 디자인에 따라 조절 필요
+            .clip(shape)
+            .background(BoxBackground)
+            .border(1.dp, Gray700, shape)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp), // 상하 패딩 살짝 조절
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // 1. 아이콘
+            Icon(
+                imageVector = if (type == FileType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Mic,
+                tint = TextSecondary,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+
+            // 2. 텍스트 영역
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center // 중앙 정렬
+            ) {
+                // [1행] 제목
+                Text(
+                    text = title,
+                    style = ChaGokTextStyle.Title2,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // [2행 & 3행] 타입에 따른 분기
+                when (type) {
+                    FileType.FOLDER -> {
+                        // 폴더는 생성일만 표시
+                        Text(
+                            text = createAt,
+                            style = ChaGokTextStyle.Body1,
+                            color = TextSecondary,
+                            maxLines = 1
+                        )
+                    }
+                    FileType.VOICE_NOTE -> {
+                        // 음성메모 2행: 날짜 · 길이
+                        Text(
+                            text = "$createAt${if (duration != null) " · $duration" else ""}",
+                            style = ChaGokTextStyle.Body1,
+                            color = TextSecondary,
+                            maxLines = 1
+                        )
+
+                        // 음성메모 3행: 폴더명 (있는 경우에만)
+                        if (!folderName.isNullOrBlank()) {
+                            Text(
+                                text = folderName,
+                                style = ChaGokTextStyle.Label, // 폴더명은 조금 더 작게 표현하는 것이 가독성에 좋음
+                                color = TextTertiary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3. 오른쪽 영역 (폴더일 때만 개수 표시)
+            if (type == FileType.FOLDER && count != null) {
+                Text(
+                    text = count,
+                    style = ChaGokTextStyle.Body2,
+                    color = TextTertiary,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+        }
+    }
+}
+
+
 @Preview(showBackground = true, backgroundColor = 0x121212)
 @Composable
 fun ChaGokFolderBoxPreview() {
@@ -490,8 +590,15 @@ fun ChaGokFileBoxPreview() {
                 firstText = "오후 3:23",
                 isSelectionMode = true,
                 isSelected = true,
-                type = TrashType.FOLDER,
+                type = FileType.FOLDER,
                 secondText = "1개월 전 삭제",
+            )
+            ChaGokItemBox(
+                title = "회의록",
+                createAt = "2025.02.03",
+                type = FileType.FOLDER,
+                count = "3",
+                onClick = { },
             )
         }
     }
