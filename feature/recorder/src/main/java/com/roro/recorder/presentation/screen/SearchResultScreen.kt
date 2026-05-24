@@ -73,7 +73,7 @@ fun SearchResultScreen(
     val tabs = listOf("요약", "스크립트")
 
     LaunchedEffect(Unit) {
-        viewModel.init(result.summaryText, result.sttText)  // ✅ result에서 꺼내서 전달
+        viewModel.init(result.summaryText, result.sttText, result.keywords)
         focusRequester.requestFocus()
     }
 
@@ -283,15 +283,22 @@ fun SearchResultScreen(
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
                         }
-                        itemsIndexed(currentMatches) { index, match ->
-                            val isCurrent = index == uiState.currentMatchIndex
-                            SearchMatchItem(
-                                match = match,
-                                query = uiState.query,
-                                isCurrent = isCurrent,
-                                showTimestamp = true,
-                                onClick = { onSeek(match.startTimeMs) }
-                            )
+
+                        // 기존 itemsIndexed(currentMatches) 블록 → 아래로 교체
+                        val groupedMatches = currentMatches.groupBy { it.segmentIndex }
+                        groupedMatches.entries.forEachIndexed { groupIdx, (_, matches) ->
+                            val isCurrentGroup = matches.any {
+                                currentMatches.indexOf(it) == uiState.currentMatchIndex
+                            }
+                            item(key = matches.first().segmentIndex) {
+                                ScriptSegmentItem(
+                                    matches = matches,
+                                    isCurrent = isCurrentGroup,
+                                    currentMatchIndex = uiState.currentMatchIndex,
+                                    allMatches = currentMatches,
+                                    onClick = { onSeek(matches.first().startTimeMs) }
+                                )
+                            }
                         }
                     }
                 }
@@ -399,6 +406,62 @@ private fun SearchMatchItem(
 }
 
 @Composable
+private fun ScriptSegmentItem(
+    matches: List<SearchMatch>,
+    isCurrent: Boolean,
+    currentMatchIndex: Int,
+    allMatches: List<SearchMatch>,
+    onClick: () -> Unit
+) {
+    val segText = matches.first().text
+    val startTimeMs = matches.first().startTimeMs
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Text(
+            text = formatSearchTime(startTimeMs),
+            color = if (isCurrent) Color(0xFF9B7FD4) else Color.White.copy(alpha = 0.4f),
+            fontSize = 12.sp,
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+        )
+
+        // 단락 안 모든 매치 하이라이트
+        Text(
+            text = buildAnnotatedString {
+                var cursor = 0
+                matches.forEachIndexed { matchIdx, match ->
+                    val globalIdx = allMatches.indexOf(match)
+                    val isThisCurrent = globalIdx == currentMatchIndex
+
+                    // 매치 앞 텍스트
+                    if (match.matchStart > cursor) {
+                        append(segText.substring(cursor, match.matchStart))
+                    }
+                    // 하이라이트
+                    withStyle(SpanStyle(
+                        color = if (isThisCurrent) Color.Black else Color.White,
+                        background = if (isThisCurrent) Color(0xFFFF9500) else Color(0xFF9B7FD4),
+                    )) {
+                        append(segText.substring(match.matchStart, match.matchEnd))
+                    }
+                    cursor = match.matchEnd
+                }
+                // 마지막 매치 뒤 텍스트
+                if (cursor < segText.length) {
+                    append(segText.substring(cursor))
+                }
+            },
+            fontSize = 14.sp,
+            lineHeight = 22.sp,
+            color = Color.White.copy(alpha = if (isCurrent) 1f else 0.7f)
+        )
+    }
+}
+
+@Composable
 private fun SummarySearchResult(
     result: VoiceNoteResult,
     query: String,
@@ -442,7 +505,7 @@ private fun SummarySearchResult(
             Text(text = formatDuration(result.durationSec), color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
         }
 
-        // 핵심 포인트 - summaryMatches를 카드로 표시
+        // 핵심 포인트
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = "핵심 포인트",
@@ -451,13 +514,8 @@ private fun SummarySearchResult(
                 fontWeight = FontWeight.Bold
             )
             keyPoints.forEachIndexed { index, point ->
-                val matchedMatch = summaryMatches.firstOrNull {
-                    point.contains(it.text.substring(it.matchStart, it.matchEnd))
-                }
-                val isMatch = matchedMatch != null
-                val isCurrent = summaryMatches.getOrNull(currentMatchIndex)?.let {
-                    point.contains(it.text.substring(it.matchStart, it.matchEnd))
-                } ?: false
+                val pointMatches = summaryMatches.filter { it.segmentIndex == index }
+                val isCurrent = summaryMatches.getOrNull(currentMatchIndex)?.segmentIndex == index
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -481,40 +539,39 @@ private fun SummarySearchResult(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (matchedMatch != null) {
-                        val keyword = matchedMatch.text.substring(matchedMatch.matchStart, matchedMatch.matchEnd)
-                        val startInPoint = point.indexOf(keyword)
-                        val endInPoint = startInPoint + keyword.length
+                    Text(
+                        text = buildAnnotatedString {
+                            if (pointMatches.isEmpty()) {
+                                append(point)
+                            } else {
+                                var cursor = 0
+                                pointMatches.forEach { match ->
+                                    val globalIdx = summaryMatches.indexOf(match)
+                                    val isThisCurrent = globalIdx == currentMatchIndex
 
-                        Text(
-                            text = buildAnnotatedString {
-                                append(point.substring(0, startInPoint))
-                                withStyle(SpanStyle(
-                                    color = if (isCurrent) Color.Black else Color(0xFF9B7FD4),
-                                    background = if (isCurrent) Color(0xFFFF9500) else Color.Transparent,
-                                    //fontWeight = FontWeight.Bold
-                                )) {
-                                    append(keyword)
+                                    if (match.matchStart > cursor) {
+                                        append(point.substring(cursor, match.matchStart))
+                                    }
+                                    withStyle(SpanStyle(
+                                        color = if (isThisCurrent) Color.Black else Color(0xFF9B7FD4),
+                                        background = if (isThisCurrent) Color(0xFFFF9500) else Color.Transparent,
+                                    )) {
+                                        append(point.substring(match.matchStart, match.matchEnd))
+                                    }
+                                    cursor = match.matchEnd
                                 }
-                                append(point.substring(endInPoint))
-                            },
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        Text(
-                            text = point,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                                if (cursor < point.length) append(point.substring(cursor))
+                            }
+                        },
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
 
-        // 키워드 - 매칭된 항목 하이라이트
+        // 키워드
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = "키워드",
@@ -526,13 +583,11 @@ private fun SummarySearchResult(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                result.keywords.forEach { keyword ->
-                    val isMatch = summaryMatches.any {
-                        keyword.contains(it.text.substring(it.matchStart, it.matchEnd), ignoreCase = true)
-                    }
-                    val isCurrent = summaryMatches.getOrNull(currentMatchIndex)?.let {
-                        keyword.contains(it.text.substring(it.matchStart, it.matchEnd), ignoreCase = true)
-                    } ?: false
+                result.keywords.forEachIndexed { kwIndex, keyword ->
+                    // segmentIndex 100+ 가 키워드
+                    val kwMatches = summaryMatches.filter { it.segmentIndex == 100 + kwIndex }
+                    val currentMatch = summaryMatches.getOrNull(currentMatchIndex)
+                    val isCurrent = currentMatch?.segmentIndex == 100 + kwIndex
 
                     Box(
                         modifier = Modifier
@@ -542,23 +597,22 @@ private fun SummarySearchResult(
                     ) {
                         Text(
                             text = buildAnnotatedString {
-                                if (isMatch) {
-                                    val matchedKeyword = summaryMatches.first {
-                                        keyword.contains(it.text.substring(it.matchStart, it.matchEnd), ignoreCase = true)
-                                    }
-                                    val kw = matchedKeyword.text.substring(matchedKeyword.matchStart, matchedKeyword.matchEnd)
-                                    val start = keyword.indexOf(kw, ignoreCase = true)
-                                    append(keyword.substring(0, start))
+                                if (kwMatches.isEmpty()) {
+                                    append(keyword)
+                                } else {
+                                    val match = kwMatches.first()
+                                    val globalIdx = summaryMatches.indexOf(match)
+                                    val isThisCurrent = globalIdx == currentMatchIndex
+
+                                    append(keyword.substring(0, match.matchStart))
                                     withStyle(SpanStyle(
-                                        color = if (isCurrent) Color.Black else Color(0xFF9B7FD4),
-                                        background = if (isCurrent) Color(0xFFFF9500) else Color.Transparent,
+                                        color = if (isThisCurrent) Color.Black else Color(0xFF9B7FD4),
+                                        background = if (isThisCurrent) Color(0xFFFF9500) else Color.Transparent,
                                         fontWeight = FontWeight.Bold
                                     )) {
-                                        append(keyword.substring(start, start + kw.length))
+                                        append(keyword.substring(match.matchStart, match.matchEnd))
                                     }
-                                    append(keyword.substring(start + kw.length))
-                                } else {
-                                    append(keyword)
+                                    append(keyword.substring(match.matchEnd))
                                 }
                             },
                             color = Color.White,

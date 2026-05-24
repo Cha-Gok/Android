@@ -18,6 +18,18 @@ class SttWithGemmaUseCase @Inject constructor(
     }
 
     suspend operator fun invoke(file: File, language: Language): String {
+
+        // 타임 스탬프 관련 (2순위)
+//        val chunkStartMs = index * CHUNK_SECONDS * 1000L
+//        val sentences = result.split(Regex("(?<=[.!?])\\s+"))
+//            .filter { it.isNotBlank() }
+//
+//        sentences.mapIndexed { sentIdx, sentence ->
+//            val estimatedMs = chunkStartMs +
+//                    (sentIdx.toFloat() / sentences.size * CHUNK_SECONDS * 1000).toLong()
+//            "$estimatedMs|$sentence"  // 구분자로 시간 포함
+//        }.joinToString("\n")
+
         val chunks = splitWavToChunks(file, CHUNK_SECONDS)
         val results = mutableListOf<String>()
 
