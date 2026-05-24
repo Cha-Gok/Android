@@ -1,4 +1,4 @@
-package com.roro.storage.presentation
+package com.roro.storage.presentation.filelist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -37,27 +38,25 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.roro.core.model.Folder
+import com.roro.core.domain.model.SortType
 import com.roro.core.model.VoiceNote
+import com.roro.core.navigation.Routes
+import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokDialogCreateFolder
 import com.roro.core.ui.component.ChaGokFolderBox
+import com.roro.core.ui.component.ChaGokMenuItem
+import com.roro.core.ui.component.ChaGokMoreMenu
 import com.roro.core.ui.component.ChaGokSwipeableFileItem
-import com.roro.core.ui.component.ChaGokTopBar2
-import com.roro.core.ui.component.SortType
+import com.roro.core.ui.component.ChaGokTopBarV2
 import com.roro.core.ui.component.SummaryStatus
-import com.roro.core.ui.component.TopBarIcon
-import com.roro.core.ui.component.TopBarMoreMenu
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.Gray100
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.util.formatTime
 import com.roro.core.util.toast
-import com.roro.storage.presentation.home.DefaultFolderType
-import com.roro.storage.presentation.home.StorageUiState
-import com.roro.storage.presentation.home.StorageViewModel
-import timber.log.Timber
+import com.roro.storage.presentation.StorageEffect
 import java.util.UUID
 
 @Composable
@@ -65,74 +64,53 @@ fun FileListScreen(
     navController: NavController,
     folderName: String,
     folderId: String,
-    viewModel: StorageViewModel = hiltViewModel()
+    viewModel: FileListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val folders by viewModel.userFolders.collectAsState()
     val context = LocalContext.current
 
-    val voiceNotes by viewModel.voiceNoteFolderList.collectAsState()
-    var fileName by rememberSaveable { mutableStateOf("") }
-
-    // 1. 전달 받은 folderId를 변환
-    val uuid = remember(folderId) {
-        runCatching { UUID.fromString(folderId) }.getOrNull()
-    }
-
-    LaunchedEffect(uuid) {
-        uuid?.let {
-            Timber.d("폴더 데이터 로드 시작: $it")
-            viewModel.onIntent(StorageIntent.FetchVoiceNote(it))
+    LaunchedEffect(folderId, folderName) {
+        runCatching { UUID.fromString(folderId) }.getOrNull()?.let { uuid ->
+            viewModel.onIntent(FileListIntent.Initialize(folderId = uuid, folderName = folderName))
         }
     }
 
 
-    Timber.d("FileListScreen folder = $folderId")
-    Timber.d("FileListScreen folderName = $folderName")
-
-    if (uiState.isLoading) {
-        Timber.d("로딩 중~")
-    }
-
-    uiState.errorMessage?.let {
-        Timber.d("text $it")
-    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is StorageEffect.ClearFolderInput -> {
-                    fileName = ""
+                StorageEffect.ClearFolderInput -> {}
+                FileListEffect.NavigateToSearch -> {
+                    navController.navigate(Routes.searchTemp(SearchType.VOICE_NOTE))
                 }
 
-                is StorageEffect.ShowToast -> context.toast(effect.message)
+                is FileListEffect.ShowToast -> context.toast(effect.message)
             }
         }
+    }
+
+    BackHandler {
+//        viewModel.onIntent(FileListIntent.)
     }
 
 
     FileListScreenContent(
         uiState = uiState,
         navController = navController,
-        voiceNotes = voiceNotes,
-        folderName = folderName,
-        folders = folders,
-        onDeleteVoiceNote = { viewModel.onIntent(StorageIntent.MoveToTrashVoiceNotes(listOf(it.id))) },
-        onSortByCreate = { viewModel.onIntent(StorageIntent.SortByCreatedAt) },
-        onSortByUpdate = { viewModel.onIntent(StorageIntent.SortByUpdatedAt) },
+        onDeleteVoiceNote = { viewModel.onIntent(FileListIntent.MoveToTrashVoiceNotes(listOf(it.id))) },
+        onChangeSort = { viewModel.onIntent(FileListIntent.ChangeSort(it)) },
+        onSearch = { viewModel.onIntent(FileListIntent.ClickSearch) }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FileListScreenContent(
-    uiState: StorageUiState,
+    uiState: FileListUiState,
     navController: NavController,
-    voiceNotes: List<VoiceNote>,
-    folderName: String,
-    folders: List<Folder>,
-    onSortByCreate: () -> Unit,
-    onSortByUpdate: () -> Unit,
+    onSearch: () -> Unit,
+    onChangeSort: (SortType) -> Unit,
     onDeleteVoiceNote: (VoiceNote) -> Unit,
 ) {
     // 다이얼로그 타입과 선택된 폴더를 관리하는 상태
@@ -149,73 +127,82 @@ internal fun FileListScreenContent(
         isEditMode = false
         selectedIds = emptySet()
     }
+    var isMenuExpanded by remember { mutableStateOf(false) }
     ChaGokBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
-                ChaGokTopBar2(
-                    title = if (isEditMode) "${selectedIds.size}개" else folderName,
-                    backIcon = if (isEditMode) Icons.Default.Close else Icons.Default.ArrowBackIosNew,
+                ChaGokTopBarV2(
+                    title = if (isEditMode) "${selectedIds.size}개" else uiState.folderName,
+                    showBackButton = true,
+                    backButtonIcon = if (isEditMode) Icons.Default.Close else Icons.Default.ArrowBackIosNew,
                     onBackClick = {
                         if (isEditMode) {
                             isEditMode = false
                             selectedIds = emptySet() // 선택 해제
                         } else navController.popBackStack()
                     },
-                    showBackButton = true,
-                    actions = {
-                        if (isEditMode) {
-                            // 2. 편집 모드일 때: 이동, 삭제 텍스트 버튼
-                            TextButton(
-                                onClick = {
-                                    showMoveBottomSheet = true
-                                }
-                            ) {
-                                Text(text = "이동", color = TextPrimary, style = ChaGokTextStyle.Title2)
-                            }
 
-                            TextButton(
-                                onClick = {
-                                    Timber.d("선택된 파일들 삭제: $selectedIds")
-                                    // onDeleteVoiceNote를 리스트를 받게 수정하거나 반복문 처리
-                                    if (selectedIds.isNotEmpty()) {
-                                        showDeleteDialog = true
-                                    }
+                    firstActionIcon = if (!isEditMode) Icons.Default.Search else null,
+                    firstActionDescription = "search",
+                    onFirstActionClick = onSearch,
+
+                    secondActionIcon = if (!isEditMode) Icons.Default.MoreVert else null,
+                    secondActionDescription = "더보기",
+                    onSecondActionClick = { isMenuExpanded = true },
+                    secondActionTrailingContent = {
+                        if (isEditMode) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { showMoveBottomSheet = true }) {
+                                    Text(text = "이동", color = TextPrimary, style = ChaGokTextStyle.Title2)
                                 }
-                            ) {
-                                Text(text = "삭제", color = Danger, style = ChaGokTextStyle.Title2)
+                                TextButton(
+                                    onClick = {
+                                        if (selectedIds.isNotEmpty()) showDeleteDialog = true
+                                    }
+                                ) {
+                                    Text(text = "삭제", color = Danger, style = ChaGokTextStyle.Title2)
+                                }
                             }
                         } else {
-                            TopBarIcon(
-                                imageVector = Icons.Outlined.Search,
-                                onClick = {
-                                    Timber.d("검색창 이동")
-                                }
-                            )
-                            TopBarMoreMenu(
-                                currentSortType = currentSortType,
-                                onSortByCreate = {
-                                    currentSortType = SortType.CREATED_AT
-                                    onSortByCreate()
-                                },
-                                onSortByUpdate = {
-                                    currentSortType = SortType.UPDATED_AT
-                                    onSortByUpdate()
-                                },
-                                onSelectAll = {
-                                    if (selectedIds.size == voiceNotes.size) {
-                                        selectedIds = emptySet()
-                                    } else {
-                                        selectedIds = voiceNotes.map { it.id }.toSet()
-                                        isEditMode = true
-                                    }
-                                },
-                                onSelectMode = { isEditMode = true }
+                            ChaGokMoreMenu(
+                                expanded = isMenuExpanded,
+                                onDismissRequest = { isMenuExpanded = false },
+                                items = listOf(
+                                    ChaGokMenuItem(
+                                        text = "생성일 순",
+                                        onClick = {
+                                            onChangeSort(SortType.CREATED_AT)
+                                        }
+                                    ),
+                                    ChaGokMenuItem(
+                                        text = "수정일 순",
+                                        onClick = {
+                                            onChangeSort(SortType.UPDATED_AT)
+                                        }
+                                    ),
+                                    ChaGokMenuItem(
+                                        text = if (selectedIds.size == uiState.item.size && uiState.item.isNotEmpty()) "전체 해제" else "전체 선택",
+                                        onClick = {
+                                            if (selectedIds.size == uiState.item.size) {
+                                                selectedIds = emptySet()
+                                            } else {
+                                                selectedIds = uiState.item.map { it.id }.toSet()
+                                                isEditMode = true
+                                            }
+                                        }
+                                    ),
+                                    ChaGokMenuItem(
+                                        text = "선택하기",
+                                        onClick = { isEditMode = true }
+                                    )
+                                )
                             )
                         }
                     }
                 )
+
                 FileVoiceNoteList(
-                    voiceNotes = voiceNotes,
+                    voiceNotes = uiState.item,
                     // 리스트에서 수정 버튼 클릭 시 실행될 로직
                     onEditFolder = { folder ->
 //                        selectedFolder = folder
@@ -244,7 +231,7 @@ internal fun FileListScreenContent(
                     showDeleteDialog = false
                 },
                 onConfirm = {
-                    voiceNotes.filter { it.id in selectedIds }.forEach {
+                    uiState.item.filter { it.id in selectedIds }.forEach {
                         onDeleteVoiceNote(it)
                     }
                     showDeleteDialog = false
@@ -297,7 +284,7 @@ internal fun FileListScreenContent(
                         modifier = Modifier.weight(weight = 1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(folders) { folder ->
+                        items(uiState.folderList) { folder ->
                             ChaGokFolderBox(
                                 text = folder.name,
                                 count = "{0}",
@@ -381,14 +368,10 @@ fun FileVoiceNoteList(
 fun FileListScreenPreview() {
     FileListScreenContent(
         navController = rememberNavController(),
-        uiState = StorageUiState(
-            selectedFolderType = DefaultFolderType.RECENT, isLoading = false, errorMessage = null
+        uiState = FileListUiState(
         ),
-        folderName = "TODO()",
-        voiceNotes = emptyList(),
         onDeleteVoiceNote = { },
-        onSortByCreate = { },
-        onSortByUpdate = { },
-        folders = emptyList(),
+        onChangeSort = {},
+        onSearch = { },
     )
 }

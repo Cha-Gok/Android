@@ -52,7 +52,14 @@ class HomeViewModel @Inject constructor(
 
     fun onIntent(intent: HomeIntent) {
         when (intent) {
-//            HomeIntent.Initialize -> initialize()
+            HomeIntent.Initialize -> {
+                _uiState.update {
+                    it.copy(
+                        selectedFolderType = DefaultFolderType.RECENT,
+                        isLoading = true
+                    )
+                }
+            }
             is HomeIntent.ClickFolderType -> {
                 // 현재 선택 된 타입을 업데이트 (UI에서 탭 강조 효과)
                 _uiState.update { it.copy(selectedFolderType = intent.type) }

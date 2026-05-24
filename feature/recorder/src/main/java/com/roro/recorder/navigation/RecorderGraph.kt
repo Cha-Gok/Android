@@ -33,7 +33,7 @@ import com.roro.recorder.presentation.viewModel.RecordResultViewModel
 fun NavGraphBuilder.recorderGraph(
     navController: NavController,
     recordViewModel: RecordViewModel
-){
+) {
     // 바텀 네비게이션 O
     composable(Routes.RECORDER) {
         RecorderDetailScreen(

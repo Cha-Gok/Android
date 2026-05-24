@@ -1,5 +1,6 @@
 package com.roro.core.ui.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -49,6 +53,7 @@ fun ChagokDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     confirmColor: Color = Color(0xFF7B4FCC), // 기본값 기존 보라색, 필요시 빨간색 등으로 교체
+    buttonColor: Color = PrimaryColor
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -91,19 +96,30 @@ fun ChagokDialog(
                     ) {
                         Text(text = dismissText, color = Color.White, fontSize = 14.sp)
                     }
-                    Box(
+                    // Row 내부의 두 번째 버튼 (Confirm) 부분 수정 예시
+                    Button(
+                        onClick = onConfirm,
                         modifier = Modifier
-                            .width(107.dp)
-                            .height(46.dp)
                             .weight(1f)
+                            .height(46.dp) // 고정 높이 유지
                             .clip(RoundedCornerShape(20.dp))
                             .border(width = 0.5.dp, color = Color(0xFF7B4FCC), shape = RoundedCornerShape(20.dp))
                             .background(confirmColor)
                             .clickable(onClick = onConfirm)
                             .padding(horizontal = 12.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = buttonColor, // PrimaryColor 또는 Danger
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(0.5.dp, buttonColor), // Box에서 썼던 테두리 유지
+                        contentPadding = PaddingValues(0.dp) // 내부 패딩 초기화로 텍스트 중앙 정렬
                     ) {
-                        Text(text = confirmText, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = confirmText,
+                            style = ChaGokTextStyle.Body1, // 기존 텍스트 스타일 적용
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }

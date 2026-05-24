@@ -19,7 +19,7 @@ import com.roro.storage.domain.RemoveFolderUseCase
 import com.roro.storage.domain.RemoveVoiceNoteUseCase
 import com.roro.storage.domain.RenameFolderUseCase
 import com.roro.storage.domain.RenameVoiceNoteUseCase
-import com.roro.storage.domain.RestoreFromTrashUseCase
+import com.roro.storage.domain.RestoreFolderUseCase
 import com.roro.storage.domain.RestoreVoiceNoteUseCase
 import com.roro.storage.presentation.StorageEffect
 import com.roro.storage.presentation.StorageIntent
@@ -51,7 +51,7 @@ class StorageViewModel @Inject constructor(
     // 폴더 휴지통으로 이동
     private val moveToTrashUseCase: MoveToTrashUseCase,
     // 휴지통 -> 복원
-    private val restoreFromTrashUserCase: RestoreFromTrashUseCase,
+    private val restoreFromTrashUserCase: RestoreFolderUseCase,
     // voiceNote 휴지통 -> 복원
     private val restoreVoiceNoteUserCase: RestoreVoiceNoteUseCase,
     // 폴더 아이템 개수 가져오기
@@ -201,7 +201,7 @@ class StorageViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             runCatching {
-                restoreFromTrashUserCase(folder)
+                restoreFromTrashUserCase(folder.id)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 _effect.emit(StorageEffect.ShowToast("복원했습니다."))
@@ -218,7 +218,7 @@ class StorageViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             runCatching {
-                removeFolderUseCase(folder = folder)
+                removeFolderUseCase(folderId = folder.id)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 _effect.emit(StorageEffect.ShowToast("folder 영구삭제"))
@@ -235,7 +235,7 @@ class StorageViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             runCatching {
-                removeVoiceNoteUseCase(voiceNote = voiceNote)
+                removeVoiceNoteUseCase(voiceNoteId = voiceNote.id)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 _effect.emit(StorageEffect.ShowToast("voiceNote영구삭제"))
@@ -252,7 +252,7 @@ class StorageViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             runCatching {
-                restoreVoiceNoteUserCase(voiceNote)
+                restoreVoiceNoteUserCase(voiceNoteId = voiceNote.id)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false, errorMessage = null) }
                 _effect.emit(StorageEffect.ShowToast("복원했습니다."))
