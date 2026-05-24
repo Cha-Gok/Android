@@ -91,5 +91,10 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-common:1.3.1")
 
+    // 젬마 4
+    // implementation("com.google.mediapipe:tasks-genai:0.10.27")
+
+    implementation("com.google.ai.edge.litertlm:litertlm-android:latest.release")
+    //implementation("com.google.ai.edge.litertlm:litertlm-android:0.10.1")
 
 }

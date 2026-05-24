@@ -28,7 +28,16 @@ import javax.inject.Inject
  * @author hyeonseo
  * @since 2026. 04. 12.
  */
-//class TranscribeAudioUseCase @Inject constructor() {
+
+// 수정 부분
+// gemma 연동 버전으로 변경 필요
+// 30초 단위 chunk 로 나누어 stt 진행
+
+// 고민해야 할 부분
+// 단락 마무리, 문장 마무리 부분마다 나누어 타임스탬프 저장 -> 스크립트 표시용
+// 1번 stt(스크립트용) / 교정 + 요약 + 키워드 추출 -> 스크립트 자체는 정확도 떨어질 수 있으나 프롬프팅 진행하면 괜찮을 수도?
+// 2번 stt + 교정(스크립트용) + 요약 + 키워드 추출 -> 요약, stt 부분 프롬프팅 수정. (타임스탬프 보존되게)
+
 class TranscribeAudioUseCase @Inject constructor(
     @ApplicationContext private val context: Context  // ← 추가
 ) {
@@ -72,20 +81,30 @@ class TranscribeAudioUseCase @Inject constructor(
         var pfd: ParcelFileDescriptor? = null
         return try {
             val options = speechRecognizerOptions {
-                this.locale = locale  // 언어 설정 사용
+                this.locale = locale
                 preferredMode = SpeechRecognizerOptions.Mode.MODE_BASIC
             }
             speechRecognizer = SpeechRecognition.getClient(options)
 
-            if (speechRecognizer.checkStatus() != FeatureStatus.AVAILABLE) return ""
+            val status = speechRecognizer.checkStatus()
+            Timber.d("🎤 STT 상태: $status") // ✅ 여기
+
+            if (status != FeatureStatus.AVAILABLE) {
+                Timber.d("🎤 STT 사용 불가 → 상태: $status") // ✅ 여기
+                return ""
+            }
+
+            Timber.d("🎤 청크 파일 크기: ${chunkFile.length()}bytes") // ✅ 여기
 
             pfd = ParcelFileDescriptor.open(chunkFile, ParcelFileDescriptor.MODE_READ_ONLY)
             val request = speechRecognizerRequest {
                 audioSource = AudioSource.fromPfd(pfd)
             }
 
+            Timber.d("🎤 인식 시작") // ✅ 여기
             var result = ""
             speechRecognizer.startRecognition(request).collect { response ->
+                Timber.d("🎤 응답: $response") // ✅ 여기
                 when (response) {
                     is SpeechRecognizerResponse.FinalTextResponse -> result = response.text
                     is SpeechRecognizerResponse.PartialTextResponse -> Timber.d("🎤 [중간] ${response.text}")
@@ -102,7 +121,6 @@ class TranscribeAudioUseCase @Inject constructor(
             speechRecognizer?.close()
         }
     }
-
 
     /**
      * WAV 파일을 청크 단위로 분할

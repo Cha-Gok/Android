@@ -24,6 +24,8 @@ data class SearchUiState(
     val selectedTab: Int = 0         // 0: 요약, 1: 스크립트
 )
 
+
+
 @HiltViewModel
 class SearchResultViewModel @Inject constructor() : ViewModel() {
 
@@ -32,10 +34,12 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
 
     private var summaryText = ""
     private var sttText = ""
+    private var keywords: List<String> = emptyList()
 
-    fun init(summaryText: String, sttText: String) {
+    fun init(summaryText: String, sttText: String, keywords: List<String>) {
         this.summaryText = summaryText
         this.sttText = sttText
+        this.keywords = keywords
     }
 
     fun onQueryChange(query: String) {
@@ -76,22 +80,41 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
     private fun searchInSummary(query: String): List<SearchMatch> {
         val results = mutableListOf<SearchMatch>()
         val lowerQuery = query.lowercase()
-        val lowerText = summaryText.lowercase()
-        var searchFrom = 0
-        while (true) {
-            val idx = lowerText.indexOf(lowerQuery, searchFrom)
-            if (idx < 0) break
-            results.add(
-                SearchMatch(
-                    segmentIndex = 0,
+
+        // 핵심 포인트 (segmentIndex 0~2)
+        val keyPoints = summaryText.split("*").map { it.trim() }.filter { it.isNotBlank() }.take(3)
+        keyPoints.forEachIndexed { pointIndex, point ->
+            val lowerPoint = point.lowercase()
+            var searchFrom = 0
+            while (true) {
+                val idx = lowerPoint.indexOf(lowerQuery, searchFrom)
+                if (idx < 0) break
+                results.add(SearchMatch(
+                    segmentIndex = pointIndex,       // 0, 1, 2
                     startTimeMs = 0,
-                    text = summaryText,
+                    text = point,
                     matchStart = idx,
                     matchEnd = idx + query.length
-                )
-            )
-            searchFrom = idx + 1
+                ))
+                searchFrom = idx + 1
+            }
         }
+
+        // 키워드 (segmentIndex 100 + keywordIndex로 구분)
+        keywords.forEachIndexed { kwIndex, kw ->
+            val lowerKw = kw.lowercase()
+            val idx = lowerKw.indexOf(lowerQuery)
+            if (idx >= 0) {
+                results.add(SearchMatch(
+                    segmentIndex = 100 + kwIndex,   // 100번대 = 키워드
+                    startTimeMs = 0,
+                    text = kw,
+                    matchStart = idx,
+                    matchEnd = idx + query.length
+                ))
+            }
+        }
+
         return results
     }
 
@@ -103,23 +126,21 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
         val segments = sttText.split("\n").filter { it.isNotBlank() }
 
         segments.forEachIndexed { segIndex, segText ->
-            val startTimeMs = segIndex * 6000L
+            val startTimeMs = segIndex * 30000L
             val lowerSeg = segText.lowercase()
-            var searchFrom = 0
-            while (true) {
-                val idx = lowerSeg.indexOf(lowerQuery, searchFrom)
-                if (idx < 0) break
-                results.add(
-                    SearchMatch(
-                        segmentIndex = segIndex,
-                        startTimeMs = startTimeMs,
-                        text = segText,
-                        matchStart = idx,
-                        matchEnd = idx + query.length
-                    )
+            val firstIdx = lowerSeg.indexOf(lowerQuery)
+            if (firstIdx < 0) return@forEachIndexed  // 매치 없으면 스킵
+
+            // 단락당 하나만 (첫 번째 매치만)
+            results.add(
+                SearchMatch(
+                    segmentIndex = segIndex,
+                    startTimeMs = startTimeMs,
+                    text = segText,
+                    matchStart = firstIdx,
+                    matchEnd = firstIdx + query.length
                 )
-                searchFrom = idx + 1
-            }
+            )
         }
         return results
     }
