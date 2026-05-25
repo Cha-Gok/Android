@@ -9,6 +9,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import javax.inject.Inject
 
+import com.roro.recorder.data.GemmaManager
+
+
 /**
  * 기능 설명:
  * - 텍스트 전체를 한번에 3줄 요약하는 UseCase

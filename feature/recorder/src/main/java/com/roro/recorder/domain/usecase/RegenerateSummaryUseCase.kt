@@ -3,6 +3,8 @@ package com.roro.recorder.domain.usecase
 import com.roro.core.dao.KeywordDao
 import com.roro.core.dao.SummaryDao
 import com.roro.core.entity.KeywordEntity
+import com.roro.recorder.domain.usecase.gemma.ExtractKeywordsWithGemmaUseCase
+import com.roro.recorder.domain.usecase.gemma.SummarizeWithGemmaUseCase
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
@@ -16,11 +18,16 @@ import javax.inject.Inject
  * @author
  * @since 2026. 04. 19.
  */
+
+// 0512 젬마 버전으로 수정
 class RegenerateSummaryUseCase @Inject constructor(
-    private val summarizeTextSimpleUseCase: SummarizeTextSimpleUseCase,
-    private val extractKeywordsUseCase: ExtractKeywordsUseCase,
+//    private val summarizeTextSimpleUseCase: SummarizeTextSimpleUseCase,
+//    private val extractKeywordsUseCase: ExtractKeywordsUseCase,
     private val summaryDao: SummaryDao,
     private val keywordDao: KeywordDao,
+
+    private val summarizeWithGemmaUseCase: SummarizeWithGemmaUseCase,      // 교체
+    private val extractKeywordsWithGemmaUseCase: ExtractKeywordsWithGemmaUseCase,  // 교체
 ) {
     data class Result(
         val summaryText: String,
@@ -32,11 +39,11 @@ class RegenerateSummaryUseCase @Inject constructor(
         sttText: String
     ): Result {
         // 1. 요약 재생성
-        val newSummary = summarizeTextSimpleUseCase(sttText)
+        val newSummary = summarizeWithGemmaUseCase(sttText)
         Timber.tag("RegenerateSummary").d("요약 재생성 완료")
 
         // 2. 키워드 재추출
-        val newKeywords = extractKeywordsUseCase(sttText)
+        val newKeywords = extractKeywordsWithGemmaUseCase(sttText)
         Timber.tag("RegenerateSummary").d("키워드 재추출 완료: $newKeywords")
 
         // 3. DB 업데이트 - 요약문 텍스트 갱신
