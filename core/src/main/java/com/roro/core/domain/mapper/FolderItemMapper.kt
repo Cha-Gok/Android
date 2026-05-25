@@ -12,3 +12,7 @@ fun FolderItemResult.toItem(): FolderItem {
         createAt = this.createAt.formatDate(),
     )
 }
+
+fun List<FolderItemResult>.toItem(): List<FolderItem> {
+    return this.map{it.toItem()}
+}

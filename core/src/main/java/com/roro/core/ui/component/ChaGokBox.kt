@@ -3,6 +3,7 @@ package com.roro.core.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +23,12 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,7 @@ import com.roro.core.ui.theme.Gray500
 import com.roro.core.ui.theme.Gray700
 import com.roro.core.ui.theme.Gray850
 import com.roro.core.ui.theme.PrimaryColor
+import com.roro.core.ui.theme.Purple900
 import com.roro.core.ui.theme.TextDisabled
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
@@ -178,6 +183,7 @@ fun ChaGokFolderBox(
     count: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     icon: ImageVector = Icons.Outlined.Folder,
     shape: Shape = RoundedCornerShape(20.dp)
 ) {
@@ -188,9 +194,16 @@ fun ChaGokFolderBox(
             .fillMaxWidth()
             .height(53.dp)
             .clip(shape)
-            .border(1.dp, Gray700, shape)
-            .background(backgroundColor)
-            .clickable { onClick() } // 클릭 이벤트 추가
+            .background(color = backgroundColor, shape = shape)
+            .then(
+                if (isSelected) Modifier.border(1.dp, Purple900, shape)
+                else Modifier
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, // 리플 효과 제거
+                onClick = onClick
+            )
             .padding(horizontal = 16.dp), // 양 끝 여백
         contentAlignment = Alignment.Center
     ) {
@@ -508,6 +521,7 @@ fun ChaGokItemBox(
                             maxLines = 1
                         )
                     }
+
                     FileType.VOICE_NOTE -> {
                         // 음성메모 2행: 날짜 · 길이
                         Text(

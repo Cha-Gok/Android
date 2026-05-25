@@ -30,6 +30,7 @@ class SearchViewModel @Inject constructor(
     private val searchTrashVoiceNoteUseCase: SearchTrashVoiceNoteUseCase,
     private val searchFolderUseCase: SearchFolderUseCase,
     private val searchVoiceNoteUseCase: SearchVoiceNoteUseCase,
+    // 폴더에 있는 voiceNote만 검색!! 유즈케이스 만들어야함
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState(isLoading = true))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -112,9 +113,15 @@ class SearchViewModel @Inject constructor(
                         folderRes.sortedByDescending { it.createAt }
                     }
 
-                    else -> {
-                        Timber.w("❓ [DEBUG] 알 수 없는 타입입니다: $type (else 문 실행)")
-                        emptyList()
+                    SearchType.VOICE_NOTE -> {
+                        Timber.d("파일 검색 진입")
+                        val voiceNoteRes = searchVoiceNoteUseCase(query)
+
+                        Timber.d("파일 검색 완료: ${voiceNoteRes.size}개")
+                        voiceNoteRes.forEach {
+                            Timber.d("   🎙️ 음성메모 상세: ${it.voiceNoteItem?.title} (폴더: ${it.voiceNoteItem?.folderName})")
+                        }
+                        voiceNoteRes.sortedByDescending { it.createAt }
                     }
                 }
 

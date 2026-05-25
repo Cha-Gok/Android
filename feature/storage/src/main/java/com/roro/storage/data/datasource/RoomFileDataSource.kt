@@ -174,9 +174,8 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더를 가지고 있는 voiceNote 조회
-    fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNote>> {
-        return voiceNoteDao.observeVoiceNote(folderId)
-            .map { list -> list.map { it.toModel() } }
+    fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeVoiceNote(folderId).map { it.toItem() }
     }
 
     // 폴더가 없는 voiceNote 조회
@@ -228,6 +227,11 @@ class RoomFileDataSource @Inject constructor(
         )
     }
 
+    /*          폴더 가져오기       */
+    fun observeFolders(): Flow<List<FolderItem>> {
+        return folderDao.observeFolders().map { it.toItem() }
+    }
+
     /*          검색 로직          */
 
     // 홈 검색
@@ -248,9 +252,7 @@ class RoomFileDataSource @Inject constructor(
 
     // 휴지통 내 폴더 검색
     suspend fun searchTrashFolders(query: String): List<FolderItem> {
-        return folderDao.searchTrashFolders(query).map { result ->
-            result.toItem()
-        }
+        return folderDao.searchTrashFolders(query).toItem()
     }
 
     // 휴지통 내 VoiceNote 검색

@@ -14,6 +14,7 @@ import com.roro.storage.data.datasource.LocalFileDataSource
 import com.roro.storage.data.datasource.RoomFileDataSource
 import com.roro.storage.domain.FileRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.String
@@ -129,7 +130,7 @@ class FileRepositoryImpl @Inject constructor(
     }
 
     // 폴더가 있는 voiceNote 조회
-    override fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNote>> {
+    override fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNoteItem>> {
         return room.observeNotNullVoiceNote(folderId = folderId)
     }
 
@@ -162,6 +163,10 @@ class FileRepositoryImpl @Inject constructor(
         )
     }
 
+    override fun observeFolders(): Flow<List<FolderItem>> {
+        return room.observeFolders()
+    }
+    
     override suspend fun searchFolders(query: String): List<FolderItem> {
         return room.searchFolders(query = query).map {
             FolderItem(

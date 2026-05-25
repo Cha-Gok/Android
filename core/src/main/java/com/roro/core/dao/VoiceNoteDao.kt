@@ -48,9 +48,25 @@ interface VoiceNoteDao {
     )
     fun observeTrashFolderNoteCount(): Flow<List<FolderWithNoteCount>>
 
-    // 특정 폴더에 속한 정상 VoiceNote 조회
-    @Query("SELECT * FROM voice_note WHERE folderId = :folderId AND deletedAt IS NULL ORDER BY createdAt DESC")
-    fun observeVoiceNote(folderId: UUID): Flow<List<VoiceNoteEntity>>
+    // 특정 폴더에 속한 정상 VoiceNote 조회 (조인 추가)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createdAt,
+            vr.durationSec as duration,
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.folderId = :folderId AND vn.deletedAt IS NULL
+        ORDER BY vn.createdAt DESC
+        """
+    )
+    fun observeVoiceNote(folderId: UUID): Flow<List<VoiceNoteItemResult>>
 
     // 폴더가 없는(루트) 정상 VoiceNote 조회
     @Query("SELECT * FROM voice_note WHERE folderId IS NULL AND deletedAt IS NULL ORDER BY createdAt DESC")
@@ -121,7 +137,7 @@ interface VoiceNoteDao {
         SELECT 
             vn.id as id,
             vn.title as title,
-            vn.createdAt as createAt,
+            vn.createdAt as createdAt,
             vr.durationSec as duration,
             s.text as summary,
             f.name as folderName
@@ -143,7 +159,7 @@ interface VoiceNoteDao {
     SELECT 
         vn.id as id,
         vn.title as title,
-        vn.createdAt as createAt,
+        vn.createdAt as createdAt,
         vr.durationSec as duration,
         s.text as summary,
         f.name as folderName -- 👈 폴더 테이블의 이름을 가져옴

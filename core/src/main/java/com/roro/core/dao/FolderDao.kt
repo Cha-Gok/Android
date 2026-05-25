@@ -46,6 +46,21 @@ interface FolderDao {
     )
     fun observeTrashFolders(): Flow<List<FolderEntity>>
 
+    // 삭제 되지 않은 폴더 정보 가져오기
+    @Query(
+        """
+    SELECT 
+        f.id as id,
+        f.name as title, 
+        f.createdAt as createAt,
+        (SELECT COUNT(*) FROM voice_note vn WHERE vn.folderId = f.id AND vn.deletedAt IS NULL) as count
+    FROM folder f
+    WHERE f.deletedAt IS NULL
+    ORDER BY f.updatedAt DESC
+    """
+    )
+    fun observeFolders(): Flow<List<FolderItemResult>>
+
 
     // --- 생성 및 수정 (Create & Update) ---
 
