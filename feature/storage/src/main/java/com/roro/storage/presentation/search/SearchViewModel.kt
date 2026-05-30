@@ -9,6 +9,7 @@ import com.roro.storage.domain.ObserveTrashVoiceNotesUseCase
 import com.roro.storage.domain.SearchFolderUseCase
 import com.roro.storage.domain.SearchTrashFolderUseCase
 import com.roro.storage.domain.SearchTrashVoiceNoteUseCase
+import com.roro.storage.domain.SearchVoiceNoteInFolderUseCase
 import com.roro.storage.domain.SearchVoiceNoteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ class SearchViewModel @Inject constructor(
     private val searchTrashVoiceNoteUseCase: SearchTrashVoiceNoteUseCase,
     private val searchFolderUseCase: SearchFolderUseCase,
     private val searchVoiceNoteUseCase: SearchVoiceNoteUseCase,
+    private val searchVoiceNoteInFolderUseCase: SearchVoiceNoteInFolderUseCase
     // 폴더에 있는 voiceNote만 검색!! 유즈케이스 만들어야함
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState(isLoading = true))
@@ -56,7 +58,8 @@ class SearchViewModel @Inject constructor(
                 } catch (e: Exception) {
                     SearchType.HOME
                 }
-                _uiState.update { it.copy(searchType = type) }
+                _uiState.update { it.copy(searchType = type, folderId = intent.folderId) }
+                Timber.d("searchScreen = type = $type folderId = ${intent.folderId}")
             }
 
             SearchIntent.ClickClose -> {
@@ -114,14 +117,19 @@ class SearchViewModel @Inject constructor(
                     }
 
                     SearchType.VOICE_NOTE -> {
-                        Timber.d("파일 검색 진입")
-                        val voiceNoteRes = searchVoiceNoteUseCase(query)
+                        val folderId = _uiState.value.folderId
+                        if (folderId == null) {
+                            emptyList()
+                        } else {
+                            val voiceNoteRes = searchVoiceNoteInFolderUseCase(query, folderId)
+                            Timber.d("파일 검색 진입")
 
-                        Timber.d("파일 검색 완료: ${voiceNoteRes.size}개")
-                        voiceNoteRes.forEach {
-                            Timber.d("   🎙️ 음성메모 상세: ${it.voiceNoteItem?.title} (폴더: ${it.voiceNoteItem?.folderName})")
+                            Timber.d("파일 검색 완료: ${voiceNoteRes.size}개")
+                            voiceNoteRes.forEach {
+                                Timber.d("   🎙️ 음성메모 상세: ${it.title} (폴더: ${it.folderName})")
+                            }
+                            voiceNoteRes.sortedByDescending { it.createAt }
                         }
-                        voiceNoteRes.sortedByDescending { it.createAt }
                     }
                 }
 

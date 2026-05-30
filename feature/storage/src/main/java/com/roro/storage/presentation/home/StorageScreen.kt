@@ -48,6 +48,7 @@ import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
+import com.roro.core.ui.component.ChaGokItemBox
 import com.roro.core.ui.component.ChaGokLanguageDialog
 import com.roro.core.ui.component.ChaGokNoteList
 import com.roro.core.ui.component.ChaGokSettingsDropdown
@@ -67,7 +68,8 @@ import java.time.ZoneId.systemDefault
 @Composable
 fun StorageScreen(
     navController: NavController,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onStartRecord: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -122,6 +124,7 @@ fun StorageScreen(
         onLanguageSelect = { viewModel.onIntent(HomeIntent.SelectLanguageOption(it)) },
         onConfirmDialog = { viewModel.onIntent(HomeIntent.ConfirmDialog) },
         onDismissDialog = { viewModel.onIntent(HomeIntent.DismissDialog) },
+        onStartRecord = { onStartRecord }
     )
 }
 
@@ -139,6 +142,7 @@ internal fun StorageScreenContent(
     onLanguageSelect: (Language) -> Unit, // 추가
     onConfirmDialog: () -> Unit,        // 추가
     onDismissDialog: () -> Unit,        // 추가
+    onStartRecord: () -> Unit
 ) {
     // 1. 스크롤 상태 기억
     val listState = rememberLazyListState()
@@ -275,7 +279,8 @@ internal fun StorageScreenContent(
             }
             // 5. 플로팅 버튼을 Box의 오른쪽 하단에 배치
             ChagokStartRecordFAB(
-                onClick = {
+                onClick = { 
+                    onStartRecord
                     navController.navigate(Routes.RECORDER)
                 },
                 modifier = Modifier
@@ -293,6 +298,16 @@ fun FolderItemList(
     modifier: Modifier = Modifier
 ) {
    // 0511 수정
+//    ChaGokItemBox(
+//        title = voiceNote.title,
+//        createAt = TODO(),
+//        type = TODO(),
+//        count = TODO(),
+//        duration = TODO(),
+//        folderName = TODO(),
+//        onClick = TODO(),
+//        shape = TODO()
+//    )
     ChaGokNoteList(
         title = voiceNote.title,
         summaryStatus = SummaryStatus.COMPLETED,
@@ -367,6 +382,7 @@ fun StorageScreenPreview() {
         onConfirmDialog = { },
         onDismissDialog = { },
         onTosClick = { },
+        onStartRecord = {}
     )
 }
 

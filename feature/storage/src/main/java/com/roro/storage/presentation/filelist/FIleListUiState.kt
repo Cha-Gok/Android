@@ -1,6 +1,7 @@
 package com.roro.storage.presentation.filelist
 
 import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.SortType
 import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.VoiceNote
 import java.util.UUID
@@ -22,6 +23,7 @@ data class FileListUiState(
     val folderId: UUID = EMPTY_UUID,
     val folderName: String = "",
     val errorMessage: String? = null,
+    val selectedSortType: SortType = SortType.CREATED_AT,
 
     // 폴더 리스트
     val folderList: List<FolderItem> = emptyList()

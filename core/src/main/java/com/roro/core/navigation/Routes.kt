@@ -14,7 +14,7 @@ object Routes {
     const val RECORDER = "record"
     const val TRASH = "trash"
     const val TOS = "tos" // 이용약관
-    const val SEARCH_TEMP = "search/{searchType}" // 검색
+    const val SEARCH_TEMP = "search/{searchType}?folderId={folderId}" // 검색
 
 
     // 스토리지 화면 구성
@@ -44,7 +44,13 @@ object Routes {
     const val SEARCH = "record/search/"
 
     // 검색 화면 - 임시?
-    fun searchTemp(searchType: SearchType) = "search/${searchType.name}"
+    fun searchTemp(searchType: SearchType, folderId: String? = null): String {
+        return if (folderId != null) {
+            "search/${searchType.name}?folderId=$folderId"
+        } else {
+            "search/${searchType.name}"
+        }
+    }
 
 }
 

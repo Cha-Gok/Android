@@ -175,7 +175,7 @@ class RoomFileDataSource @Inject constructor(
 
     // 폴더를 가지고 있는 voiceNote 조회
     fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNoteItem>> {
-        return voiceNoteDao.observeVoiceNote(folderId).map { it.toItem() }
+        return voiceNoteDao.observeVoiceNoteInFolder(folderId).map { it.toItem() }
     }
 
     // 폴더가 없는 voiceNote 조회
@@ -232,6 +232,12 @@ class RoomFileDataSource @Inject constructor(
         return folderDao.observeFolders().map { it.toItem() }
     }
 
+    fun observeVoiceNote(): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeRootVoiceNotes().map { results ->
+            results.toItem()
+        }
+    }
+
     /*          검색 로직          */
 
     // 홈 검색
@@ -239,6 +245,15 @@ class RoomFileDataSource @Inject constructor(
         return folderDao.searchFolders(query = query).map { result ->
             result.toItem()
         }
+    }
+
+    suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String) {
+        val now = System.currentTimeMillis()
+        voiceNoteDao.moveToFolder(
+            voiceNoteId = voiceNoteId,
+            folderId = folderId,
+            updatedAt = now
+        )
     }
 
 
@@ -249,6 +264,10 @@ class RoomFileDataSource @Inject constructor(
         }
     }
 
+    // 파일리스트 검색
+    suspend fun searchVoiceNoteInFolder(query: String, folderId: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchVoiceNoteInFolder(query = query, folderId = folderId).toItem()
+    }
 
     // 휴지통 내 폴더 검색
     suspend fun searchTrashFolders(query: String): List<FolderItem> {

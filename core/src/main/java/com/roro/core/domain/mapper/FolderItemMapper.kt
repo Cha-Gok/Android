@@ -9,7 +9,7 @@ fun FolderItemResult.toItem(): FolderItem {
         id = this.id.toString(),
         title = this.title,
         count = "${this.count}",
-        createAt = this.createAt.formatDate(),
+        createAt = this.createAt,
     )
 }
 

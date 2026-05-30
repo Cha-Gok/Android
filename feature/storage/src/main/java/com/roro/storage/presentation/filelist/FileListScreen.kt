@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,7 +62,6 @@ import androidx.navigation.NavController
 import com.roro.core.domain.model.FolderItem
 import com.roro.core.domain.model.SortType
 import com.roro.core.domain.model.VoiceNoteItem
-import com.roro.core.model.VoiceNote
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
@@ -85,6 +82,7 @@ import com.roro.core.ui.theme.TextDisabled
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
 import com.roro.core.ui.theme.TextTertiary
+import com.roro.core.util.formatDate
 import com.roro.core.util.formatTime
 import com.roro.core.util.toUUIDOrNull
 import com.roro.core.util.toast
@@ -112,9 +110,13 @@ fun FileListScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                StorageEffect.ClearFolderInput -> {}
                 FileListEffect.NavigateToSearch -> {
-                    navController.navigate(Routes.searchTemp(SearchType.VOICE_NOTE))
+                    navController.navigate(
+                        Routes.searchTemp(
+                            searchType = SearchType.VOICE_NOTE,
+                            folderId = folderId
+                        )
+                    )
                 }
 
                 is FileListEffect.ShowToast -> context.toast(effect.message)
@@ -306,6 +308,7 @@ internal fun FileListScreenContent(
                             FileListSheetMode.CREATE_FOLDER -> {
                                 NewFolderDialog(
                                     newFolderName = uiState.createFolderName,
+                                    errorMessage = uiState.errorMessage,
                                     onNameChange = { onIntent(FileListIntent.UpdateNewFolderName(it)) },
                                     onCancel = { onIntent(FileListIntent.ChangeSheetMode(FileListSheetMode.FOLDER_LIST)) },
                                     onConfirm = { onIntent(FileListIntent.ConfirmCreateFolder) }
@@ -327,9 +330,13 @@ fun FolderListBottomSheet(
     onConfirmMove: () -> Unit,
     onCreateFolderClick: () -> Unit
 ) {
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
             horizontalArrangement = Arrangement.SpaceBetween, // 양끝 정렬
             verticalAlignment = Alignment.CenterVertically // 높이 중앙 정렬
         ) {
@@ -364,7 +371,10 @@ fun FolderListBottomSheet(
 
         // 폴더 리스트가 들어갈 자리
         LazyColumn(
-            modifier = Modifier.weight(weight = 1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = screenHeight * 0.4f)
+                .weight(weight = 1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(folderList) { folder ->
@@ -419,7 +429,7 @@ fun FileVoiceNoteList(
         items(items = voiceNotes, key = { it.id }) { file ->
             ChaGokSwipeableFileItem(
                 title = file.title,
-                time = file.createAt,
+                time = file.createdAt.formatDate(),
                 duration = file.duration,
                 summary = SummaryStatus.COMPLETED,
 
@@ -455,6 +465,7 @@ fun FileVoiceNoteList(
 @Composable
 private fun NewFolderDialog(
     newFolderName: String,
+    errorMessage: String? = null,
     onNameChange: (String) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit
@@ -482,37 +493,47 @@ private fun NewFolderDialog(
             cursorBrush = SolidColor(PrimaryColor),
             singleLine = true,
             decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(53.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Gray200)
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
+                Column {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 56.dp),
+                            .height(53.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Gray200)
+                            .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        if (newFolderName.isEmpty()) {
-                            Text(
-                                text = "폴더 이름",
-                                style = ChaGokTextStyle.Body1,
-                                color = TextTertiary
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 56.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (newFolderName.isEmpty()) {
+                                Text(
+                                    text = "폴더 이름",
+                                    style = ChaGokTextStyle.Body1,
+                                    color = TextTertiary
+                                )
+                            }
+                            innerTextField()
                         }
-                        innerTextField()
-                    }
 
-                    Text(
-                        text = "${newFolderName.length}/$maxLength",
-                        style = ChaGokTextStyle.Body1,
-                        color = TextTertiary,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
+                        Text(
+                            text = "${newFolderName.length}/$maxLength",
+                            style = ChaGokTextStyle.Body1,
+                            color = TextTertiary,
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
+                    }
+                    if (!errorMessage.isNullOrBlank()) {
+                        Text(
+                            text = errorMessage,
+                            style = ChaGokTextStyle.Label,
+                            color = Danger,
+                            modifier = Modifier.padding(top = 8.dp, start = 4.dp)
+                        )
+                    }
                 }
             }
         )
@@ -586,19 +607,19 @@ fun FolderListBottomSheetPreview() {
             id = UUID.randomUUID().toString(),
             title = "기본 폴더",
             count = "1",
-            createAt = "3:00"
+            createAt = 1776769324521
         ), // <--- 쉼표 추가 및 괄호 닫기
         FolderItem(
             id = UUID.randomUUID().toString(),
             title = "중요 문서",
             count = "5",
-            createAt = "3:00"
+            createAt = 1776769342203
         ), // <--- 쉼표 추가
         FolderItem(
             id = UUID.randomUUID().toString(),
             title = "아이디어 기록",
             count = "10",
-            createAt = "3:00"
+            createAt = 1776771640900
         )
     )
 
