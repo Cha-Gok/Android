@@ -152,7 +152,15 @@ fun NavGraphBuilder.storageGraph(
 
     composable(
         Routes.SEARCH_TEMP,
-        arguments = listOf(navArgument("searchType") { type = NavType.StringType }),
+        arguments = listOf(
+            navArgument("searchType") { type = NavType.StringType },
+            navArgument("folderId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        ),
+
         enterTransition = {
             // 1번 -> 2번으로 올 때: 왼쪽으로 밀면서 들어옴
             slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
@@ -171,9 +179,11 @@ fun NavGraphBuilder.storageGraph(
         }
     ) { backStackEntry ->
         val searchType = backStackEntry.arguments?.getString("searchType") ?: SearchType.TRASH.name
+        val folderId = backStackEntry.arguments?.getString(("folderId"))
 
         SearchScreen(
             searchType = searchType,
+            folderId = folderId,
             navController = navController
         )
     }

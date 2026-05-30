@@ -68,7 +68,7 @@ fun StorageDetailScreen(
         }
     }
     LaunchedEffect(uuid) {
-        viewModel.observeVoiceNoteByFolder(uuid)
+//        viewModel.observeVoiceNoteByFolder(uuid)
     }
 
     LaunchedEffect(Unit) {

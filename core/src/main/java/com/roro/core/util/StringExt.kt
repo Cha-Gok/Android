@@ -3,6 +3,7 @@ package com.roro.core.util
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -95,3 +96,15 @@ fun Double.toTimeFormat(): String {
 
     return result.toString().trim()
 }
+
+/**
+ * String 형식 uuid -> UUID 형식으로 변환
+ *
+ * @param
+ * @return
+ *
+ * @author sehoon
+ * @since 2026. 5. 24.
+ * @modified
+ */
+fun String.toUUIDOrNull():UUID? = runCatching { UUID.fromString(this) }.getOrNull()

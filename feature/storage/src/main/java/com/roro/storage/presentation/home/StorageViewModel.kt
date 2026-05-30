@@ -143,7 +143,7 @@ class StorageViewModel @Inject constructor(
             }
 
             is StorageIntent.FetchVoiceNote -> {
-                observeVoiceNoteByFolder(intent.folderId)
+//                observeVoiceNoteByFolder(intent.folderId)
             }
 
             is StorageIntent.SortByCreatedAt -> {
@@ -462,19 +462,19 @@ class StorageViewModel @Inject constructor(
         }
     }
 
-    fun observeVoiceNoteByFolder(uuid: UUID) {
-        viewModelScope.launch {
-            observeVoiceNoteInFolderUseCase(uuid = uuid)
-                .collect { voiceNotes ->
-                    _voiceNoteFolderList.value = voiceNotes
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-
-        }
-    }
+//    fun observeVoiceNoteByFolder(uuid: UUID) {
+//        viewModelScope.launch {
+//            observeVoiceNoteInFolderUseCase(uuid = uuid)
+//                .collect { voiceNotes ->
+//                    _voiceNoteFolderList.value = voiceNotes
+//                    _uiState.update {
+//                        it.copy(
+//                            isLoading = false,
+//                            errorMessage = null
+//                        )
+//                    }
+//                }
+//
+//        }
+//    }
 }

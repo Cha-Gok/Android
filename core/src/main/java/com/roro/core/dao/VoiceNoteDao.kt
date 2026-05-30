@@ -7,6 +7,7 @@ import androidx.room.Query
 import com.roro.core.domain.model.VoiceNoteItemResult
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.model.FolderWithNoteCount
+import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -48,9 +49,47 @@ interface VoiceNoteDao {
     )
     fun observeTrashFolderNoteCount(): Flow<List<FolderWithNoteCount>>
 
-    // 특정 폴더에 속한 정상 VoiceNote 조회
-    @Query("SELECT * FROM voice_note WHERE folderId = :folderId AND deletedAt IS NULL ORDER BY createdAt DESC")
-    fun observeVoiceNote(folderId: UUID): Flow<List<VoiceNoteEntity>>
+    // 특정 폴더에 속한 정상 VoiceNote 조회 (조인 추가)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createdAt,
+            vn.updatedAt as updatedAt,
+            vr.durationSec as duration,
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.folderId = :folderId AND vn.deletedAt IS NULL
+        ORDER BY vn.createdAt DESC
+        """
+    )
+    fun observeVoiceNoteInFolder(folderId: UUID): Flow<List<VoiceNoteItemResult>>
+
+    // 폴더가 없는(루트) 정상 VoiceNote 조회 (조인 포함)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createdAt,
+            vn.updatedAt as updatedAt,
+            vr.durationSec as duration,
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.folderId IS NULL AND vn.deletedAt IS NULL
+        ORDER BY vn.createdAt DESC
+        """
+    )
+    fun observeRootVoiceNotes(): Flow<List<VoiceNoteItemResult>>
 
     // 폴더가 없는(루트) 정상 VoiceNote 조회
     @Query("SELECT * FROM voice_note WHERE folderId IS NULL AND deletedAt IS NULL ORDER BY createdAt DESC")
@@ -121,7 +160,8 @@ interface VoiceNoteDao {
         SELECT 
             vn.id as id,
             vn.title as title,
-            vn.createdAt as createAt,
+            vn.createdAt as createdAt,
+            vn.updatedAt as updatedAt,
             vr.durationSec as duration,
             s.text as summary,
             f.name as folderName
@@ -143,7 +183,8 @@ interface VoiceNoteDao {
     SELECT 
         vn.id as id,
         vn.title as title,
-        vn.createdAt as createAt,
+        vn.createdAt as createdAt,
+        vn.updatedAt as updatedAt,
         vr.durationSec as duration,
         s.text as summary,
         f.name as folderName -- 👈 폴더 테이블의 이름을 가져옴
@@ -157,4 +198,32 @@ interface VoiceNoteDao {
 """
     )
     suspend fun searchTrashVoiceNotes(query: String): List<VoiceNoteItemResult>
+
+
+    // 특정 폴더 내 음성 메모 검색 (정상 상태, 조인 포함)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createdAt,
+            vn.updatedAt as updatedAt,
+            vr.durationSec as duration,
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.folderId = :folderId -- 👈 해당 폴더 아이디 필터링
+        AND vn.deletedAt IS NULL     -- 👈 삭제되지 않은 항목만
+        AND vn.title LIKE '%' || :query || '%' -- 👈 검색어 포함
+        ORDER BY vn.createdAt DESC
+        """
+    )
+    suspend fun searchVoiceNoteInFolder(query: String, folderId: String): List<VoiceNoteItemResult>
+
+    @Query("UPDATE voice_note SET folderId = :folderId, updatedAt = :updatedAt WHERE id IN (:voiceNoteId)")
+    suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String, updatedAt: Long)
 }
+

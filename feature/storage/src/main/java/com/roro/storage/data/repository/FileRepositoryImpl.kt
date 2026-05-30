@@ -2,9 +2,9 @@ package com.roro.storage.data.repository
 
 import com.roro.core.domain.model.FolderItem
 import com.roro.core.domain.model.VoiceNoteItem
-import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.mapper.toEntity
 import com.roro.core.model.Folder
+import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.Keyword
 import com.roro.core.model.Summary
 import com.roro.core.model.Transcript
@@ -16,10 +16,10 @@ import com.roro.storage.domain.FileRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.String
 
 class FileRepositoryImpl @Inject constructor(
-    private val local: LocalFileDataSource, private val room: RoomFileDataSource
+    private val local: LocalFileDataSource,
+    private val room: RoomFileDataSource
 ) : FileRepository {
     // 사용자 폴더 생성
     override suspend fun createUserFolder(folderName: String): Boolean {
@@ -129,7 +129,7 @@ class FileRepositoryImpl @Inject constructor(
     }
 
     // 폴더가 있는 voiceNote 조회
-    override fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNote>> {
+    override fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNoteItem>> {
         return room.observeNotNullVoiceNote(folderId = folderId)
     }
 
@@ -162,6 +162,18 @@ class FileRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String) {
+        room.moveToFolder(voiceNoteId, folderId)
+    }
+
+    override fun observeVoiceNote(): Flow<List<VoiceNoteItem>> {
+        return room.observeVoiceNote()
+    }
+
+    override fun observeFolders(): Flow<List<FolderItem>> {
+        return room.observeFolders()
+    }
+
     override suspend fun searchFolders(query: String): List<FolderItem> {
         return room.searchFolders(query = query).map {
             FolderItem(
@@ -178,10 +190,25 @@ class FileRepositoryImpl @Inject constructor(
             VoiceNoteItem(
                 id = it.id,
                 title = it.title,
-                createAt = it.createAt,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt,
                 duration = it.duration,
                 folderName = it.folderName,
                 summary = it.summary
+            )
+        }
+    }
+
+    override suspend fun searchVoiceNotesInFolder(query: String, folderId: String): List<VoiceNoteItem> {
+        return room.searchVoiceNoteInFolder(query = query, folderId = folderId).map {
+            VoiceNoteItem(
+                id = it.id,
+                title = it.title,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt,
+                duration = it.duration,
+                summary = it.summary,
+                folderName = it.folderName,
             )
         }
     }
@@ -202,10 +229,11 @@ class FileRepositoryImpl @Inject constructor(
             VoiceNoteItem(
                 id = it.id,
                 title = it.title,
-                createAt = it.createAt,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt,
                 duration = it.duration,
                 folderName = it.folderName,
-                summary = it.summary
+                summary = it.summary,
             )
         }
     }

@@ -3,6 +3,7 @@ package com.roro.core.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,9 +24,12 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +49,7 @@ import com.roro.core.ui.theme.Gray500
 import com.roro.core.ui.theme.Gray700
 import com.roro.core.ui.theme.Gray850
 import com.roro.core.ui.theme.PrimaryColor
+import com.roro.core.ui.theme.Purple900
 import com.roro.core.ui.theme.TextDisabled
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
@@ -178,19 +184,31 @@ fun ChaGokFolderBox(
     count: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     icon: ImageVector = Icons.Outlined.Folder,
     shape: Shape = RoundedCornerShape(20.dp)
 ) {
     val backgroundColor = BoxBackground
+    // 1. 보더 색상을 더 밝게, 두께를 더 두껍게 설정
+    val borderColor = if (isSelected) PrimaryColor else Gray700
+    val borderStroke = if (isSelected) 2.dp else 1.dp
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(53.dp)
+            .border(borderStroke, borderColor, shape) // 3. 그 위에 보더 그리기
             .clip(shape)
-            .border(1.dp, Gray700, shape)
-            .background(backgroundColor)
-            .clickable { onClick() } // 클릭 이벤트 추가
+            .background(color = backgroundColor, shape = shape)
+            .then(
+                if (isSelected) Modifier.border(1.dp, Purple900, shape)
+                else Modifier
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, // 리플 효과 제거
+                onClick = onClick
+            )
             .padding(horizontal = 16.dp), // 양 끝 여백
         contentAlignment = Alignment.Center
     ) {
@@ -244,14 +262,10 @@ fun ChaGokFileListBox(
     val borderColor = if (isSelected) PrimaryColor else Gray700
     val borderStroke = if (isSelected) 2.dp else 1.dp
 
-    val tagColor = when (summaryStatus) {
-        SummaryStatus.COMPLETED -> Color(0xFF7B4FCC)
-        SummaryStatus.NONE -> Color(0xFF3D3D4E)
-    }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(118.dp)
+            .heightIn(min = 118.dp)
             .clip(shape) // 1. 먼저 자르기
             .background(BoxBackground) // 2. 배경 채우기
             .border(borderStroke, borderColor, shape) // 3. 그 위에 보더 그리기
@@ -461,7 +475,7 @@ fun ChaGokItemBox(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(85.dp) // 세 줄일 경우 높이가 타이트할 수 있으니 디자인에 따라 조절 필요
+            .heightIn(min = 85.dp) // 세 줄일 경우 높이가 타이트할 수 있으니 디자인에 따라 조절 필요
             .clip(shape)
             .background(BoxBackground)
             .border(1.dp, Gray700, shape)
@@ -491,8 +505,6 @@ fun ChaGokItemBox(
                     text = title,
                     style = ChaGokTextStyle.Title2,
                     color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -508,6 +520,7 @@ fun ChaGokItemBox(
                             maxLines = 1
                         )
                     }
+
                     FileType.VOICE_NOTE -> {
                         // 음성메모 2행: 날짜 · 길이
                         Text(
@@ -598,6 +611,14 @@ fun ChaGokFileBoxPreview() {
                 createAt = "2025.02.03",
                 type = FileType.FOLDER,
                 count = "3",
+                onClick = { },
+            )
+            ChaGokItemBox(
+                title = "f8e5983c-d09c-4082-95eb-4733bb564efc_1779189903055",
+                createAt = "2025.02.03",
+                type = FileType.VOICE_NOTE,
+                count = "3",
+                folderName = "파일이 들어가 있는 정보",
                 onClick = { },
             )
         }

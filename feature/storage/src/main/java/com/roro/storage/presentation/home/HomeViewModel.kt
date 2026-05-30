@@ -8,7 +8,9 @@ import com.roro.core.domain.SetSelectedLanguageUseCase
 import com.roro.storage.domain.ObserveRecentVoiceNoteUseCase
 import com.roro.storage.domain.ObserveTrashFoldersUseCase
 import com.roro.storage.domain.ObserveUserFoldersUseCase
+import com.roro.storage.domain.ObserveVoiceNoteUseCase
 import com.roro.storage.domain.ObserveVoiceNotesByNoneNullFolderUseCase
+import com.roro.storage.presentation.filelist.FileListIntent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,8 +35,9 @@ class HomeViewModel @Inject constructor(
     // 녹음 언어 저장용
     private val setSelectedLanguageUseCase: SetSelectedLanguageUseCase,
     // 녹음 언어 읽기용
-    private val getSelectedLanguageUseCase: GetSelectedLanguageUseCase
-
+    private val getSelectedLanguageUseCase: GetSelectedLanguageUseCase,
+    // root 파일 가져오기
+    private val observeVoiceNoteUseCase: ObserveVoiceNoteUseCase
 
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
@@ -60,6 +63,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+
             is HomeIntent.ClickFolderType -> {
                 // 현재 선택 된 타입을 업데이트 (UI에서 탭 강조 효과)
                 _uiState.update { it.copy(selectedFolderType = intent.type) }
@@ -165,7 +169,7 @@ class HomeViewModel @Inject constructor(
 
         // 3. 기본 폴더 아이템 개수 관찰
         viewModelScope.launch {
-            observeVoiceNotesByNoneNullFolderUseCase().collect { default ->
+            observeVoiceNoteUseCase().collect { default ->
                 _uiState.update {
                     it.copy(
                         defaultFolderCount = default.size,
@@ -173,6 +177,14 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+//            observeVoiceNotesByNoneNullFolderUseCase().collect { default ->
+//                _uiState.update {
+//                    it.copy(
+//                        defaultFolderCount = default.size,
+//                        isLoading = false
+//                    )
+//                }
+//            }
         }
 
         // 3. 개인 폴더 아이템 개수 관찰
@@ -213,16 +225,26 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             } else {
-                observeVoiceNotesByNoneNullFolderUseCase().collect { notes ->
+                observeVoiceNoteUseCase().collect { note ->
                     _uiState.update {
                         it.copy(
-                            displayVoiceNotes = notes,
-                            defaultFolderCount = notes.size,
+                            item = note,
+                            defaultFolderCount = note.size,
                             selectedFolderType = DefaultFolderType.DEFAULT,
                             isLoading = false
                         )
                     }
                 }
+//                observeVoiceNotesByNoneNullFolderUseCase().collect { notes ->
+//                    _uiState.update {
+//                        it.copy(
+//                            displayVoiceNotes = notes,
+//                            defaultFolderCount = notes.size,
+//                            selectedFolderType = DefaultFolderType.DEFAULT,
+//                            isLoading = false
+//                        )
+//                    }
+//                }
             }
         }
     }

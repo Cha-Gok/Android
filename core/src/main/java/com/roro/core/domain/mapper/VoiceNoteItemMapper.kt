@@ -10,8 +10,13 @@ fun VoiceNoteItemResult.toItem(): VoiceNoteItem {
         id = this.id.toString(),
         title = this.title,
         duration = (this.duration ?: 0.0).toTimeFormat(),
-        createAt = this.createAt.formatDate(),
+        createdAt = this.createdAt,
         summary = this.summary ?: "",
-        folderName = this.folderName ?: ""
+        folderName = this.folderName ?: "",
+        updatedAt = this.updatedAt
     )
+}
+
+fun List<VoiceNoteItemResult>.toItem(): List<VoiceNoteItem> {
+    return this.map { it.toItem() }
 }
