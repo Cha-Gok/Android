@@ -24,9 +24,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val observeTrashFoldersUseCase: ObserveTrashFoldersUseCase,
-    private val observeFolderItemCount: ObserveTrashFolderItemCountUseCase,
-    private val observeTrashVoiceNoteUseCase: ObserveTrashVoiceNotesUseCase,
     private val searchTrashFolderUseCase: SearchTrashFolderUseCase,
     private val searchTrashVoiceNoteUseCase: SearchTrashVoiceNoteUseCase,
     private val searchFolderUseCase: SearchFolderUseCase,

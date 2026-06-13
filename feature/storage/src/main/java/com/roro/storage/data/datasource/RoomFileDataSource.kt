@@ -20,7 +20,9 @@ import com.roro.core.model.Folder
 import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 
@@ -59,8 +61,10 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더와 내부 VoiceNote 파일 휴지통 이동
-    suspend fun moveFolderWithVoiceNotesToTrash(folder: FolderEntity) {
+    suspend fun moveFolderWithVoiceNotesToTrash(folderId: UUID) {
         val now = System.currentTimeMillis()
+
+        val folder = folderDao.getFolder(folderId) ?: return
 
         folderDao.updateFolder(
             folder.copy(
@@ -185,8 +189,10 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 최근 voiceNote 5개 조회
-    fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
-        return voiceNoteDao.observeRecentVoiceNote().map { list -> list.map { it.toModel() } }
+    fun observeRecentVoiceNote(): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeRecentVoiceNote().map { result ->
+            result.toItem()
+        }
     }
 
     // 폴더 이름 변경
@@ -227,11 +233,17 @@ class RoomFileDataSource @Inject constructor(
         )
     }
 
+    /*          홈 화면            */
+    fun observeTrashTotalCount(): Flow<Int> {
+        return voiceNoteDao.observeCountTrashRootVoiceNotes()
+    }
+
     /*          폴더 가져오기       */
     fun observeFolders(): Flow<List<FolderItem>> {
         return folderDao.observeFolders().map { it.toItem() }
     }
 
+    // 기본 폴더 voiceNote 가져오기
     fun observeVoiceNote(): Flow<List<VoiceNoteItem>> {
         return voiceNoteDao.observeRootVoiceNotes().map { results ->
             results.toItem()

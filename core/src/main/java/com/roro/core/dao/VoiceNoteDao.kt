@@ -70,6 +70,42 @@ interface VoiceNoteDao {
     )
     fun observeVoiceNoteInFolder(folderId: UUID): Flow<List<VoiceNoteItemResult>>
 
+    // 삭제 된 voiceNote의 개수
+    @Query(
+        """
+    SELECT (
+        -- 1. 삭제된 폴더의 총 개수 (뭉치로 1개씩 카운트)
+        (SELECT COUNT(*) FROM folder WHERE deletedAt IS NOT NULL)
+        +
+        -- 2. 삭제된 파일 중 '개별 파일'로 취급될 아이템 개수
+        (SELECT COUNT(*) 
+         FROM voice_note vn
+         LEFT JOIN folder f ON vn.folderId = f.id
+         WHERE vn.deletedAt IS NOT NULL 
+         AND (
+             vn.folderId IS NULL      -- 애초에 부모 폴더가 없었거나
+             OR 
+             f.deletedAt IS NULL      -- 부모 폴더는 살아있는데 파일만 삭제되었거나
+             OR
+             f.id IS NULL             -- (예외처리) 참조하는 폴더가 DB에 존재하지 않는 경우
+         ))
+    )
+    """
+    )
+    fun observeCountTrashRootVoiceNotes(): Flow<Int>
+
+    // VoiceNoteDao.kt
+    @Query(
+        """
+    SELECT vn.title 
+    FROM voice_note vn
+    LEFT JOIN folder f ON vn.folderId = f.id
+    WHERE vn.deletedAt IS NOT NULL 
+    AND (vn.folderId IS NULL OR f.deletedAt IS NULL OR f.id IS NULL)
+"""
+    )
+    fun getTrashIndividualFileNames(): Flow<List<String>>
+
     // 폴더가 없는(루트) 정상 VoiceNote 조회 (조인 포함)
     @Query(
         """
@@ -109,7 +145,7 @@ interface VoiceNoteDao {
 
     // 최근 업데이트된 VoiceNote 상위 5개
     @Query("SELECT * FROM voice_note WHERE deletedAt IS NULL ORDER BY updatedAt DESC LIMIT 5")
-    fun observeRecentVoiceNote(): Flow<List<VoiceNoteEntity>>
+    fun observeRecentVoiceNote(): Flow<List<VoiceNoteItemResult>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(note: VoiceNoteEntity)

@@ -61,6 +61,9 @@ interface FolderDao {
     )
     fun observeFolders(): Flow<List<FolderItemResult>>
 
+    // 휴지통에 있는 폴더의 개수
+    @Query("SELECT COUNT(*) FROM folder WHERE deletedAt IS NOT NULL")
+    fun observeCountTrashFolders(): Flow<Int>
 
     // --- 생성 및 수정 (Create & Update) ---
 

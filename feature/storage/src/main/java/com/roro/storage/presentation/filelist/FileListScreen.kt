@@ -83,10 +83,8 @@ import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
 import com.roro.core.ui.theme.TextTertiary
 import com.roro.core.util.formatDate
-import com.roro.core.util.formatTime
 import com.roro.core.util.toUUIDOrNull
 import com.roro.core.util.toast
-import com.roro.storage.presentation.StorageEffect
 import java.util.UUID
 
 @Composable
@@ -122,6 +120,14 @@ fun FileListScreen(
                 is FileListEffect.ShowToast -> context.toast(effect.message)
                 FileListEffect.NavigateBack -> {
                     navController.popBackStack()
+                }
+
+                is FileListEffect.NavigateDetailVoiceNote -> {
+                    navController.navigate(
+                        Routes.recordResult(
+                            voiceNoteId = effect.voiceNoteId
+                        )
+                    )
                 }
             }
         }
@@ -226,11 +232,11 @@ internal fun FileListScreenContent(
                         if (uiState.isSelectMode) {
                             onIntent(FileListIntent.ToggleSelectItem(UUID.fromString(voiceNote.id)))
                         } else {
-                            // 일반 모드 클릭 시 로직 (예: 재생 화면 이동)
+                            onIntent(FileListIntent.ClickVoiceNote(voiceNoteId = voiceNote.id))
                         }
                     }, // 콤마 추가 확인
-                    onDeleteFolder = { voiceNote ->
-                        onIntent(FileListIntent.ShowDeleteDialog(true))
+                    onDeleteFile = { voiceNote ->
+                        onIntent(FileListIntent.SwipeDeleteFile(voiceNoteItem = voiceNote))
                     }
                 )
             }
@@ -241,7 +247,7 @@ internal fun FileListScreenContent(
         if (uiState.showDeleteDialog) {
             ChaGokDialogCreateFolder(
                 title = "기록을 삭제할까요",
-                description = "휴지통으로 이동되며, 직접 비우기 전까지 보관돼요",
+                description = "휴지통으로 이동되며,\n직접 비우기 전까지 보관돼요",
                 dismissText = "취소",
                 confirmText = "삭제",
                 onDismiss = { onIntent(FileListIntent.ShowDeleteDialog(false)) },
@@ -415,7 +421,7 @@ fun FileVoiceNoteList(
     isSelectionMode: Boolean,
     selectedIds: Set<UUID>,
     onItemClick: (VoiceNoteItem) -> Unit,
-    onDeleteFolder: (VoiceNoteItem) -> Unit,
+    onDeleteFile: (VoiceNoteItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 어떤 아이템이 스와이프되어 열려 있는지 관리
@@ -450,7 +456,7 @@ fun FileVoiceNoteList(
                     if (revealedFileId == file.id.toUUIDOrNull()) revealedFileId = null
                 },
                 onDelete = {
-                    onDeleteFolder(file)
+                    onDeleteFile(file)
                 },
 
                 // ✅ 아이템 본체 클릭

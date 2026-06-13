@@ -128,7 +128,12 @@ class FileListViewModel @Inject constructor(
 
             // 7. 다이얼로그 제어
             is FileListIntent.ShowDeleteDialog -> {
-                _uiState.update { it.copy(showDeleteDialog = intent.isShow) }
+                _uiState.update {
+                    it.copy(
+                        showDeleteDialog = intent.isShow,
+                        swipeDeleteFile = if (!intent.isShow) null else it.swipeDeleteFile
+                    )
+                }
             }
 
             is FileListIntent.ShowCreateFolderDialog -> {
@@ -167,6 +172,22 @@ class FileListViewModel @Inject constructor(
             is FileListIntent.SelectTargetFolder -> {
                 _uiState.update { it.copy(selectedFolder = intent.folder) }
                 Timber.d("선택 된 폴더: ${intent.folder}")
+            }
+
+            // 스와이프 삭제 시 인텐트 처리
+            is FileListIntent.SwipeDeleteFile -> {
+                _uiState.update {
+                    it.copy(
+                        swipeDeleteFile = intent.voiceNoteItem,
+                        showDeleteDialog = true
+                    )
+                }
+            }
+
+            is FileListIntent.ClickVoiceNote -> {
+                viewModelScope.launch {
+                    _effect.emit(FileListEffect.NavigateDetailVoiceNote(intent.voiceNoteId))
+                }
             }
         }
     }
@@ -211,14 +232,35 @@ class FileListViewModel @Inject constructor(
 
     private fun removeVoiceNote() {
         viewModelScope.launch {
-            val selectedIds = uiState.value.selectedIds.toList()
+            val state = _uiState.value
 
-            if (selectedIds.isEmpty()) return@launch
+            // 1. 삭제할 ID 목록 결정 (스와이프 파일 우선, 없으면 선택 리스트)
+            val idsToDelete = if (state.swipeDeleteFile != null) {
+                listOfNotNull(state.swipeDeleteFile.id.toUUIDOrNull())
+            } else {
+                state.selectedIds.toList()
+            }
+
+            if (idsToDelete.isEmpty()) return@launch
 
             try {
-                moveToTrashVoiceNotesUseCase(selectedIds)
-                _uiState.update { it.copy(showDeleteDialog = false, isSelectMode = false, selectedIds = emptySet(), errorMessage = null) }
-                _effect.emit(FileListEffect.ShowToast("${selectedIds.size}개의 파일이 삭제되었습니다."))
+                moveToTrashVoiceNotesUseCase(idsToDelete)
+
+                // 2. 삭제 성공 후 모든 상태 초기화
+                _uiState.update {
+                    it.copy(
+                        showDeleteDialog = false,
+                        isSelectMode = false,
+                        selectedIds = emptySet(),
+                        swipeDeleteFile = null, // 추가
+                        errorMessage = null
+                    )
+                }
+
+                val message = if (idsToDelete.size == 1) "파일이 삭제되었습니다."
+                else "${idsToDelete.size}개의 파일이 삭제되었습니다."
+                _effect.emit(FileListEffect.ShowToast(message))
+
             } catch (e: Exception) {
                 Timber.e(e, "파일 삭제 중 에러 발생")
                 _effect.emit(FileListEffect.ShowToast("삭제에 실패했습니다. 다시 시도해주세요"))

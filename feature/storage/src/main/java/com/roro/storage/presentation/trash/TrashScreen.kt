@@ -34,7 +34,7 @@ import com.roro.core.ui.component.ChaGokMenuItem
 import com.roro.core.ui.component.ChaGokMoreMenu
 import com.roro.core.ui.component.ChaGokTopBarV2
 import com.roro.core.ui.component.ChaGokTrashBox
-import com.roro.core.ui.component.ChagokDialog
+import com.roro.core.ui.component.ChaGokDialog
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.TextDisabled
@@ -239,7 +239,7 @@ private fun TrashScreenContent(
                     null -> Triple("", "", "")
                 }
 
-                ChagokDialog(
+                ChaGokDialog(
                     title = title,
                     description = desc,
                     onConfirm = onDialogConfirm,

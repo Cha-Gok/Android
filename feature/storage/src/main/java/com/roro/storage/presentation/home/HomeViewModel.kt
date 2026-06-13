@@ -2,11 +2,14 @@ package com.roro.storage.presentation.home
 
 import androidx.compose.foundation.MutatePriority
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.distinctUntilChanged
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.roro.core.domain.GetSelectedLanguageUseCase
 import com.roro.core.domain.SetSelectedLanguageUseCase
 import com.roro.storage.domain.ObserveRecentVoiceNoteUseCase
 import com.roro.storage.domain.ObserveTrashFoldersUseCase
+import com.roro.storage.domain.ObserveTrashTotalCountUseCase
 import com.roro.storage.domain.ObserveUserFoldersUseCase
 import com.roro.storage.domain.ObserveVoiceNoteUseCase
 import com.roro.storage.domain.ObserveVoiceNotesByNoneNullFolderUseCase
@@ -17,6 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -26,10 +32,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     // 최근 파일 5개 가져오기
     private val observeRecentVoiceNoteUseCase: ObserveRecentVoiceNoteUseCase,
-    // 기본 폴더 아이템 가져오기
-    private val observeVoiceNotesByNoneNullFolderUseCase: ObserveVoiceNotesByNoneNullFolderUseCase,
     // 휴지통 개수 가져오기
-    private val observeTrashFoldersUseCase: ObserveTrashFoldersUseCase,
+    private val observeTrashTotalCountUseCase: ObserveTrashTotalCountUseCase,
     // 개인 폴더 아이템 개수 가져오기
     private val observeUserFoldersUseCase: ObserveUserFoldersUseCase,
     // 녹음 언어 저장용
@@ -49,8 +53,11 @@ class HomeViewModel @Inject constructor(
     )
     val effect = _effect.asSharedFlow()
 
+
     init {
-        initialize()
+//        initialize()
+        observeCommonData()
+        observeDisplayList()
     }
 
     fun onIntent(intent: HomeIntent) {
@@ -157,10 +164,10 @@ class HomeViewModel @Inject constructor(
 
         // 2. 휴지통 아이템 개수 관찰
         viewModelScope.launch {
-            observeTrashFoldersUseCase().collect { trash ->
+            observeTrashTotalCountUseCase().collect { trash ->
                 _uiState.update {
                     it.copy(
-                        trashCount = trash.size,
+                        trashCount = trash,
                         isLoading = false
                     )
                 }
@@ -177,14 +184,6 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
-//            observeVoiceNotesByNoneNullFolderUseCase().collect { default ->
-//                _uiState.update {
-//                    it.copy(
-//                        defaultFolderCount = default.size,
-//                        isLoading = false
-//                    )
-//                }
-//            }
         }
 
         // 3. 개인 폴더 아이템 개수 관찰
@@ -212,6 +211,49 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // ✅ 핵심: 리스트 전용 관찰 로직 (딱 한 번만 실행됨)
+    private fun observeDisplayList() {
+        viewModelScope.launch {
+            // selectedFolderType이 바뀔 때마다 flatMapLatest가 이전 구독을 취소하고 새 데이터를 가져옴
+            _uiState.map { it.selectedFolderType }
+                .distinctUntilChanged() // 타입이 실제로 바뀔 때만 동작
+                .flatMapLatest { type ->
+                    if (type == DefaultFolderType.RECENT) observeRecentVoiceNoteUseCase()
+                    else observeVoiceNoteUseCase()
+                }
+                .collect { notes ->
+                    _uiState.update { it.copy(displayVoiceNotes = notes, isLoading = false) }
+                }
+        }
+    }
+
+    private fun observeCommonData() {
+        // 휴지통 개수
+        viewModelScope.launch {
+            observeTrashTotalCountUseCase().collect { count ->
+                _uiState.update { it.copy(trashCount = count) }
+            }
+        }
+        // 기본 폴더 개수
+        viewModelScope.launch {
+            observeVoiceNoteUseCase().collect { list ->
+                _uiState.update { it.copy(defaultFolderCount = list.size) }
+            }
+        }
+        // 개인 폴더 개수
+        viewModelScope.launch {
+            observeUserFoldersUseCase().collect { list ->
+                _uiState.update { it.copy(privateFolderCount = list.size) }
+            }
+        }
+        // 언어 설정
+        viewModelScope.launch {
+            getSelectedLanguageUseCase().collect { lang ->
+                _uiState.update { it.copy(selectedTempLanguage = lang) }
+            }
+        }
+    }
+
     private fun updateDisplayList(type: DefaultFolderType) {
         viewModelScope.launch {
             if (type == DefaultFolderType.RECENT) {
@@ -228,23 +270,13 @@ class HomeViewModel @Inject constructor(
                 observeVoiceNoteUseCase().collect { note ->
                     _uiState.update {
                         it.copy(
-                            item = note,
+                            displayVoiceNotes = note,
                             defaultFolderCount = note.size,
                             selectedFolderType = DefaultFolderType.DEFAULT,
                             isLoading = false
                         )
                     }
                 }
-//                observeVoiceNotesByNoneNullFolderUseCase().collect { notes ->
-//                    _uiState.update {
-//                        it.copy(
-//                            displayVoiceNotes = notes,
-//                            defaultFolderCount = notes.size,
-//                            selectedFolderType = DefaultFolderType.DEFAULT,
-//                            isLoading = false
-//                        )
-//                    }
-//                }
             }
         }
     }
