@@ -2,6 +2,7 @@ package com.roro.storage.presentation.filelist
 
 import com.roro.core.domain.model.FolderItem
 import com.roro.core.domain.model.SortType
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.Folder
 import java.util.UUID
 
@@ -37,13 +38,19 @@ sealed interface FileListIntent {
     // 7. 새 폴더 생성 다이얼로그 (이동 바텀시트 내부 기능)
     data class ShowCreateFolderDialog(val isShow: Boolean) : FileListIntent
 
+    // 8. 스와이프 시 삭제할 파일
+    data class SwipeDeleteFile(val voiceNoteItem: VoiceNoteItem) : FileListIntent
+
     data class ChangeSheetMode(val mode: FileListSheetMode) : FileListIntent
     data class UpdateNewFolderName(val name: String) : FileListIntent
     data object ConfirmCreateFolder : FileListIntent // 생성 후 다시 FOLDER_LIST 모드로 전환
+
+    data class ClickVoiceNote(val voiceNoteId: String) : FileListIntent
 }
 
 sealed interface FileListEffect {
     data class ShowToast(val message: String) : FileListEffect
     data object NavigateBack : FileListEffect
     data object NavigateToSearch : FileListEffect // object 앞에 data 추가 권장
+    data class NavigateDetailVoiceNote(val voiceNoteId: String) : FileListEffect
 }

@@ -78,13 +78,8 @@ class FileRepositoryImpl @Inject constructor(
     }
 
     // 사용자 휴지통 이동 (폴더)
-    override suspend fun moveToTrash(folder: Folder) {
-        val now = System.currentTimeMillis()
-        room.moveFolderWithVoiceNotesToTrash(
-            folder = folder.copy(
-                deletedAt = now, updatedAt = now
-            ).toEntity()
-        )
+    override suspend fun moveToTrash(folderId: UUID) {
+        room.moveFolderWithVoiceNotesToTrash(folderId = folderId)
     }
 
     override suspend fun moveToVoiceNotes(voiceNoteIds: List<UUID>) {
@@ -134,7 +129,7 @@ class FileRepositoryImpl @Inject constructor(
     }
 
     // 최근 voiceNote 5개
-    override fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
+    override fun observeRecentVoiceNote(): Flow<List<VoiceNoteItem>> {
         return room.observeRecentVoiceNote()
     }
 
@@ -166,12 +161,17 @@ class FileRepositoryImpl @Inject constructor(
         room.moveToFolder(voiceNoteId, folderId)
     }
 
+    // voiceNote 가져오기
     override fun observeVoiceNote(): Flow<List<VoiceNoteItem>> {
         return room.observeVoiceNote()
     }
 
     override fun observeFolders(): Flow<List<FolderItem>> {
         return room.observeFolders()
+    }
+
+    override suspend fun observeTrashTotalCount(): Flow<Int> {
+        return room.observeTrashTotalCount()
     }
 
     override suspend fun searchFolders(query: String): List<FolderItem> {

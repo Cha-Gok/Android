@@ -19,8 +19,8 @@ data class HomeUiState(
     val selectedTempLanguage: Language = Language.KOREAN,
 
     // [통합 관리] 현재 화면 하단 리스트 영역에 보여줄 데이터 (최근 기록5개 or 기본 폴더 n개)
-    val displayVoiceNotes: List<VoiceNote> = emptyList(),
-    val item: List<VoiceNoteItem> = emptyList(),
+    val displayVoiceNotes: List<VoiceNoteItem> = emptyList(),
+//    val item: List<VoiceNoteItem> = emptyList(),
 
     val defaultFolderCount: Int = 0, // 기본 폴더 내 아이템 개수
     val privateFolderCount: Int = 0, // 개인 폴더 (사용자 폴더)

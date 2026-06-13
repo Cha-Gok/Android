@@ -1,5 +1,8 @@
 package com.roro.storage.presentation.home
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +45,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.datastore.Language
-import com.roro.core.model.VoiceNote
+import com.roro.core.domain.model.FileType
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
@@ -50,11 +54,9 @@ import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
 import com.roro.core.ui.component.ChaGokItemBox
 import com.roro.core.ui.component.ChaGokLanguageDialog
-import com.roro.core.ui.component.ChaGokNoteList
 import com.roro.core.ui.component.ChaGokSettingsDropdown
 import com.roro.core.ui.component.ChaGokTopBar
 import com.roro.core.ui.component.ChagokStartRecordFAB
-import com.roro.core.ui.component.SummaryStatus
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextTertiary
@@ -66,7 +68,7 @@ import java.time.LocalDate
 import java.time.ZoneId.systemDefault
 
 @Composable
-fun StorageScreen(
+fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel(),
     onStartRecord: () -> Unit,
@@ -74,6 +76,17 @@ fun StorageScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    var backPressedTime by remember { mutableStateOf(0L) }
+
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - backPressedTime < 2000) {
+            (context as? Activity)?.finish()
+        } else {
+            backPressedTime = currentTime
+            context.toast("한 번 더 누르면 종료됩니다.")
+        }
+    }
     uiState.errorMessage?.let {
         Timber.d("text $it")
     }
@@ -279,7 +292,7 @@ internal fun StorageScreenContent(
             }
             // 5. 플로팅 버튼을 Box의 오른쪽 하단에 배치
             ChagokStartRecordFAB(
-                onClick = { 
+                onClick = {
                     onStartRecord
                     navController.navigate(Routes.RECORDER)
                 },
@@ -293,28 +306,25 @@ internal fun StorageScreenContent(
 
 @Composable
 fun FolderItemList(
-    voiceNote: VoiceNote,
+    voiceNote: VoiceNoteItem,
     navController: NavController,  // 0511 추가
     modifier: Modifier = Modifier
 ) {
-   // 0511 수정
-//    ChaGokItemBox(
-//        title = voiceNote.title,
-//        createAt = TODO(),
-//        type = TODO(),
-//        count = TODO(),
-//        duration = TODO(),
-//        folderName = TODO(),
-//        onClick = TODO(),
-//        shape = TODO()
-//    )
-    ChaGokNoteList(
+    // 0511 수정
+    ChaGokItemBox(
         title = voiceNote.title,
-        summaryStatus = SummaryStatus.COMPLETED,
-        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },  // ✅ 추가
-        time = voiceNote.createdAt.formatDate(""),
-        modifier = modifier.fillMaxWidth()
+        createAt = voiceNote.createdAt.formatDate(),
+        duration = voiceNote.duration,
+        onClick = { navController.navigate(Routes.RECORD_DETAIL) },
+        type = FileType.VOICE_NOTE,
     )
+//    ChaGokNoteList(
+//        title = voiceNote.title,
+//        summaryStatus = SummaryStatus.COMPLETED,
+//        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },  // ✅ 추가
+//        time = voiceNote.createdAt.formatDate(""),
+//        modifier = modifier.fillMaxWidth()
+//    )
 }
 
 @Composable

@@ -1,6 +1,5 @@
 package com.roro.core.ui.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,7 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -29,30 +25,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.roro.core.datastore.Language
-import androidx.compose.ui.window.DialogProperties
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.Gray100
+import com.roro.core.ui.theme.Gray300
+import com.roro.core.ui.theme.Gray350
 import com.roro.core.ui.theme.PrimaryColor
+import com.roro.core.ui.theme.Purple200
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextTertiary
 
 @Composable
-fun ChagokDialog(
+fun ChaGokDialog(
     title: String,
     description: String,
     dismissText: String,
     confirmText: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    confirmColor: Color = Color(0xFF7B4FCC), // 기본값 기존 보라색, 필요시 빨간색 등으로 교체
+    confirmColor: Color = PrimaryColor, // 기본값 기존 보라색, 필요시 빨간색 등으로 교체
     buttonColor: Color = PrimaryColor
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -60,13 +56,13 @@ fun ChagokDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .border(width = 0.7.dp, color = Color(0xFF7B7B7B), shape = RoundedCornerShape(20.dp))
-                .background(Color(0xFF2D2D3A))
+                .border(width = 0.7.dp, color = Gray350, shape = RoundedCornerShape(20.dp))
+                .background(Purple200.copy(alpha = 0.2f))
                 .padding(horizontal = 20.dp, vertical = 32.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = title,
@@ -80,7 +76,7 @@ fun ChagokDialog(
                     style = ChaGokTextStyle.Body2,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -88,37 +84,32 @@ fun ChagokDialog(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF3D3D4E))
-                            .clickable(onClick = onDismiss)
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = dismissText, color = Color.White, fontSize = 14.sp)
-                    }
-                    // Row 내부의 두 번째 버튼 (Confirm) 부분 수정 예시
-                    Button(
-                        onClick = onConfirm,
-                        modifier = Modifier
-                            .weight(1f)
                             .height(46.dp) // 고정 높이 유지
                             .clip(RoundedCornerShape(20.dp))
-                            .border(width = 0.5.dp, color = Color(0xFF7B4FCC), shape = RoundedCornerShape(20.dp))
-                            .background(confirmColor)
-                            .clickable(onClick = onConfirm)
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = buttonColor, // PrimaryColor 또는 Danger
-                            contentColor = Color.White
-                        ),
-                        border = BorderStroke(0.5.dp, buttonColor), // Box에서 썼던 테두리 유지
-                        contentPadding = PaddingValues(0.dp) // 내부 패딩 초기화로 텍스트 중앙 정렬
+                            .background(Gray300)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = dismissText,
+                            color = TextTertiary,
+                            style = ChaGokTextStyle.Body1
+                        )
+                    }
+                    // Row 내부의 두 번째 버튼 (Confirm) 부분 수정 예시
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(buttonColor)
+                            .clickable(onClick = onConfirm),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = confirmText,
-                            style = ChaGokTextStyle.Body1, // 기존 텍스트 스타일 적용
-                            fontWeight = FontWeight.Medium
+                            color = TextPrimary,
+                            style = ChaGokTextStyle.Body1,
                         )
                     }
                 }
@@ -149,19 +140,18 @@ fun ChaGokDialogCreateFolder(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = title,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    style = ChaGokTextStyle.Title2,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = description,
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 14.sp,
+                    color = TextPrimary,
+                    style = ChaGokTextStyle.Body2,
                     textAlign = TextAlign.Center
                 )
                 if (title == "새 폴더" || title == "폴더 이름 수정") { // 수정 예정
@@ -185,13 +175,11 @@ fun ChaGokDialogCreateFolder(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-
-                            ),
+                        ),
                         singleLine = true
-
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -199,27 +187,27 @@ fun ChaGokDialogCreateFolder(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .height(46.dp)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF3D3D4E))
+                            .background(Gray300)
                             .clickable(onClick = onDismiss)
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = dismissText, color = Color.White, fontSize = 14.sp)
+                        Text(text = dismissText, color = TextTertiary, style = ChaGokTextStyle.Body1)
                     }
                     Box(
                         modifier = Modifier
-                            .width(107.dp)
-                            .height(46.dp)
                             .weight(1f)
+                            .height(46.dp)
                             .clip(RoundedCornerShape(20.dp))
-                            .border(width = 0.5.dp, color = if (confirmText == "삭제") Danger else Color(0xFF7B4FCC), shape = RoundedCornerShape(20.dp))
-                            .background(if (confirmText == "삭제") Danger else Color(0xFF7B4FCC))
+                            .border(width = 0.5.dp, color = if (confirmText == "삭제") Danger else PrimaryColor, shape = RoundedCornerShape(20.dp))
+                            .background(if (confirmText == "삭제") Danger else PrimaryColor)
                             .clickable(onClick = onConfirm)
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                            .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = confirmText, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(text = confirmText, color = TextPrimary, style = ChaGokTextStyle.Body1)
                     }
                 }
             }
@@ -365,10 +353,23 @@ fun LanguageRadioButton(
     }
 }
 
+@Preview(name = "삭제")
+@Composable
+fun ChaGokDialogDeletePreview() {
+    ChaGokDialog(
+        title = "선택한 항목을 삭제할까요?",
+        description = "선택한 항목이 영구 삭제되며\n 되돌릴 수 없어요",
+        dismissText = "취소",
+        confirmText = "삭제하기",
+        onDismiss = {},
+        onConfirm = {}
+    )
+}
+
 @Preview(name = "수정후")
 @Composable
 fun ChaGokDialogPreview() {
-    ChagokDialog(
+    ChaGokDialog(
         title = "마이크 권한이 필요해요",
         description = "설정에서 마이크 권한을 허용해주세요.",
         dismissText = "나중에",

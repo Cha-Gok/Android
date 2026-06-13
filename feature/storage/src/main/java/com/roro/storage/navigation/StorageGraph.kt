@@ -11,7 +11,7 @@ import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.storage.presentation.filelist.FileListScreen
 import com.roro.storage.presentation.folderlist.PrivateFolderScreen
-import com.roro.storage.presentation.home.StorageScreen
+import com.roro.storage.presentation.home.HomeScreen
 import com.roro.storage.presentation.search.SearchScreen
 import com.roro.storage.presentation.tos.TosScreen
 import com.roro.storage.presentation.trash.TrashScreen
@@ -42,7 +42,7 @@ fun NavGraphBuilder.storageGraph(
 //    }
 
     composable(Routes.STORAGE) {
-        StorageScreen(
+        HomeScreen(
             navController = navController,
             onStartRecord = onStartRecord,   // ✅ 전달
         )

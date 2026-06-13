@@ -1,6 +1,7 @@
 package com.roro.storage.presentation.home
 
 import com.roro.core.datastore.Language
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.Folder
 import com.roro.core.model.VoiceNote
 
@@ -17,7 +18,7 @@ data class StorageUiState(
     val isDialog: Boolean = false,
     val selectedLanguage: Language = Language.KOREAN, // dataStore 연결
     // 현재 화면에 보여줄 리스트
-    val voiceNote: List<VoiceNote> = emptyList(),
+    val voiceNote: List<VoiceNoteItem> = emptyList(),
     val folders: List<Folder> = emptyList(),
     val defaultFolders: List<String> = emptyList(),
     val errorMessage: String? = null

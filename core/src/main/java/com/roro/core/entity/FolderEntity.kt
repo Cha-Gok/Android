@@ -23,7 +23,7 @@ import java.util.UUID
 @Entity(
     tableName = "folder",
     indices = [
-        Index(value = ["name"], unique = true),
+        Index(value = ["name"]),
         Index(value = ["deletedAt", "updatedAt"])
     ]
 )
