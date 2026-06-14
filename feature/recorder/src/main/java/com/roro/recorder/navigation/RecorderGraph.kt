@@ -15,6 +15,7 @@ import com.roro.recorder.presentation.screen.ScriptEditScreen
 import com.roro.recorder.presentation.screen.SearchResultScreen
 import com.roro.recorder.presentation.viewModel.RecordResultViewModel
 import androidx.compose.animation.core.tween
+import com.roro.recorder.presentation.screen.RecordResultLoadingScreen
 
 /**
  * 기능 설명:
@@ -75,13 +76,18 @@ fun NavGraphBuilder.recorderGraph(
     }
 
 
-    // 처리 중 스켈레톤 화면
+//    // 처리 중 스켈레톤 화면
+//    composable(Routes.RECORD_RESULT_WAITING) {
+//        RecordResultScreen(
+//            navController = navController,
+//            voiceNoteId = "",
+//            recordViewModel = recordViewModel
+//        )
+//    }
+
+    // 처리 중 스켈레톤 화면 - 그냥 스켈레톤만 표시
     composable(Routes.RECORD_RESULT_WAITING) {
-        RecordResultScreen(
-            navController = navController,
-            voiceNoteId = "",
-            recordViewModel = recordViewModel
-        )
+        RecordResultLoadingScreen()   // ✅ recordViewModel 필요 없음
     }
 
     // 스크립트 편집 화면 ✅

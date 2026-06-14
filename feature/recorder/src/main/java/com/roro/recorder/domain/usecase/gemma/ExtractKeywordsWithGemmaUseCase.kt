@@ -12,6 +12,7 @@ class ExtractKeywordsWithGemmaUseCase @Inject constructor(
         return try {
             val prompt = """
                 Extract 5 key keywords from the text below.
+                Respond in the same language as the input text.
                 Output only the keywords separated by commas. Do not add any explanation.
                 Text: $text
             """.trimIndent()

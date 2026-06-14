@@ -68,14 +68,14 @@ fun RecorderDetailScreen(
 
 
     // 처리 완료 → 이동
-    LaunchedEffect(Unit) {
-        viewModel.navigateToResult.collect {
-            isNavigating = true
-            navController.navigate(Routes.RECORD_RESULT_WAITING) {
-                popUpTo(Routes.RECORDER) { inclusive = true }  // 녹음 화면 백스택에서 제거
-            }
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        viewModel.navigateToResult.collect {
+//            isNavigating = true
+//            navController.navigate(Routes.RECORD_RESULT_WAITING) {
+//                popUpTo(Routes.RECORDER) { inclusive = true }  // 녹음 화면 백스택에서 제거
+//            }
+//        }
+//    }
 
     // 화면 진입 시 녹음 시작
     LaunchedEffect(Unit) {
@@ -84,20 +84,16 @@ fun RecorderDetailScreen(
     }
 
     // 로딩 / 네비게이팅
-    if (state == RecordState.Processing || isNavigating) {
-        RecordingLoadingScreen()
-        return
-    }
 
     // 에러
-    if (state is RecordState.Error) {
-        RecordingErrorScreen(
-            message = (state as RecordState.Error).message,
-            onRetry = { viewModel.retry() },
-            onBack = { navController.popBackStack() }
-        )
-        return
-    }
+//    if (state is RecordState.Error) {
+//        RecordingErrorScreen(
+//            message = (state as RecordState.Error).message,
+//            onRetry = { viewModel.retry() },
+//            onBack = { navController.popBackStack() }
+//        )
+//        return
+//    }
 
     val hours = elapsedSeconds / 3600
     val minutes = (elapsedSeconds % 3600) / 60
@@ -142,6 +138,7 @@ fun RecorderDetailScreen(
                             navController.popBackStack()
                         } else {
                             isRunning = false
+                            viewModel.pauseRecording()
                             showCancelDialog = true
                         }
                     }
@@ -154,6 +151,7 @@ fun RecorderDetailScreen(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable(enabled = canStop) {
                         isRunning = false
+                        viewModel.pauseRecording()
                         showStopDialog = true
                     }
                 )
@@ -215,6 +213,7 @@ fun RecorderDetailScreen(
             onDismiss = {
                 showStopDialog = false
                 isRunning = true
+                viewModel.resumeRecording()
             },
             onConfirm = {
                 showStopDialog = false
@@ -234,6 +233,8 @@ fun RecorderDetailScreen(
             onDismiss = {
                 showCancelDialog = false
                 isRunning = true
+                viewModel.resumeRecording()
+
             },
             onConfirm = {
                 showCancelDialog = false
@@ -419,270 +420,6 @@ private fun RecordingErrorScreen(
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun RecordingLoadingScreen() {
-    val shimmerColors = listOf(
-        Color(0xFF2A2A3A),
-        Color(0xFF3A3A4E),
-        Color(0xFF2A2A3A)
-    )
-
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translate"
-    )
-
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 300f, 0f),
-        end = Offset(translateAnim, 0f)
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121218))
-    ) {
-        // ── TopBar ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(brush)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(20.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(brush)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(2) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(brush)
-                    )
-                }
-            }
-        }
-
-        // ── TabRow ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            repeat(2) {
-                Box(
-                    modifier = Modifier
-                        .width(48.dp)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0xFF2A2A3A))
-        )
-
-        // ── "요약 생성 중..." 배너 ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1E1A2E))
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
-                color = Color(0xFF9B7FD4),
-                strokeWidth = 2.dp
-            )
-            Text(
-                text = "요약을 생성하고 있어요...",
-                color = Color(0xFF9B7FD4),
-                fontSize = 13.sp
-            )
-        }
-
-        // ── 콘텐츠 ──
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // 폴더 / 날짜 / 길이
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(80, 160, 60).forEach { width ->
-                    Box(
-                        modifier = Modifier
-                            .width(width.dp)
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(brush)
-                    )
-                }
-            }
-
-            // 핵심 포인트 헤더
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(80.dp)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-                Box(
-                    modifier = Modifier
-                        .width(56.dp)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(50.dp))
-                        .background(brush)
-                )
-            }
-
-            // 핵심 포인트 카드 3개
-            repeat(3) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E1E2E))
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(brush)
-                    )
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(13.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(brush)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.7f)
-                                .height(13.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(brush)
-                        )
-                    }
-                }
-            }
-
-            // 키워드
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .width(56.dp)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(56, 72, 48, 64).forEach { width ->
-                        Box(
-                            modifier = Modifier
-                                .width(width.dp)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(brush)
-                        )
-                    }
-                }
-            }
-        }
-
-        // ── 하단 오디오 플레이어 ──
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1A1A26))
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(brush)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(12.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    repeat(3) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(brush)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(12.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(brush)
                 )
             }
         }

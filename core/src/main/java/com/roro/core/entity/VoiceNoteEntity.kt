@@ -3,6 +3,7 @@ package com.roro.core.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.roro.core.domain.model.SummaryStatus
 import java.util.UUID
 
 /**
@@ -33,4 +34,6 @@ data class VoiceNoteEntity(
     val updatedAt: Long,
     val deletedAt: Long?,
     val folderId: UUID?,
+
+    val summaryStatus: String = SummaryStatus.NONE.name
 )

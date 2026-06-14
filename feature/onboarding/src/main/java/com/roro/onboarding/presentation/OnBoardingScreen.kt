@@ -126,7 +126,7 @@ private fun OnBoardingScreenUI(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             PageIndicator(
-                modifier = Modifier.padding(top = 96.dp),
+                modifier = Modifier.padding(top = 70.dp),
                 currentPage = uiState.currentPage,
                 pageCount = ONBOARDING_PAGE_COUNT,
             )
