@@ -48,7 +48,11 @@ fun PrivateFolderScreen(
             when (effect) {
                 PrivateFolderEffect.NavigateBack -> navController.popBackStack()
                 is PrivateFolderEffect.NavigateFileList -> {
-                    navController.navigate(Routes.storageFile(effect.folderId, effect.folderName))
+                    navController.navigate(
+                        Routes.storageFile(
+                            folderId = effect.folderId, folderName = effect.folderName, isTrash = false
+                        )
+                    )
                 }
 
                 PrivateFolderEffect.NavigateSearch -> {
@@ -66,15 +70,13 @@ fun PrivateFolderScreen(
 
 
     PrivateFolderScreenContent(
-        uiState = uiState,
-        onIntent = viewModel::onIntent
+        uiState = uiState, onIntent = viewModel::onIntent
     )
 }
 
 @Composable
 internal fun PrivateFolderScreenContent(
-    uiState: PrivateFolderUiState,
-    onIntent: (PrivateFolderIntent) -> Unit
+    uiState: PrivateFolderUiState, onIntent: (PrivateFolderIntent) -> Unit
 ) {
     ChaGokBackground {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -91,20 +93,15 @@ internal fun PrivateFolderScreenContent(
                     },
                 )
                 PrivateFolderList(
-                    uiState = uiState,
-                    onIntent = onIntent,
-                    folders = uiState.folderList,
+                    uiState = uiState, onIntent = onIntent, folders = uiState.folderList,
                     // 리스트에서 수정 버튼 클릭 시 실행될 로직
                     onEditFolder = { folder ->
                         onIntent(PrivateFolderIntent.ShowModifyFolderDialog(folder))
-                    },
-                    onDeleteFolder = { folder ->
+                    }, onDeleteFolder = { folder ->
                         onIntent(PrivateFolderIntent.RemoveFolder(folder))
-                    },
-                    onFolderClick = { folder ->
+                    }, onFolderClick = { folder ->
                         onIntent(PrivateFolderIntent.ClickPrivateFolder(folder))
-                    }
-                )
+                    })
             }
         }
 
@@ -137,9 +134,7 @@ fun PrivateFolderList(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 2. 리스트 아이템 구성
         items(items = folders, key = { it.id }) { folder ->
@@ -158,8 +153,7 @@ fun PrivateFolderList(
                 },
                 onEdit = { onEditFolder(folder) },
                 onDelete = { onDeleteFolder(folder) },
-                onClick = { onFolderClick(folder) }
-            )
+                onClick = { onFolderClick(folder) })
         }
     }
 }
@@ -177,11 +171,8 @@ fun PrivateFolderScreenPreview() {
     // 2. 새로운 UiState 타입으로 교체
     PrivateFolderScreenContent(
         uiState = PrivateFolderUiState(
-            folderList = mockFolders,
-            isLoading = false,
-            inputFolderName = ""
+            folderList = mockFolders, isLoading = false, inputFolderName = ""
         ),
         // 3. onIntent는 함수이므로 빈 람다 전달
-        onIntent = {}
-    )
+        onIntent = {})
 }
