@@ -77,7 +77,11 @@ fun NavGraphBuilder.storageGraph(
         route = Routes.STORAGE_FILE,
         arguments = listOf(
             navArgument("folderId") { type = NavType.StringType },
-            navArgument("folderName") { type = NavType.StringType }
+            navArgument("folderName") { type = NavType.StringType },
+            navArgument("isTrash") {
+                type = NavType.BoolType
+                defaultValue = false
+            }
         ),
         enterTransition = {
             // 2번 -> 3번으로 올 때: 왼쪽으로 밀면서 들어옴
@@ -98,7 +102,13 @@ fun NavGraphBuilder.storageGraph(
     ) { backStackEntry ->
         val folderId = backStackEntry.arguments?.getString("folderId").orEmpty()
         val folderName = backStackEntry.arguments?.getString("folderName").orEmpty()
-        FileListScreen(navController = navController, folderName = folderName, folderId = folderId)
+        val isTrash = backStackEntry.arguments?.getBoolean("isTrash") ?: false
+
+        FileListScreen(
+            navController = navController,
+            folderName = folderName, folderId = folderId,
+            isTrash = isTrash
+        )
     }
 
     // 휴지통
