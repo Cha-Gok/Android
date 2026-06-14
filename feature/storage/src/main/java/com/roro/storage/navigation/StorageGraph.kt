@@ -34,19 +34,13 @@ import com.roro.storage.presentation.trash.TrashScreen
  */
 fun NavGraphBuilder.storageGraph(
     navController: NavController,
-    onStartRecord: () -> Unit,   // 추가
+//    onStartRecord: () -> Unit,   // 추가
 ) {
     val animationDuration = 500
-
-    // 바텀 네비게이션 O
-//    composable(Routes.STORAGE) {
-//        StorageScreen(navController = navController)
-//    }
 
     composable(Routes.STORAGE) {
         HomeScreen(
             navController = navController,
-            onStartRecord = onStartRecord,   // ✅ 전달
         )
     }
 

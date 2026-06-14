@@ -1,20 +1,14 @@
 package com.roro.storage.presentation.home
 
-import androidx.compose.foundation.MutatePriority
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.distinctUntilChanged
-import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.roro.core.domain.GetSelectedLanguageUseCase
 import com.roro.core.domain.SetSelectedLanguageUseCase
 import com.roro.core.gemma.GemmaDownloadManager
 import com.roro.storage.domain.ObserveRecentVoiceNoteUseCase
-import com.roro.storage.domain.ObserveTrashFoldersUseCase
 import com.roro.storage.domain.ObserveTrashTotalCountUseCase
 import com.roro.storage.domain.ObserveUserFoldersUseCase
 import com.roro.storage.domain.ObserveVoiceNoteUseCase
-import com.roro.storage.domain.ObserveVoiceNotesByNoneNullFolderUseCase
-import com.roro.storage.presentation.filelist.FileListIntent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
