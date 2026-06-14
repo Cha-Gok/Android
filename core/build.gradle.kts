@@ -74,4 +74,12 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // GEMMA4
+    implementation("com.google.ai.edge.litertlm:litertlm-android:latest.release")
+    //api("com.google.ai.edge.litertlm:litertlm-android:latest.release")
+    implementation(libs.hilt.navigation.compose)
+
+
+
 }

@@ -1,5 +1,6 @@
 package com.roro.recorder.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -7,14 +8,13 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.roro.core.navigation.Routes
-import com.roro.recorder.domain.usecase.VoiceNoteResult
 import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.screen.RecordResultScreen
 import com.roro.recorder.presentation.screen.RecorderDetailScreen
-import com.roro.recorder.presentation.screen.RecorderScreen
 import com.roro.recorder.presentation.screen.ScriptEditScreen
 import com.roro.recorder.presentation.screen.SearchResultScreen
 import com.roro.recorder.presentation.viewModel.RecordResultViewModel
+import androidx.compose.animation.core.tween
 
 /**
  * 기능 설명:
@@ -34,18 +34,38 @@ fun NavGraphBuilder.recorderGraph(
     navController: NavController,
     recordViewModel: RecordViewModel
 ) {
-    // 바텀 네비게이션 O
-    composable(Routes.RECORDER) {
+    // 녹음 화면
+    composable(
+        Routes.RECORDER,
+        enterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Up,
+                tween(400)
+            )
+        },
+        exitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Down,
+                tween(400)
+            )
+        },
+        popEnterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Up,
+                tween(400)
+            )
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Down,
+                tween(400)
+            )
+        }
+    ) {
         RecorderDetailScreen(
             navController = navController,
-            viewModel = recordViewModel  // ✅ 추가
+            viewModel = recordViewModel
         )
-    }
-
-    // 바텀 네비게이션 X
-    composable(Routes.RECORD_DETAIL) { backStackEntry ->
-        val fileId = backStackEntry.arguments?.getString("fileId").orEmpty()
-        RecorderDetailScreen(navController = navController, viewModel = recordViewModel)
     }
 
     // 녹음 결과 화면
@@ -60,7 +80,7 @@ fun NavGraphBuilder.recorderGraph(
         RecordResultScreen(
             navController = navController,
             voiceNoteId = "",
-            recordViewModel = recordViewModel  // ✅ 전달
+            recordViewModel = recordViewModel
         )
     }
 

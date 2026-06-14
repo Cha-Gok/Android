@@ -41,7 +41,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.tooling.preview.Preview
-import com.android.identity.util.UUID
 
 @Composable
 fun TrashRecordResultScreen(
@@ -59,6 +58,14 @@ fun TrashRecordResultScreen(
         is RecordResultUiState.Loading -> TrashLoadingScreen()
         is RecordResultUiState.Error -> TrashErrorScreen(message = state.message)
         is RecordResultUiState.Success -> TrashRecordResultContent(
+            navController = navController,
+            result = state.result
+        )
+        is RecordResultUiState.NoSpeech -> TrashRecordResultContent(
+            navController = navController,
+            result = state.result
+        )
+        is RecordResultUiState.SummaryError -> TrashRecordResultContent(
             navController = navController,
             result = state.result
         )
@@ -556,14 +563,13 @@ private fun formatDuration(durationSec: Double): String {
 
 private val fakeVoiceNoteResult = VoiceNoteResult(
     title = "오전 취업 관련 강의",
-    audioPath = "",
-    durationSec = 4350.0,
     sttText = "오늘은 취업 관련 강의를 들었습니다.\n면접 준비 방법에 대해 배웠습니다.\n자기소개서 작성 팁도 공유되었습니다.",
     summaryText = "취업 준비의 핵심은 자기분석이다*면접에서는 구체적인 경험을 말해야 한다*자기소개서는 직무 중심으로 작성해야 한다",
     keywords = listOf("취업", "면접", "자기소개서", "직무"),
+    audioPath = "",
     createdAt = System.currentTimeMillis(),
     updatedAt = System.currentTimeMillis(),
-
+    durationSec = 4350.0,
 )
 
 @Preview(showBackground = true)

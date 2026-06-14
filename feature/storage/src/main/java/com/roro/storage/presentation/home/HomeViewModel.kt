@@ -7,6 +7,7 @@ import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.roro.core.domain.GetSelectedLanguageUseCase
 import com.roro.core.domain.SetSelectedLanguageUseCase
+import com.roro.core.gemma.GemmaDownloadManager
 import com.roro.storage.domain.ObserveRecentVoiceNoteUseCase
 import com.roro.storage.domain.ObserveTrashFoldersUseCase
 import com.roro.storage.domain.ObserveTrashTotalCountUseCase
@@ -41,7 +42,11 @@ class HomeViewModel @Inject constructor(
     // 녹음 언어 읽기용
     private val getSelectedLanguageUseCase: GetSelectedLanguageUseCase,
     // root 파일 가져오기
-    private val observeVoiceNoteUseCase: ObserveVoiceNoteUseCase
+    private val observeVoiceNoteUseCase: ObserveVoiceNoteUseCase,
+
+
+    // 설정 관련
+    private val gemmaDownloadManager: GemmaDownloadManager
 
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
@@ -52,7 +57,6 @@ class HomeViewModel @Inject constructor(
         extraBufferCapacity = 1
     )
     val effect = _effect.asSharedFlow()
-
 
     init {
 //        initialize()
@@ -108,10 +112,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            // 라디오 버튼 클릭 시: 임시 상태 업데이트
-            is HomeIntent.SelectLanguageOption -> {
-                _uiState.update { it.copy(selectedTempLanguage = intent.language) }
-            }
 
             HomeIntent.ClickSearch -> {
                 viewModelScope.launch {
@@ -120,31 +120,12 @@ class HomeViewModel @Inject constructor(
             }
 
             HomeIntent.ClickSetting -> {
-                _uiState.update {
-                    it.copy(
-                        isDialog = true,
-                        selectedTempLanguage = it.selectedTempLanguage
-                    )
-                }
-            }
-
-            HomeIntent.ConfirmDialog -> {
                 viewModelScope.launch {
-                    val languageToSave = uiState.value.selectedTempLanguage
-                    setSelectedLanguageUseCase(languageToSave)
-                    _uiState.update { it.copy(isDialog = false) }
+                    _effect.emit(HomeEffect.NavigateToSettings)
                 }
             }
 
-            HomeIntent.DismissDialog -> {
-                _uiState.update { it.copy(isDialog = false) }
-            }
 
-            HomeIntent.ClickTos -> {
-                viewModelScope.launch {
-                    _effect.emit(HomeEffect.NavigateToTos)
-                }
-            }
         }
     }
 
@@ -279,6 +260,13 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+
+    fun isModelDownloaded(): Boolean {
+        val result = gemmaDownloadManager.isModelDownloaded()
+        Timber.tag("HomeVM").d("🤖 모델 다운로드 여부: $result")
+        return result
     }
 
 }

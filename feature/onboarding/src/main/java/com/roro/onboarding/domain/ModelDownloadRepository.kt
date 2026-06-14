@@ -1,7 +1,11 @@
 package com.roro.onboarding.domain
 
+import com.roro.core.gemma.DeviceSupportResult
+import com.roro.core.gemma.GemmaDownloadState
+import kotlinx.coroutines.flow.Flow
+
 interface ModelDownloadRepository {
-    suspend fun downloadSTT()
-    suspend fun downloadSummarize()
-    suspend fun downloadTranslate()
+    fun downloadGemma(): Flow<GemmaDownloadState>
+    fun isModelDownloaded(): Boolean
+    fun checkDeviceSupport(): DeviceSupportResult
 }

@@ -18,7 +18,7 @@ import kotlin.math.sqrt
  * 기능 설명:
  * - 음성 녹음을 담당하는 DataSource
  * - AudioRecord를 사용해 PCM 데이터를 수집하고 WAV 파일로 저장
- * - MLKit STT 최적화 형식 (16000Hz, Mono, PCM 16bit)
+ * - STT 최적화 형식 (16000Hz, Mono, PCM 16bit)
  *
  * @author hyeonseo
  * @since 2026. 04. 12.
@@ -80,6 +80,16 @@ class RecordDataSource @Inject constructor(
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun startRecording(file: File) {
+
+        // 이미 녹음 중이면 먼저 정리
+        if (isRecording) {
+            isRecording = false
+            audioRecord?.stop()
+            audioRecord?.release()
+            audioRecord = null
+            recordingThread?.join()
+        }
+
         if (isRecording) throw IllegalStateException("이미 녹음 중입니다.")
 
         currentFile = file

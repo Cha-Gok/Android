@@ -42,14 +42,25 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
         this.keywords = keywords
     }
 
-    fun onQueryChange(query: String) {
+    fun onQueryChange(query: String, search: Boolean = true) {
         _uiState.value = _uiState.value.copy(
             query = query,
-            summaryMatches = if (query.isBlank()) emptyList() else searchInSummary(query),
-            scriptMatches = if (query.isBlank()) emptyList() else searchInScript(query),
+            summaryMatches = if (search && query.isNotBlank()) searchInSummary(query) else emptyList(),
+            scriptMatches = if (search && query.isNotBlank()) searchInScript(query) else emptyList(),
             currentMatchIndex = 0
         )
     }
+
+    fun onSearch() {
+        val query = _uiState.value.query
+        if (query.isBlank()) return
+        _uiState.value = _uiState.value.copy(
+            summaryMatches = searchInSummary(query),
+            scriptMatches = searchInScript(query),
+            currentMatchIndex = 0
+        )
+    }
+
 
     fun onTabSelected(index: Int) {
         _uiState.value = _uiState.value.copy(
@@ -128,19 +139,21 @@ class SearchResultViewModel @Inject constructor() : ViewModel() {
         segments.forEachIndexed { segIndex, segText ->
             val startTimeMs = segIndex * 30000L
             val lowerSeg = segText.lowercase()
-            val firstIdx = lowerSeg.indexOf(lowerQuery)
-            if (firstIdx < 0) return@forEachIndexed  // 매치 없으면 스킵
-
-            // 단락당 하나만 (첫 번째 매치만)
-            results.add(
-                SearchMatch(
-                    segmentIndex = segIndex,
-                    startTimeMs = startTimeMs,
-                    text = segText,
-                    matchStart = firstIdx,
-                    matchEnd = firstIdx + query.length
+            var searchFrom = 0
+            while (true) {
+                val idx = lowerSeg.indexOf(lowerQuery, searchFrom)
+                if (idx < 0) break
+                results.add(
+                    SearchMatch(
+                        segmentIndex = segIndex,
+                        startTimeMs = startTimeMs,
+                        text = segText,
+                        matchStart = idx,
+                        matchEnd = idx + query.length
+                    )
                 )
-            )
+                searchFrom = idx + 1
+            }
         }
         return results
     }

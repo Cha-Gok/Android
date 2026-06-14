@@ -1,6 +1,6 @@
 package com.roro.recorder.domain.usecase.gemma
 
-import com.roro.recorder.data.GemmaManager
+import com.roro.core.gemma.GemmaManager
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -10,10 +10,9 @@ class ProofreadWithGemmaUseCase @Inject constructor(
     suspend operator fun invoke(text: String): String {
         return try {
             val prompt = """
-            다음 STT 텍스트의 맞춤법과 띄어쓰기만 교정해. 내용 변경 금지. 결과만 출력.
-            
-            $text
-        """.trimIndent()
+                Correct only the spelling and spacing of the following STT text. Do not change the content. Output only the result.
+                $text
+            """.trimIndent()
 
             gemmaManager.generate(prompt)
         } catch (e: Exception) {

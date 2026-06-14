@@ -44,8 +44,12 @@ class SplashViewModel @Inject constructor(
             // 1. 최소 2초간 스플래시 화면 노출 (로고 인지 시간)
             val delayJob = launch { delay(2000L) }
 
+            // 개발용: 항상 온보딩 보이게 강제
+            val isFinishOnboarding = false
+
             // 2. UseCase를 통해 DataStore에서 상태 읽기
-            val isFinishOnboarding = getOnboardingStatusUseCase().first()
+            //val isFinishOnboarding = getOnboardingStatusUseCase().first()
+            
             Timber.d("사용자 온보딩 상태 = $isFinishOnboarding")
             // 3. 최소 지연 시간 대기
             delayJob.join()

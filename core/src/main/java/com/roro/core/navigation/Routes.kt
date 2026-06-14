@@ -16,6 +16,11 @@ object Routes {
     const val TOS = "tos" // 이용약관
     const val SEARCH_TEMP = "search/{searchType}?folderId={folderId}" // 검색
 
+    const val SETTINGS = "settings" // 설정
+
+    // 웹뷰
+    const val WEB_VIEW = "webview?url={url}"
+    fun webView(url: String) = "webview?url=${java.net.URLEncoder.encode(url, "UTF-8")}"
 
     // 스토리지 화면 구성
     // 폴더 목록
@@ -26,21 +31,18 @@ object Routes {
     fun storageFile(folderId: String, folderName: String) = "storage/folder/file/${folderId}/${folderName}"
 
 
-    const val RECORD_DETAIL = "recoder/detail/{fileId}"
-    fun recorderDetail(fileId: String) = "recoder/detail/$fileId"
-
     // 녹음 결과 화면 추가
     const val RECORD_RESULT = "record/result/{voiceNoteId}"
     fun recordResult(voiceNoteId: String) = "record/result/$voiceNoteId"
 
     // ✅ 추가 - voiceNoteId 없이 스켈레톤만 보여주는 화면
-    const val RECORD_RESULT_WAITING = "record/result/waiting"
+    const val RECORD_RESULT_WAITING = "record/waiting"
 
     // 스크립트 편집 화면
     const val SCRIPT_EDIT = "record/script-edit/{voiceNoteId}"
     fun scriptEdit(voiceNoteId: String) = "record/script-edit/$voiceNoteId"
 
-    // 검색 화면
+    // 검색 결과 검색 화면
     const val SEARCH = "record/search/"
 
     // 검색 화면 - 임시?

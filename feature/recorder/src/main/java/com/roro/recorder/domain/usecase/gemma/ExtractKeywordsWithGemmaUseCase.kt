@@ -1,6 +1,7 @@
 package com.roro.recorder.domain.usecase.gemma
 
-import com.roro.recorder.data.GemmaManager
+
+import com.roro.core.gemma.GemmaManager
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -10,12 +11,9 @@ class ExtractKeywordsWithGemmaUseCase @Inject constructor(
     suspend operator fun invoke(text: String): List<String> {
         return try {
             val prompt = """
-                아래 텍스트에서 핵심 키워드 10개를 추출해주세요.
-                쉼표로 구분해서 키워드만 출력하세요. 다른 말은 하지 마세요.
-                예시: 키워드1, 키워드2, 키워드3, 키워드4, 키워드5
-                
-                텍스트:
-                $text
+                Extract 5 key keywords from the text below.
+                Output only the keywords separated by commas. Do not add any explanation.
+                Text: $text
             """.trimIndent()
 
             val result = gemmaManager.generate(prompt)

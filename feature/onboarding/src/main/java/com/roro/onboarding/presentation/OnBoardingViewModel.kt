@@ -2,11 +2,12 @@ package com.roro.onboarding.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.roro.core.gemma.GemmaDownloadState
 import com.roro.core.datastore.Language
 import com.roro.core.domain.GetSelectedLanguageUseCase
 import com.roro.core.domain.SetSelectedLanguageUseCase
+import com.roro.core.gemma.DeviceSupportResult
 import com.roro.onboarding.domain.DownloadModelsUseCase
-
 import com.roro.onboarding.domain.SetOnboardingCompletedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +39,6 @@ class OnBoardingViewModel @Inject constructor(
     val effect: SharedFlow<OnboardingEffect> = _effect.asSharedFlow()
 
     init {
-        // 앱 실행 시 저장된 언어 설정을 불러옵니다.
         onIntent(OnboardingIntent.Initialize)
     }
 
@@ -54,30 +54,32 @@ class OnBoardingViewModel @Inject constructor(
                 selectLanguage(intent.language)
             }
 
+            // PagerChanged - 페이지 3 진입 시 자동 체크 시작
             is OnboardingIntent.PagerChanged -> {
-                Timber.d("Onboarding onIntent: PagerChanged = ${intent.index}")
+                val previousPage = uiState.value.currentPage
                 _uiState.update { it.copy(currentPage = intent.index) }
+                if (intent.index == 3 && previousPage != 3) {
+                    checkEnvironment()
+                }
             }
 
+            // ClickNext
             OnboardingIntent.ClickNext -> {
                 val currentPage = uiState.value.currentPage
-                val nextPage = currentPage + 1
-                Timber.d("Onboarding onIntent: ClickNext, currentPage=$currentPage, nextPage=$nextPage")
 
                 when {
                     currentPage == 2 -> emitEffect(OnboardingEffect.RequestAudioPermission)
-                    currentPage == 3 && !uiState.value.isDownloadStarted -> startModelDownload() // 시작하기
-                    currentPage == 3 && uiState.value.isDownloadStarted -> emitEffect(OnboardingEffect.ScrollToPage(4)) // 다음
-                    else -> emitEffect(OnboardingEffect.ScrollToPage(nextPage))
+                    currentPage == 3 -> emitEffect(OnboardingEffect.ScrollToPage(4))
+                    currentPage == 4 && !uiState.value.isDownloadStarted -> startModelDownload()
+                    currentPage == 4 && uiState.value.modelDownloadState.allDone -> emitEffect(OnboardingEffect.ScrollToPage(5))
+                    else -> emitEffect(OnboardingEffect.ScrollToPage(currentPage + 1))
                 }
             }
 
             OnboardingIntent.ClickBack -> {
                 val prevPage = uiState.value.currentPage - 1
-                Timber.d("Onboarding onIntent: ClickBack, currentPage=${uiState.value.currentPage}, prevPage=$prevPage")
-                if (prevPage >= 0) {
-                    emitEffect(OnboardingEffect.ScrollToPage(prevPage))
-                }
+                Timber.d("Onboarding onIntent: ClickBack, prevPage=$prevPage")
+                if (prevPage >= 0) emitEffect(OnboardingEffect.ScrollToPage(prevPage))
             }
 
             OnboardingIntent.ClickSkip -> {
@@ -86,7 +88,6 @@ class OnBoardingViewModel @Inject constructor(
             }
 
             OnboardingIntent.ClickPermissionRequest -> {
-                Timber.d("Onboarding onIntent: ClickPermissionRequest, currentPage=${uiState.value.currentPage}, granted=${uiState.value.isPermissionGranted}")
                 emitEffect(OnboardingEffect.RequestAudioPermission)
             }
 
@@ -102,26 +103,154 @@ class OnBoardingViewModel @Inject constructor(
         }
     }
 
-    // 다운로드 관련 추가
-    private fun startModelDownload() {
+    // checkEnvironment - 자동 실행용 (버튼 없이)
+    private fun checkEnvironment() {
         viewModelScope.launch(Dispatchers.IO) {
-            launch {
-                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Downloading)) }
-                runCatching { downloadModelsUseCase.downloadSTT() }
-                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Done)) } }
-                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(stt = DownloadItemState.Failed)) } }
+            _uiState.update {
+                it.copy(
+                    isEnvironmentChecked = false,
+                    modelDownloadState = ModelDownloadState(isChecking = true)
+                )
             }
-            launch {
-                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Downloading)) }
-                runCatching { downloadModelsUseCase.downloadSummarize() }
-                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Done)) } }
-                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(summarize = DownloadItemState.Failed)) } }
+
+            val result = downloadModelsUseCase.checkDeviceSupport()
+
+            val gemmaState = when (result) {
+                is DeviceSupportResult.Supported -> DownloadItemState.Done
+                is DeviceSupportResult.UnsupportedCpu -> DownloadItemState.Unavailable
+                is DeviceSupportResult.InsufficientRam -> DownloadItemState.Unavailable
             }
-            launch {
-                _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Downloading)) }
-                runCatching { downloadModelsUseCase.downloadTranslate() }
-                    .onSuccess { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Done)) } }
-                    .onFailure { _uiState.update { it.copy(modelDownloadState = it.modelDownloadState.copy(translate = DownloadItemState.Failed)) } }
+
+            _uiState.update {
+                it.copy(
+                    isEnvironmentChecked = true,
+                    modelDownloadState = it.modelDownloadState.copy(
+                        isChecking = false,
+                        gemma = gemmaState
+                    )
+                )
+            }
+
+            when (result) {
+                is DeviceSupportResult.UnsupportedCpu ->
+                    emitEffect(OnboardingEffect.ShowToast("ARM64 미지원 기기입니다."))
+                is DeviceSupportResult.InsufficientRam ->
+                    emitEffect(OnboardingEffect.ShowToast("RAM이 부족합니다. (현재 ${String.format("%.1f", result.actualGb)}GB)"))
+                else -> {}
+            }
+        }
+    }
+
+    // 환경 체크 → 완료 시 자동으로 다운로드 시작
+    private fun checkAndDownload() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // 1. 체크 시작
+            _uiState.update {
+                it.copy(
+                    modelDownloadState = it.modelDownloadState.copy(isChecking = true)
+                )
+            }
+
+            // 2. 환경 체크
+            val result = downloadModelsUseCase.checkDeviceSupport()
+
+            val gemmaState = when (result) {
+                is DeviceSupportResult.Supported -> DownloadItemState.Done
+                is DeviceSupportResult.UnsupportedCpu -> DownloadItemState.Unavailable
+                is DeviceSupportResult.InsufficientRam -> DownloadItemState.Unavailable
+            }
+
+            // 3. 체크 완료 → 체크마크 표시
+            _uiState.update {
+                it.copy(
+                    modelDownloadState = it.modelDownloadState.copy(
+                        isChecking = false,
+                        gemma = gemmaState
+                    )
+                )
+            }
+
+            // 4. 미지원 토스트
+            when (result) {
+                is DeviceSupportResult.UnsupportedCpu ->
+                    emitEffect(OnboardingEffect.ShowToast("ARM64 미지원 기기입니다."))
+                is DeviceSupportResult.InsufficientRam ->
+                    emitEffect(OnboardingEffect.ShowToast("RAM이 부족합니다. (현재 ${String.format("%.1f", result.actualGb)}GB)"))
+                else -> {}
+            }
+
+
+            // 5. 체크마크 잠깐 보여주고 → Gemma-4로 복귀
+            delay(800)
+            _uiState.update {
+                it.copy(
+                    isEnvironmentChecked = true,  // ← 체크 완료 플래그
+                    modelDownloadState = it.modelDownloadState.copy(
+                        gemma = DownloadItemState.Idle
+                    )
+                )
+            }
+
+        }
+    }
+
+    private fun startModelDownload() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    modelDownloadState = it.modelDownloadState.copy(
+                        gemma = DownloadItemState.Downloading
+                    )
+                )
+            }
+
+            downloadModelsUseCase.downloadGemma().collectLatest { state ->
+                when (state) {
+                    is GemmaDownloadState.Downloading -> {
+                        _uiState.update {
+                            it.copy(
+                                modelDownloadState = it.modelDownloadState.copy(
+                                    progress = state.progress
+                                )
+                            )
+                        }
+                    }
+
+                    is GemmaDownloadState.Completed -> {
+                        _uiState.update {
+                            it.copy(
+                                modelDownloadState = it.modelDownloadState.copy(
+                                    gemma = DownloadItemState.Done,
+                                    progress = 1f
+                                )
+                            )
+                        }
+                    }
+
+                    is GemmaDownloadState.Error.NetworkLost -> {
+                        _uiState.update {
+                            it.copy(
+                                modelDownloadState = it.modelDownloadState.copy(
+                                    gemma = DownloadItemState.Failed
+                                )
+                            )
+                        }
+                        emitEffect(OnboardingEffect.ShowToast("네트워크 연결이 끊겼습니다."))
+                    }
+
+                    is GemmaDownloadState.Error.Unknown -> {
+                        _uiState.update {
+                            it.copy(
+                                modelDownloadState = it.modelDownloadState.copy(
+                                    gemma = DownloadItemState.Failed
+                                )
+                            )
+                        }
+                        emitEffect(OnboardingEffect.ShowToast("다운로드 오류: ${state.message}"))
+                    }
+
+                    else -> {}
+                }
             }
         }
     }
@@ -142,12 +271,8 @@ class OnBoardingViewModel @Inject constructor(
     }
 
     private fun handlePermissionResult(granted: Boolean) {
-        Timber.d("Onboarding handlePermissionResult called. granted=$granted")
         viewModelScope.launch {
-            if (granted) {
-                Timber.d("Onboarding permission granted. updatedState=${_uiState.value}")
-            } else {
-                Timber.w("Onboarding permission denied.")
+            if (!granted) {
                 emitEffect(OnboardingEffect.ShowToast("일부 기능이 제한될 수 있습니다."))
             }
             _uiState.update { it.copy(isPermissionGranted = granted) }
@@ -172,7 +297,6 @@ class OnBoardingViewModel @Inject constructor(
 
     private fun emitEffect(effect: OnboardingEffect) {
         Timber.d("Onboarding emitEffect: $effect")
-        val emitted = _effect.tryEmit(effect)
-        Timber.d("Onboarding emitEffect result: emitted=$emitted")
+        _effect.tryEmit(effect)
     }
 }

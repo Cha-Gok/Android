@@ -3,8 +3,6 @@ package com.roro.recorder.presentation.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,15 +45,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.animation.core.*
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
-import com.android.identity.util.UUID
 import com.roro.recorder.presentation.RecordViewModel
+import com.roro.recorder.presentation.viewModel.SummaryDisplayState
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 
 
 @Composable
@@ -92,6 +91,20 @@ fun RecordResultScreen(
             result = state.result,
             viewModel = viewModel
         )
+        is RecordResultUiState.NoSpeech -> RecordResultContent(
+            navController = navController,
+            voiceNoteId = voiceNoteId,
+            result = state.result,
+            viewModel = viewModel,
+            summaryState = SummaryDisplayState.NoSpeech
+        )
+        is RecordResultUiState.SummaryError -> RecordResultContent(
+            navController = navController,
+            voiceNoteId = voiceNoteId,
+            result = state.result,
+            viewModel = viewModel,
+            summaryState = SummaryDisplayState.Error
+        )
     }
 }
 
@@ -100,7 +113,8 @@ private fun RecordResultContent(
     navController: NavController,
     voiceNoteId: String,
     result: VoiceNoteResult,
-    viewModel: RecordResultViewModel
+    viewModel: RecordResultViewModel,
+    summaryState: SummaryDisplayState = SummaryDisplayState.Success
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showDropdown by remember { mutableStateOf(false) }
@@ -293,7 +307,8 @@ private fun RecordResultContent(
                     keyPoints = keyPoints,
                     isRegenerating = isRegenerating,
                     isScriptModified = isScriptModified,
-                    onRegenerate = viewModel::regenerateSummary
+                    onRegenerate = viewModel::regenerateSummary,
+                    summaryState = summaryState
                 )
 
                 1 -> ScriptTab(
@@ -324,7 +339,8 @@ private fun AiSummaryTab(
     keyPoints: List<String>,
     isRegenerating: Boolean,
     isScriptModified: Boolean,
-    onRegenerate: () -> Unit
+    onRegenerate: () -> Unit,
+    summaryState: SummaryDisplayState = SummaryDisplayState.Success
 ) {
     Column(
         modifier = Modifier
@@ -357,127 +373,199 @@ private fun AiSummaryTab(
                     append(" (${formatDate(result.updatedAt)} 수정됨)")
                 }
             }
-            Text(
-                text = dateText,
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
-            Text(
-                text = formatDuration(result.durationSec),
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 13.sp
-            )
+            Text(text = dateText, color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+            Text(text = formatDuration(result.durationSec), color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
         }
 
-        // 핵심 포인트
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "핵심 포인트",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                // 재생성 버튼 - 스크립트 수정 시 빨간 점, 재생성 중엔 로딩 표시
-                Box {
+        // 상태에 따라 분기
+        when (summaryState) {
+            SummaryDisplayState.Success -> {
+                // 핵심 포인트
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50.dp))
-                            .clickable(enabled = !isRegenerating) { onRegenerate() }
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (isRegenerating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                color = Color(0xFF9B7FD4),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "재생성",
-                                tint = Color(0xFF9B7FD4),
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                        Text(
-                            text = if (isRegenerating) "재생성 중..." else "재생성",
-                            color = Color(0xFF9B7FD4),
-                            fontSize = 13.sp
-                        )
-                    }
-                    // 스크립트 수정 후 빨간 점
-                    if (isScriptModified && !isRegenerating) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFF4444))
-                                .align(Alignment.TopEnd)
-                        )
-                    }
-                }
-            }
-
-            keyPoints.forEachIndexed { index, point ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E1E2E))
-                        .padding(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF7B4FCC)),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${index + 1}",
+                            text = "핵심 포인트",
                             color = Color.White,
-                            fontSize = 12.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        Box {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50.dp))
+                                    .clickable(enabled = !isRegenerating) { onRegenerate() }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (isRegenerating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        color = Color(0xFF9B7FD4),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "재생성",
+                                        tint = Color(0xFF9B7FD4),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (isRegenerating) "재생성 중..." else "재생성",
+                                    color = Color(0xFF9B7FD4),
+                                    fontSize = 13.sp
+                                )
+                            }
+                            if (isScriptModified && !isRegenerating) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFF4444))
+                                        .align(Alignment.TopEnd)
+                                )
+                            }
+                        }
                     }
+
+                    keyPoints.forEachIndexed { index, point ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF1E1E2E))
+                                .padding(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF7B4FCC)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${index + 1}",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                text = point,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // 키워드
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = point,
+                        text = "키워드",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        modifier = Modifier.weight(1f)
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
                     )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        result.keywords.forEach { keyword ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50.dp))
+                                    .background(Color(0xFF2D2D3A))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(text = keyword, color = Color.White, fontSize = 13.sp)
+                            }
+                        }
+                    }
                 }
             }
-        }
 
-        // 키워드
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "키워드",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                result.keywords.forEach { keyword ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(Color(0xFF2D2D3A))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+            SummaryDisplayState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(text = keyword, color = Color.White, fontSize = 13.sp)
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            text = "요약을 생성하지 못했어요.",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "일시적인 오류가 발생했어요.\n잠시 후 다시 시도해주세요.",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(Color(0xFF9B7FD4))
+                                .clickable { onRegenerate() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Text(text = "재생성", color = Color.White, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+
+            SummaryDisplayState.NoSpeech -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MicOff,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            text = "요약할 수 있는 음성이\n기록되지 않았어요.",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "인식된 음성이 없어\n요약을 생성할 수 없어요.",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -859,40 +947,3 @@ private fun formatDuration(durationSec: Double): String {
 
 
 // ── 프리뷰 ─────────────────────────────────────────
-//@Preview(showBackground = true)
-//@Composable
-//private fun RecordResultLoadingPreview() {
-//    RecordResultLoadingScreen()
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//private fun RecordResultErrorPreview() {
-//    RecordResultErrorScreen(message = "오류가 발생했어요. 다시 시도해주세요.")
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//private fun RecordResultContentPreview() {
-//    val fakeResult = VoiceNoteResult(
-//        id = UUID.randomUUID(),
-//        title = "오전 취업 관련 강의",
-//        audioPath = "",
-//        durationSec = 4350.0,
-//        sttText = "오늘은 취업 관련 강의를 들었습니다.\n면접 준비 방법에 대해 배웠습니다.\n자기소개서 작성 팁도 공유되었습니다.",
-//        summaryText = "취업 준비의 핵심은 자기분석이다*면접에서는 구체적인 경험을 말해야 한다*자기소개서는 직무 중심으로 작성해야 한다",
-//        keywords = listOf("취업", "면접", "자기소개서", "직무"),
-//        createdAt = System.currentTimeMillis(),
-//        updatedAt = System.currentTimeMillis(),
-//        folderId = null
-//    )
-//
-//    // RecordResultContent는 RecordResultViewModel이 필요해서
-//    // 직접 호출 대신 Success 상태 분기만 확인
-//    RecordResultContent(
-//        navController = rememberNavController(),
-//        voiceNoteId = fakeResult.id.toString(),
-//        result = fakeResult,
-//        viewModel = TODO(),
-//    )
-//}

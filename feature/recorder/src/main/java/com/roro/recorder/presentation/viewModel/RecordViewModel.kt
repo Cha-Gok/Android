@@ -3,18 +3,8 @@ package com.roro.recorder.presentation
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.os.ParcelFileDescriptor
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.mlkit.genai.common.FeatureStatus
-import com.google.mlkit.genai.common.GenAiException
-import com.google.mlkit.genai.summarization.Summarization
-import com.google.mlkit.genai.summarization.SummarizationRequest
-import com.google.mlkit.genai.summarization.SummarizerOptions
-import com.google.mlkit.genai.summarization.Summarizer
-//import com.roro.recorder.data.datasource.RecordDataSource
-import com.roro.recorder.domain.repository.RecordRepository
 import com.roro.recorder.presentation.uiState.RecordState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -27,66 +17,42 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
-import androidx.concurrent.futures.await
-import com.google.mlkit.common.model.DownloadConditions
-
-
-import com.google.mlkit.genai.common.DownloadCallback
-import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
-
-import com.google.mlkit.genai.speechrecognition.SpeechRecognition
-import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
-import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
-import com.google.mlkit.genai.common.DownloadStatus
-import com.google.mlkit.genai.common.audio.AudioSource
-import com.google.mlkit.genai.speechrecognition.SpeechRecognizer
-import com.google.mlkit.genai.speechrecognition.SpeechRecognizerRequest
-import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
-import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.roro.core.datastore.Language
-import com.roro.recorder.data.GemmaManager
+import com.roro.core.gemma.GemmaManager
 import com.roro.recorder.data.datasource.RecordDataSource
-import com.roro.recorder.domain.usecase.ExtractKeywordsUseCase
 import com.roro.recorder.domain.usecase.SaveRecordingUseCase
-import com.roro.recorder.domain.usecase.SummarizeTextSimpleUseCase
-import com.roro.recorder.domain.usecase.SummarizeTextUseCase
-import com.roro.recorder.domain.usecase.TranscribeAudioUseCase
 import com.roro.recorder.domain.usecase.gemma.ExtractKeywordsWithGemmaUseCase
 import com.roro.recorder.domain.usecase.gemma.ProofreadWithGemmaUseCase
 import com.roro.recorder.domain.usecase.gemma.SttWithGemmaUseCase
 import com.roro.recorder.domain.usecase.gemma.SummarizeWithGemmaUseCase
-import dagger.hilt.android.internal.Contexts.getApplication
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
-import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
     private val recordDataSource: RecordDataSource,
-    //private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val saveRecordingUseCase: SaveRecordingUseCase,
-    //private val summarizeTextUseCase: SummarizeTextSimpleUseCase,
-    //private val extractKeywordsUseCase: ExtractKeywordsUseCase,
 
     // Gemma
     private val summarizeTextUseCase: SummarizeWithGemmaUseCase,
     private val extractKeywordsUseCase: ExtractKeywordsWithGemmaUseCase,
     private val gemmaManager: GemmaManager,
     private val proofreadWithGemmaUseCase: ProofreadWithGemmaUseCase,
-    private val transcribeAudioUseCase: SttWithGemmaUseCase
+    private val transcribeAudioUseCase: SttWithGemmaUseCase,
 
+    @ApplicationContext private val context: Context
     ) : ViewModel() {
 
-    companion object {
+        companion object {
         private const val TAG = "RecordVM"
         private const val AMPLITUDE_POLL_INTERVAL_MS = 100L
-    }
+        }
+
+
 
     // 녹음 상태
     private val _state = MutableStateFlow<RecordState>(RecordState.Idle)
@@ -117,6 +83,14 @@ class RecordViewModel @Inject constructor(
 
     private var amplitudeJob: Job? = null
 
+    fun reset() {
+        _state.value = RecordState.Idle
+        _sttResult.value = ""
+        _summarizeState.value = SummarizeState.Idle
+        _amplitude.value = 0
+        stopAmplitudePolling()
+    }
+
     private fun startAmplitudePolling() {
         amplitudeJob?.cancel()
         amplitudeJob = viewModelScope.launch(Dispatchers.IO) {
@@ -136,19 +110,9 @@ class RecordViewModel @Inject constructor(
     }
     // ────────────────────────────────────────────────────────
 
-    fun setLanguage(language: Language) {
-        _selectedLanguage.value = language
-    }
 
     init {
         gemmaManager.initialize()
-
-        // 테스트 확인용
-//        viewModelScope.launch {
-//            delay(10000L) // 초기화 기다리기
-//            val result = gemmaManager.generate("안녕하세요! 간단히 자기소개 해주세요.")
-//            Timber.tag("GemmaTest").d("🤖 응답: $result")
-//        }
     }
 
     /**
@@ -161,11 +125,26 @@ class RecordViewModel @Inject constructor(
                 val file = recordDataSource.createAudioFile(folderName)
                 recordDataSource.startRecording(file)
                 _state.value = RecordState.Recording
-                startAmplitudePolling() // ← 추가
+                startAmplitudePolling()
+                wakeLock.acquire(3 * 60 * 60 * 1000L) // 최대 3시간
                 Timber.tag(TAG).d("🎤 녹음 시작: ${file.absolutePath}")
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "❌ 녹음 시작 실패")
                 _state.value = RecordState.Error(e.message ?: "녹음 시작 실패")
+            }
+        }
+    }
+
+    fun cancelRecording() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                stopAmplitudePolling()
+                recordDataSource.stopRecording()
+                if (wakeLock.isHeld) wakeLock.release()
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "cancel 실패")
+            } finally {
+                _state.value = RecordState.Idle
             }
         }
     }
@@ -175,6 +154,11 @@ class RecordViewModel @Inject constructor(
      */
     private var lastAudioFile: File? = null
 
+    private val wakeLock by lazy {
+        (context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+            .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "chagok:RecordWakeLock")
+    }
+
 
     fun stopRecording(folderId: UUID? = null) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -183,39 +167,59 @@ class RecordViewModel @Inject constructor(
                 val file = recordDataSource.stopRecording()
                 lastAudioFile = file
                 _state.value = RecordState.Processing
-                _navigateToResult.emit(Unit) // ✅ 즉시 화면 이동
-                processAudio(file, folderId) // 백그라운드 처리
+                _navigateToResult.emit(Unit)
+                processAudio(file, folderId)
             } catch (e: Exception) {
                 _state.value = RecordState.Error(e.message ?: "녹음 종료 실패")
+            } finally {
+                if (wakeLock.isHeld) wakeLock.release()  // 처리 완료 후 해제
             }
         }
     }
+
     private suspend fun processAudio(file: File, folderId: UUID? = null) {
         try {
             val t0 = System.currentTimeMillis()
 
+            // 1. STT
             val sttText = transcribeAudioUseCase(file, _selectedLanguage.value)
             Timber.tag(TAG).d("⏱️ STT: ${System.currentTimeMillis() - t0}ms")
 
-            val t1 = System.currentTimeMillis()
-            val proofreadText = proofreadWithGemmaUseCase(sttText)
-            Timber.tag(TAG).d("⏱️ 교정: ${System.currentTimeMillis() - t1}ms")
+            // 2. 음성 없음 → 파일만 저장
+            if (sttText.isBlank()) {
+                val voiceNoteId = saveRecordingUseCase(
+                    audioFile = file,
+                    durationSec = file.length() / (16000.0 * 2),
+                    sttText = "",
+                    summaryText = "",
+                    keywords = emptyList(),
+                    folderId = folderId
+                )
+                _state.value = RecordState.NoSpeech(voiceNoteId.toString())
+                _navigationEvent.emit(voiceNoteId.toString())
+                return
+            }
 
-            _sttResult.value = sttText
+            // 3. 교정
+            val proofreadText = try {
+                proofreadWithGemmaUseCase(sttText)
+            } catch (e: Exception) {
+                sttText // 교정 실패 시 원본 사용
+            }
+            _sttResult.value = proofreadText
 
-            val t2 = System.currentTimeMillis()
-            val keywords = extractKeywordsUseCase(proofreadText)
-            Timber.tag(TAG).d("⏱️ 키워드: ${System.currentTimeMillis() - t2}ms")
+            // 4. 키워드 + 요약
+            val keywords = try {
+                extractKeywordsUseCase(proofreadText)
+            } catch (e: Exception) {
+                emptyList()
+            }
 
-            _summarizeState.value = SummarizeState.Loading
-
-            val t3 = System.currentTimeMillis()
-            val summary = summarizeTextUseCase(proofreadText)
-            Timber.tag(TAG).d("⏱️ 요약: ${System.currentTimeMillis() - t3}ms")
-
-            Timber.tag(TAG).d("⏱️ 전체: ${System.currentTimeMillis() - t0}ms")
-
-            _summarizeState.value = SummarizeState.Success(summary)
+            val summary = try {
+                summarizeTextUseCase(proofreadText)
+            } catch (e: Exception) {
+                ""
+            }
 
             val durationSec = file.length() / (16000.0 * 2)
             val voiceNoteId = saveRecordingUseCase(
@@ -227,13 +231,17 @@ class RecordViewModel @Inject constructor(
                 folderId = folderId
             )
 
-            _state.value = RecordState.Success(sttText)
+            // 5. 요약 실패 여부에 따라 상태 분기
+            if (summary.isBlank()) {
+                _state.value = RecordState.SummaryError(voiceNoteId.toString())
+            } else {
+                _state.value = RecordState.Success(voiceNoteId.toString())
+            }
             _navigationEvent.emit(voiceNoteId.toString())
 
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "❌ 처리 실패")
             _state.value = RecordState.Error(e.message ?: "처리 실패")
-            _summarizeState.value = SummarizeState.Error(e.message ?: "요약 실패")
         }
     }
 
@@ -255,45 +263,6 @@ class RecordViewModel @Inject constructor(
         startAmplitudePolling() // ← 추가
     }
 
-    /**
-     * STT 모델 상태 확인 + 다운로드 -> 온보딩
-     */
-    fun checkSTT() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val options = speechRecognizerOptions {
-                    locale = Locale("ko", "KR")
-                    preferredMode = SpeechRecognizerOptions.Mode.MODE_BASIC
-                }
-                val speechRecognizer = SpeechRecognition.getClient(options)
-                val status = speechRecognizer.checkStatus()
-                Timber.tag(TAG).d("🎤 STT 상태: $status")
-
-                when (status) {
-                    FeatureStatus.UNAVAILABLE -> Timber.tag(TAG).w("🎤 미지원 (UNAVAILABLE)")
-                    FeatureStatus.DOWNLOADABLE -> {
-                        speechRecognizer.download().collect { downloadStatus ->
-                            when (downloadStatus) {
-                                is DownloadStatus.DownloadStarted ->
-                                    Timber.tag(TAG).d("🎤 다운로드 시작: ${downloadStatus.bytesToDownload / 1024 / 1024}MB")
-                                is DownloadStatus.DownloadProgress ->
-                                    Timber.tag(TAG).d("🎤 다운로드 중: ${downloadStatus.totalBytesDownloaded / 1024 / 1024}MB")
-                                is DownloadStatus.DownloadCompleted ->
-                                    Timber.tag(TAG).d("🎤 다운로드 완료!")
-                                is DownloadStatus.DownloadFailed ->
-                                    Timber.tag(TAG).e("🎤 다운로드 실패: $downloadStatus")
-                            }
-                        }
-                    }
-                    FeatureStatus.DOWNLOADING -> Timber.tag(TAG).d("🎤 다운로드 중...")
-                    FeatureStatus.AVAILABLE -> Timber.tag(TAG).d("🎤 사용 가능!")
-                }
-                speechRecognizer.close()
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "🎤 STT 체크 실패")
-            }
-        }
-    }
 
     // ── SummarizeState ─────────────────────────────────────
     sealed class SummarizeState {
