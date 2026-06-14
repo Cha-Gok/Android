@@ -74,7 +74,6 @@ import java.time.ZoneId.systemDefault
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel(),
-    onStartRecord: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -118,7 +117,6 @@ fun HomeScreen(
                     navController.navigate(Routes.searchTemp(SearchType.HOME))
                 }
 
-
                 // 설정
                 HomeEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
             }
@@ -139,7 +137,7 @@ fun HomeScreen(
         onSettingClick = { viewModel.onIntent(HomeIntent.ClickSetting) },
         onRecordClick = {
             if (viewModel.isModelDownloaded()) {
-                navController.navigate(Routes.RECORDER)
+                viewModel.onIntent(HomeIntent.ClickRecordButton)
             } else {
                 showDownloadBottomSheet = true
             }
@@ -169,7 +167,6 @@ internal fun StorageScreenContent(
     onSearchClick: () -> Unit,
     onSettingClick: () -> Unit,
     onRecordClick: () -> Unit,  // ← 바텀시트용
-    onStartRecord: () -> Unit
 ) {
 
     // 1. 스크롤 상태 기억
@@ -376,7 +373,6 @@ fun StorageScreenPreview() {
         onSettingClick = {},
 
         onRecordClick = {},  // ← 추가
-        onStartRecord = {}
     )
 }
 
