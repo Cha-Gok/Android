@@ -64,7 +64,7 @@ class SttWithGemmaUseCase @Inject constructor(
             i += 2
         }
         val rms = if (count > 0) Math.sqrt(sum / count) else 0.0
-        return rms < 300.0  // 임계값, 조정 가능
+        return rms < 50.0  // 임계값, 조정 가능
     }
 
 
