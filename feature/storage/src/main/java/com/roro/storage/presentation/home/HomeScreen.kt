@@ -308,23 +308,15 @@ internal fun StorageScreenContent(
 fun FolderItemList(
     voiceNote: VoiceNoteItem,
     navController: NavController,  // 0511 추가
-    modifier: Modifier = Modifier
 ) {
     // 0511 수정
     ChaGokItemBox(
         title = voiceNote.title,
         createAt = voiceNote.createdAt.formatDate(),
         duration = voiceNote.duration,
-        onClick = { navController.navigate(Routes.RECORD_DETAIL) },
+        onClick = { navController.navigate(Routes.trashVoiceNote(voiceNote.id)) },
         type = FileType.VOICE_NOTE,
     )
-//    ChaGokNoteList(
-//        title = voiceNote.title,
-//        summaryStatus = SummaryStatus.COMPLETED,
-//        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },  // ✅ 추가
-//        time = voiceNote.createdAt.formatDate(""),
-//        modifier = modifier.fillMaxWidth()
-//    )
 }
 
 @Composable
