@@ -14,7 +14,8 @@ object Routes {
     const val RECORDER = "record"
     const val TRASH = "trash"
     const val TOS = "tos" // 이용약관
-    const val SEARCH_TEMP = "search/{searchType}" // 검색
+    const val SEARCH_TEMP = "search/{searchType}?folderId={folderId}" // 검색
+
     const val SETTINGS = "settings" // 설정
 
     // 웹뷰
@@ -29,9 +30,6 @@ object Routes {
     const val STORAGE_FILE = "storage/folder/file/{folderId}/{folderName}"
     fun storageFile(folderId: String, folderName: String) = "storage/folder/file/${folderId}/${folderName}"
 
-// 삭제 예정
-//    const val RECORD_DETAIL = "recoder/detail/{fileId}"
-//    fun recorderDetail(fileId: String) = "recoder/detail/$fileId"
 
     // 녹음 결과 화면 추가
     const val RECORD_RESULT = "record/result/{voiceNoteId}"
@@ -44,11 +42,17 @@ object Routes {
     const val SCRIPT_EDIT = "record/script-edit/{voiceNoteId}"
     fun scriptEdit(voiceNoteId: String) = "record/script-edit/$voiceNoteId"
 
-    // 검색 화면
+    // 검색 결과 검색 화면
     const val SEARCH = "record/search/"
 
     // 검색 화면 - 임시?
-    fun searchTemp(searchType: SearchType) = "search/${searchType.name}"
+    fun searchTemp(searchType: SearchType, folderId: String? = null): String {
+        return if (folderId != null) {
+            "search/${searchType.name}?folderId=$folderId"
+        } else {
+            "search/${searchType.name}"
+        }
+    }
 
 }
 

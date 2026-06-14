@@ -10,13 +10,14 @@ data class SearchUiState(
     val itemList: List<SearchItem> = emptyList(), // 휴지통 리스트
     val errorMessage: String? = null,
     val searchType: SearchType = SearchType.HOME,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val folderId: String? = null
 )
 
 sealed interface SearchItem {
     val id: String
     val title: String
-    val createAt: String
+    val createAt: Long
 
     data class HomeSearchItem(
         val folderItem: FolderItem? = null,
@@ -24,7 +25,7 @@ sealed interface SearchItem {
     ) : SearchItem {
         override val id: String get() = folderItem?.id ?: voiceNoteItem?.id ?: ""
         override val title: String get() = folderItem?.title ?: voiceNoteItem?.title ?: ""
-        override val createAt: String get() = folderItem?.createAt ?: voiceNoteItem?.createAt ?: ""
+        override val createAt: Long get() = folderItem?.createAt ?: voiceNoteItem?.createdAt ?: 0L
 
 
         // UI 표현을 위한 추가 헬퍼 프로퍼티
@@ -41,7 +42,7 @@ sealed interface SearchItem {
     ) : SearchItem {
         override val id: String get() = folderItem?.id ?: ""
         override val title: String get() = folderItem?.title ?: ""
-        override val createAt: String get() = folderItem?.createAt ?: ""
+        override val createAt: Long get() = folderItem?.createAt ?: 0L
 
         // UI 표현을 위한 추가 헬퍼 프로퍼티
         val count: String? get() = folderItem?.count
@@ -53,7 +54,7 @@ sealed interface SearchItem {
     ) : SearchItem {
         override val id: String get() = folderItem?.id ?: voiceNoteItem?.id ?: ""
         override val title: String get() = folderItem?.title ?: voiceNoteItem?.title ?: ""
-        override val createAt: String get() = folderItem?.createAt ?: voiceNoteItem?.createAt ?: ""
+        override val createAt: Long get() = folderItem?.createAt ?: voiceNoteItem?.createdAt ?: 0L
 
 
         // UI 표현을 위한 추가 헬퍼 프로퍼티
@@ -61,6 +62,20 @@ sealed interface SearchItem {
         val count: String? get() = folderItem?.count
         val duration: String? get() = voiceNoteItem?.duration
         val isFolder: Boolean get() = folderItem != null
+        val folderName: String? get() = voiceNoteItem?.folderName
+    }
+
+    data class FileListSearchItem(
+        val voiceNoteItem: VoiceNoteItem? = null
+    ) : SearchItem {
+        override val id: String get() = voiceNoteItem?.id ?: ""
+        override val title: String get() = voiceNoteItem?.title ?: ""
+        override val createAt: Long get() = voiceNoteItem?.createdAt ?: 0L
+
+
+        // UI 표현을 위한 추가 헬퍼 프로퍼티
+        val isVoiceNote: Boolean get() = voiceNoteItem != null
+        val duration: String? get() = voiceNoteItem?.duration
         val folderName: String? get() = voiceNoteItem?.folderName
     }
 }

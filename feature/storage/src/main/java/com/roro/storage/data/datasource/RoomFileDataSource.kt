@@ -20,7 +20,9 @@ import com.roro.core.model.Folder
 import com.roro.core.model.FolderWithNoteCount
 import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 
@@ -59,8 +61,10 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더와 내부 VoiceNote 파일 휴지통 이동
-    suspend fun moveFolderWithVoiceNotesToTrash(folder: FolderEntity) {
+    suspend fun moveFolderWithVoiceNotesToTrash(folderId: UUID) {
         val now = System.currentTimeMillis()
+
+        val folder = folderDao.getFolder(folderId) ?: return
 
         folderDao.updateFolder(
             folder.copy(
@@ -174,9 +178,8 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 폴더를 가지고 있는 voiceNote 조회
-    fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNote>> {
-        return voiceNoteDao.observeVoiceNote(folderId)
-            .map { list -> list.map { it.toModel() } }
+    fun observeNotNullVoiceNote(folderId: UUID): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeVoiceNoteInFolder(folderId).map { it.toItem() }
     }
 
     // 폴더가 없는 voiceNote 조회
@@ -186,8 +189,10 @@ class RoomFileDataSource @Inject constructor(
     }
 
     // 최근 voiceNote 5개 조회
-    fun observeRecentVoiceNote(): Flow<List<VoiceNote>> {
-        return voiceNoteDao.observeRecentVoiceNote().map { list -> list.map { it.toModel() } }
+    fun observeRecentVoiceNote(): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeRecentVoiceNote().map { result ->
+            result.toItem()
+        }
     }
 
     // 폴더 이름 변경
@@ -228,6 +233,23 @@ class RoomFileDataSource @Inject constructor(
         )
     }
 
+    /*          홈 화면            */
+    fun observeTrashTotalCount(): Flow<Int> {
+        return voiceNoteDao.observeCountTrashRootVoiceNotes()
+    }
+
+    /*          폴더 가져오기       */
+    fun observeFolders(): Flow<List<FolderItem>> {
+        return folderDao.observeFolders().map { it.toItem() }
+    }
+
+    // 기본 폴더 voiceNote 가져오기
+    fun observeVoiceNote(): Flow<List<VoiceNoteItem>> {
+        return voiceNoteDao.observeRootVoiceNotes().map { results ->
+            results.toItem()
+        }
+    }
+
     /*          검색 로직          */
 
     // 홈 검색
@@ -235,6 +257,15 @@ class RoomFileDataSource @Inject constructor(
         return folderDao.searchFolders(query = query).map { result ->
             result.toItem()
         }
+    }
+
+    suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String) {
+        val now = System.currentTimeMillis()
+        voiceNoteDao.moveToFolder(
+            voiceNoteId = voiceNoteId,
+            folderId = folderId,
+            updatedAt = now
+        )
     }
 
 
@@ -245,12 +276,14 @@ class RoomFileDataSource @Inject constructor(
         }
     }
 
+    // 파일리스트 검색
+    suspend fun searchVoiceNoteInFolder(query: String, folderId: String): List<VoiceNoteItem> {
+        return voiceNoteDao.searchVoiceNoteInFolder(query = query, folderId = folderId).toItem()
+    }
 
     // 휴지통 내 폴더 검색
     suspend fun searchTrashFolders(query: String): List<FolderItem> {
-        return folderDao.searchTrashFolders(query).map { result ->
-            result.toItem()
-        }
+        return folderDao.searchTrashFolders(query).toItem()
     }
 
     // 휴지통 내 VoiceNote 검색

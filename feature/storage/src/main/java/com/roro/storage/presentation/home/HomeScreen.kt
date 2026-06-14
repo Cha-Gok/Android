@@ -1,5 +1,8 @@
 package com.roro.storage.presentation.home
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,13 +45,17 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.roro.core.datastore.Language
-import com.roro.core.model.VoiceNote
+import com.roro.core.domain.model.FileType
+import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
 import com.roro.core.ui.component.ChaGokNoteList
+import com.roro.core.ui.component.ChaGokItemBox
+import com.roro.core.ui.component.ChaGokLanguageDialog
+import com.roro.core.ui.component.ChaGokSettingsDropdown
 import com.roro.core.ui.component.ChaGokTopBar
 import com.roro.core.ui.component.ChagokStartRecordFAB
 import com.roro.core.ui.component.GemmaDownloadBottomSheet
@@ -64,14 +71,26 @@ import java.time.LocalDate
 import java.time.ZoneId.systemDefault
 
 @Composable
-fun StorageScreen(
+fun HomeScreen(
     navController: NavController,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onStartRecord: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showDownloadBottomSheet by remember { mutableStateOf(false) }  // 모델 다운로드 바텀시트
 
+    var backPressedTime by remember { mutableStateOf(0L) }
+
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - backPressedTime < 2000) {
+            (context as? Activity)?.finish()
+        } else {
+            backPressedTime = currentTime
+            context.toast("한 번 더 누르면 종료됩니다.")
+        }
+    }
     uiState.errorMessage?.let {
         Timber.d("text $it")
     }
@@ -99,9 +118,6 @@ fun StorageScreen(
                     navController.navigate(Routes.searchTemp(SearchType.HOME))
                 }
 
-//                HomeEffect.NavigateToTos -> {
-//                    navController.navigate(Routes.TOS)
-//                }
 
                 // 설정
                 HomeEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
@@ -153,6 +169,7 @@ internal fun StorageScreenContent(
     onSearchClick: () -> Unit,
     onSettingClick: () -> Unit,
     onRecordClick: () -> Unit,  // ← 바텀시트용
+    onStartRecord: () -> Unit
 ) {
 
     // 1. 스크롤 상태 기억
@@ -190,6 +207,7 @@ internal fun StorageScreenContent(
                 .nestedScroll(nestedScrollConnection) // 연결
         ) {
             Column {
+                var isMenuExpanded by remember { mutableStateOf(false) }
                 ChaGokTopBar(
                     title = "차곡",
                     onFirstActionClick = { onSearchClick() },
@@ -273,27 +291,26 @@ internal fun StorageScreenContent(
             ChagokStartRecordFAB(
                 onClick = onRecordClick,  // ← 람다로 교체
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 42.dp, bottom = 64.dp),
+                    .align(Alignment.BottomEnd) // 우측 하단 정렬
+                    .padding(end = 42.dp, bottom = 64.dp), // 화면 끝에서 여백
             )
         }
     }
-
 }
 
 @Composable
 fun FolderItemList(
-    voiceNote: VoiceNote,
+    voiceNote: VoiceNoteItem,
     navController: NavController,  // 0511 추가
     modifier: Modifier = Modifier
 ) {
-   // 0511 수정
-    ChaGokNoteList(
+    // 0511 수정
+    ChaGokItemBox(
         title = voiceNote.title,
-        summaryStatus = SummaryStatus.COMPLETED,
-        onClick = { navController.navigate(Routes.recordResult(voiceNote.id.toString())) },  // ✅ 추가
-        time = voiceNote.createdAt.formatDate(""),
-        modifier = modifier.fillMaxWidth()
+        createAt = voiceNote.createdAt.formatDate(),
+        duration = voiceNote.duration,
+        onClick = { navController.navigate(Routes.RECORD_DETAIL) },
+        type = FileType.VOICE_NOTE,
     )
 }
 
@@ -350,9 +367,7 @@ fun StorageScreenPreview() {
     StorageScreenContent(
         navController = rememberNavController(),
         uiState = HomeUiState(
-            selectedFolderType = DefaultFolderType.RECENT,
-            isLoading = false,
-            errorMessage = null
+            selectedFolderType = DefaultFolderType.RECENT, isLoading = false, errorMessage = null
         ),
         onClickFolderType = {},
         defaultCount = 0,
@@ -362,9 +377,9 @@ fun StorageScreenPreview() {
         onSettingClick = {},
 
         onRecordClick = {},  // ← 추가
+        onStartRecord = {}
     )
 }
-
 
 enum class DefaultFolderType(
     val title: String, val icon: ImageVector

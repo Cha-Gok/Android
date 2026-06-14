@@ -1,7 +1,7 @@
 package com.roro.storage.presentation.search
 
 sealed interface SearchIntent {
-    data class InitSearchType(val searchType: String) : SearchIntent
+    data class InitSearchType(val searchType: String, val folderId: String?) : SearchIntent
     data class ChangeQuery(val query: String) : SearchIntent
     data object ClickKeyboardSearch : SearchIntent
     data object ClickClose : SearchIntent

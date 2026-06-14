@@ -11,7 +11,7 @@ import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.storage.presentation.filelist.FileListScreen
 import com.roro.storage.presentation.folderlist.PrivateFolderScreen
-import com.roro.storage.presentation.home.StorageScreen
+import com.roro.storage.presentation.home.HomeScreen
 import com.roro.storage.presentation.home.setting.SettingScreen
 import com.roro.storage.presentation.home.setting.WebViewScreen
 import com.roro.storage.presentation.search.SearchScreen
@@ -34,19 +34,19 @@ import com.roro.storage.presentation.trash.TrashScreen
  */
 fun NavGraphBuilder.storageGraph(
     navController: NavController,
-    //onStartRecord: () -> Unit,   // 삭제예정
+    onStartRecord: () -> Unit,   // 추가
 ) {
     val animationDuration = 500
 
-    // 바텀 네비게이션 Oㅍ -> 삭제 예정
+    // 바텀 네비게이션 O
 //    composable(Routes.STORAGE) {
 //        StorageScreen(navController = navController)
 //    }
 
     composable(Routes.STORAGE) {
-        StorageScreen(
+        HomeScreen(
             navController = navController,
-            //onStartRecord = onStartRecord,   // ✅ 전달
+            onStartRecord = onStartRecord,   // ✅ 전달
         )
     }
 
@@ -154,7 +154,15 @@ fun NavGraphBuilder.storageGraph(
 
     composable(
         Routes.SEARCH_TEMP,
-        arguments = listOf(navArgument("searchType") { type = NavType.StringType }),
+        arguments = listOf(
+            navArgument("searchType") { type = NavType.StringType },
+            navArgument("folderId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        ),
+
         enterTransition = {
             // 1번 -> 2번으로 올 때: 왼쪽으로 밀면서 들어옴
             slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
@@ -173,9 +181,11 @@ fun NavGraphBuilder.storageGraph(
         }
     ) { backStackEntry ->
         val searchType = backStackEntry.arguments?.getString("searchType") ?: SearchType.TRASH.name
+        val folderId = backStackEntry.arguments?.getString(("folderId"))
 
         SearchScreen(
             searchType = searchType,
+            folderId = folderId,
             navController = navController
         )
     }

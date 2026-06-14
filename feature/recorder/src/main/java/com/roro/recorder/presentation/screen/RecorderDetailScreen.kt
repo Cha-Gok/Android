@@ -23,8 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.roro.core.navigation.Routes
-import com.roro.core.ui.component.ChaGokBackground
-import com.roro.core.ui.component.ChagokDialog
+import com.roro.core.ui.component.ChaGokDialog
 import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.uiState.RecordState
 import kotlinx.coroutines.delay
@@ -208,7 +207,7 @@ fun RecorderDetailScreen(
 
     // 종료 다이얼로그
     if (showStopDialog) {
-        ChagokDialog(
+        ChaGokDialog(
             title = "녹음을 종료하고 저장할까요?",
             description = "지금까지 녹음한 내용이 기록됩니다.",
             dismissText = "아니오",
@@ -226,7 +225,7 @@ fun RecorderDetailScreen(
 
     // 취소 다이얼로그
     if (showCancelDialog) {
-        ChagokDialog(
+        ChaGokDialog(
             title = "녹음을 취소할까요?",
             description = "지금까지 녹음한 내용은 저장되지 않아요",
             dismissText = "계속 녹음",

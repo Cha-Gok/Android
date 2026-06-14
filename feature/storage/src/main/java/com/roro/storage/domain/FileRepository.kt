@@ -16,7 +16,7 @@ interface FileRepository {
     suspend fun createVoiceNote(folderName: String?)
 
     // 폴더 휴지통으로 이동
-    suspend fun moveToTrash(folder: Folder)
+    suspend fun moveToTrash(folderId: UUID)
 
     // voiceNote 휴지통으로 이동
     suspend fun moveToVoiceNotes(voiceNoteIds: List<UUID>)
@@ -46,10 +46,10 @@ interface FileRepository {
     fun observeVoiceNotesByNullFolder(): Flow<List<VoiceNote>>
 
     // 폴더가 있는 voiceNote fetch
-    fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNote>>
+    fun observeVoiceNotesByNoneNullFolder(folderId: UUID): Flow<List<VoiceNoteItem>>
 
     // 최근 voiceNote 5개
-    fun observeRecentVoiceNote(): Flow<List<VoiceNote>>
+    fun observeRecentVoiceNote(): Flow<List<VoiceNoteItem>>
 
     // voiceNote 영구삭제
     suspend fun removeVoiceNote(voiceNoteId: UUID)
@@ -63,10 +63,22 @@ interface FileRepository {
     // VoiceNote 이름 변경
     suspend fun renameVoiceNote(voiceNote: VoiceNote)
 
+    suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String)
+
+    /*      VoiceNote 가져오기      */
+    fun observeVoiceNote(): Flow<List<VoiceNoteItem>>
+
+    /*      폴더 정보 가져오기      */
+    fun observeFolders(): Flow<List<FolderItem>>
+
+    // 휴지통 개수 가져오기
+    suspend fun observeTrashTotalCount(): Flow<Int>
+
     /*      검색 선언       */
     // 홈 검색
     suspend fun searchFolders(query: String): List<FolderItem>
     suspend fun searchVoiceNotes(query: String): List<VoiceNoteItem>
+    suspend fun searchVoiceNotesInFolder(query: String, folderId: String): List<VoiceNoteItem>
 
     // 휴지통 검색
     suspend fun searchTrashFolder(query: String): List<FolderItem>

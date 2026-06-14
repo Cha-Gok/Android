@@ -100,7 +100,7 @@ fun ChaGokSwipeableFolderItem(
             onClick = { if (isRevealed) onCollapse() else onClick() },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF13003F))
+                .background(Color(0xFF13003F), shape = RoundedCornerShape(20.dp))
                 .clip(RoundedCornerShape(20.dp)),
         )
     }
@@ -117,7 +117,6 @@ fun ChaGokSwipeableFileItem(
     onCollapse: () -> Unit,
     isSelectionMode: Boolean,
     isSelected: Boolean,
-    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onClick: () -> Unit,
     onChange: (Boolean) -> Unit,
@@ -295,7 +294,7 @@ fun ChaGokSwipeableItemWithActionsList(
 
 
 @Composable
-@Preview(showBackground = true, backgroundColor = 0xFF13003F) // 배경색 설정
+@Preview(showBackground = true,) // 배경색 설정
 fun ChaGokSwipePreview() {
     // 미리보기에서 스와이프 상태를 확인하기 위한 가상 데이터 리스트
     val folderList = remember {
@@ -354,7 +353,6 @@ fun ChaGokSwipePreview() {
                     onCollapse = { if (revealedFolderId == id) revealedFolderId = null },
                     isSelectionMode = true,
                     isSelected = selectedIds.contains(id), // 여기서 상태 체크
-                    onEdit = { },
                     onDelete = { folderList.removeIf { it.first == id } },
                     onClick = { /* 클릭 로직 */ },
                     onChange = { isChecked ->

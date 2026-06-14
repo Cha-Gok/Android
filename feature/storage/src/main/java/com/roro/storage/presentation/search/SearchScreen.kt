@@ -30,13 +30,24 @@ import com.roro.core.ui.component.ChaGokSearchBar
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.PrimaryColor
 import com.roro.core.ui.theme.TextSecondary
+import com.roro.core.util.formatDate
+import timber.log.Timber
 
 @Composable
 fun SearchScreen(
-    searchType: String, navController: NavController, viewModel: SearchViewModel = hiltViewModel<SearchViewModel>()
+    searchType: String,
+    folderId: String? = null,
+    navController: NavController,
+    viewModel: SearchViewModel = hiltViewModel<SearchViewModel>()
 ) {
     LaunchedEffect(searchType) {
-        viewModel.onIntent(SearchIntent.InitSearchType(searchType = searchType))
+        viewModel.onIntent(
+            SearchIntent.InitSearchType(
+                searchType = searchType,
+                folderId = folderId
+            )
+        )
+
     }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -110,7 +121,7 @@ fun SearchScreenContent(
                             is SearchItem.HomeSearchItem -> {
                                 ChaGokItemBox(
                                     title = item.title,
-                                    createAt = item.createAt,
+                                    createAt = item.createAt.formatDate(),
                                     type = if (item.isFolder) FileType.FOLDER else FileType.VOICE_NOTE,
                                     count = item.count,
                                     folderName = item.folderName,
@@ -122,7 +133,7 @@ fun SearchScreenContent(
                             is SearchItem.TrashSearchItem -> {
                                 ChaGokItemBox(
                                     title = item.title,
-                                    createAt = item.createAt,
+                                    createAt = item.createAt.formatDate(),
                                     type = if (item.isFolder) FileType.FOLDER else FileType.VOICE_NOTE,
                                     count = item.count,
                                     folderName = item.folderName,
@@ -134,9 +145,20 @@ fun SearchScreenContent(
                             is SearchItem.FolderSearchItem -> {
                                 ChaGokItemBox(
                                     title = item.title,
-                                    createAt = item.createAt,
-                                    type = FileType.FOLDER ,
+                                    createAt = item.createAt.formatDate(),
+                                    type = FileType.FOLDER,
                                     count = item.count,
+                                    onClick = { },
+                                )
+                            }
+
+                            is SearchItem.FileListSearchItem -> {
+                                ChaGokItemBox(
+                                    title = item.title,
+                                    createAt = item.createAt.formatDate(),
+                                    type = FileType.VOICE_NOTE,
+                                    duration = item.duration,
+                                    folderName = item.folderName,
                                     onClick = { },
                                 )
                             }
