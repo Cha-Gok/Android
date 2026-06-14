@@ -38,6 +38,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":feature:recorder"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

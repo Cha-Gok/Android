@@ -106,8 +106,15 @@ class TrashViewModel @Inject constructor(
             }
 
             // 5. 일반 클릭
-            is TrashIntent.ClickFolder -> emitEffect(TrashEffect.NavigateToDetail)
-            is TrashIntent.ClickVoiceNote -> emitEffect(TrashEffect.NavigateToDetail)
+//            is TrashIntent.ClickFolder -> emitEffect(TrashEffect.NavigateToDetail)
+//            TrashIntent.ClickVoiceNote -> emitEffect(TrashEffect.NavigateToDetail)
+            is TrashIntent.ClickFolder -> {
+                viewModelScope.launch { _effect.emit(TrashEffect.NavigateToFolder(intent.folderId, intent.folderName)) }
+            }
+
+            is TrashIntent.ClickVoiceNote -> {
+                viewModelScope.launch { _effect.emit(TrashEffect.NavigateToDetail(intent.voiceNoteId)) }
+            }
         }
     }
 

@@ -68,6 +68,10 @@ fun AppNavHost(
             navController = navController,
             recordViewModel = recordViewModel  // ✅ 전달
         )
+
+        trashGraph(
+            navController = navController
+        )
     }
 
 }

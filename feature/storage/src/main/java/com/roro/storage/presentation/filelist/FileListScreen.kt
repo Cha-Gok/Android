@@ -85,6 +85,7 @@ import com.roro.core.ui.theme.TextTertiary
 import com.roro.core.util.formatDate
 import com.roro.core.util.toUUIDOrNull
 import com.roro.core.util.toast
+import timber.log.Timber
 import java.util.UUID
 
 @Composable
@@ -92,8 +93,12 @@ fun FileListScreen(
     navController: NavController,
     folderName: String,
     folderId: String,
+    isTrash: Boolean,
     viewModel: FileListViewModel = hiltViewModel()
 ) {
+    Timber.d("folderId 확인 = $folderId")
+    Timber.d("isTrah 확인 = $isTrash")
+    Timber.d("folderName 확인 = $folderName")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -140,7 +145,8 @@ fun FileListScreen(
 
     FileListScreenContent(
         uiState = uiState,
-        onIntent = viewModel::onIntent
+        onIntent = viewModel::onIntent,
+        isTrash = isTrash
     )
 }
 
@@ -148,7 +154,8 @@ fun FileListScreen(
 @Composable
 internal fun FileListScreenContent(
     uiState: FileListUiState,
-    onIntent: (FileListIntent) -> Unit
+    onIntent: (FileListIntent) -> Unit,
+    isTrash: Boolean,
 ) {
     BackHandler(enabled = uiState.isSelectMode || uiState.isMenuExpanded || uiState.isBottomSheet) {
         if (uiState.isMenuExpanded) {
@@ -171,10 +178,10 @@ internal fun FileListScreenContent(
                         onIntent(FileListIntent.ClickBack)
                     },
 
-                    firstActionIcon = if (!uiState.isSelectMode) Icons.Default.Search else null,
+                    firstActionIcon = if (!uiState.isSelectMode && !isTrash) Icons.Default.Search else null,
                     firstActionDescription = "search",
                     onFirstActionClick = { onIntent(FileListIntent.ClickSearch) },
-                    secondActionIcon = if (!uiState.isSelectMode) Icons.Default.MoreVert else null,
+                    secondActionIcon = if (!uiState.isSelectMode && !isTrash) Icons.Default.MoreVert else null,
                     secondActionDescription = "더보기",
                     onSecondActionClick = { onIntent(FileListIntent.ShowMoreMenu(true)) },
                     secondActionTrailingContent = {
@@ -193,7 +200,7 @@ internal fun FileListScreenContent(
                                     Text(text = "삭제", color = Danger, style = ChaGokTextStyle.Title2)
                                 }
                             }
-                        } else {
+                        } else if (!isTrash) {
                             ChaGokMoreMenu(
                                 expanded = uiState.isMenuExpanded,
                                 onDismissRequest = { onIntent(FileListIntent.ShowMoreMenu(false)) },
@@ -587,8 +594,8 @@ private fun NewFolderDialog(
 fun FileListScreenPreview() {
     FileListScreenContent(
         uiState = FileListUiState(),
-        onIntent = {}
-
+        onIntent = {},
+        isTrash = false
     )
 }
 

@@ -15,6 +15,7 @@ object Routes {
     const val TRASH = "trash"
     const val TOS = "tos" // 이용약관
     const val SEARCH_TEMP = "search/{searchType}?folderId={folderId}" // 검색
+    const val TRASH_VOICE_NOTE = "trash_voiceNote/{voiceNoteId}" // 휴지통 -> 상세정보
 
     const val SETTINGS = "settings" // 설정
 
@@ -27,8 +28,10 @@ object Routes {
     const val STORAGE_FOLDER = "storage/folder"
 
     // 폴더 목록 > 파일 목록
-    const val STORAGE_FILE = "storage/folder/file/{folderId}/{folderName}"
-    fun storageFile(folderId: String, folderName: String) = "storage/folder/file/${folderId}/${folderName}"
+    const val STORAGE_FILE = "storage/folder/file/{folderId}/{folderName}/{isTrash}"
+    fun storageFile(
+        folderId: String, folderName: String, isTrash: Boolean
+    ) = "storage/folder/file/${folderId}/${folderName}/${isTrash}"
 
 
     // 녹음 결과 화면 추가
@@ -54,6 +57,9 @@ object Routes {
         }
     }
 
+    fun trashVoiceNote(voiceNoteId: String): String {
+        return "trash_voiceNote/${voiceNoteId}"
+    }
 }
 
 /**
