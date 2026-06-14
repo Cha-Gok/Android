@@ -72,6 +72,10 @@ fun AppNavHost(
             navController = navController,
             recordViewModel = recordViewModel  // ✅ 전달
         )
+
+        trashGraph(
+            navController = navController
+        )
     }
 
     // 바텀 시트 — app 레이어에서 recorder 모듈 직접 호출
