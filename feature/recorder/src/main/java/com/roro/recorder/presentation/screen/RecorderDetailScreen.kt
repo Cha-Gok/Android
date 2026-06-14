@@ -66,6 +66,8 @@ fun RecorderDetailScreen(
         }
     }
 
+
+
     // 처리 완료 → 이동
     LaunchedEffect(Unit) {
         viewModel.navigateToResult.collect {
@@ -75,8 +77,10 @@ fun RecorderDetailScreen(
             }
         }
     }
+
     // 화면 진입 시 녹음 시작
     LaunchedEffect(Unit) {
+        viewModel.reset()
         viewModel.startRecording()
     }
 
@@ -135,6 +139,7 @@ fun RecorderDetailScreen(
                     fontSize = 16.sp,
                     modifier = Modifier.clickable {
                         if (elapsedSeconds < 3) {
+                            viewModel.cancelRecording()  // ← stopRecording 대신 cancel
                             navController.popBackStack()
                         } else {
                             isRunning = false
@@ -233,6 +238,7 @@ fun RecorderDetailScreen(
             },
             onConfirm = {
                 showCancelDialog = false
+                viewModel.cancelRecording()
                 navController.popBackStack()
             }
         )

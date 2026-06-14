@@ -12,6 +12,8 @@ import com.roro.core.navigation.SearchType
 import com.roro.storage.presentation.filelist.FileListScreen
 import com.roro.storage.presentation.folderlist.PrivateFolderScreen
 import com.roro.storage.presentation.home.StorageScreen
+import com.roro.storage.presentation.home.setting.SettingScreen
+import com.roro.storage.presentation.home.setting.WebViewScreen
 import com.roro.storage.presentation.search.SearchScreen
 import com.roro.storage.presentation.tos.TosScreen
 import com.roro.storage.presentation.trash.TrashScreen
@@ -32,11 +34,11 @@ import com.roro.storage.presentation.trash.TrashScreen
  */
 fun NavGraphBuilder.storageGraph(
     navController: NavController,
-    onStartRecord: () -> Unit,   // 추가
+    //onStartRecord: () -> Unit,   // 삭제예정
 ) {
     val animationDuration = 500
 
-    // 바텀 네비게이션 O
+    // 바텀 네비게이션 Oㅍ -> 삭제 예정
 //    composable(Routes.STORAGE) {
 //        StorageScreen(navController = navController)
 //    }
@@ -44,7 +46,7 @@ fun NavGraphBuilder.storageGraph(
     composable(Routes.STORAGE) {
         StorageScreen(
             navController = navController,
-            onStartRecord = onStartRecord,   // ✅ 전달
+            //onStartRecord = onStartRecord,   // ✅ 전달
         )
     }
 
@@ -177,4 +179,40 @@ fun NavGraphBuilder.storageGraph(
             navController = navController
         )
     }
+
+
+    // 설정
+    composable(
+        Routes.SETTINGS,
+        enterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
+        },
+        exitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
+        },
+        popEnterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
+        },
+        popExitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
+        }
+    ) {
+        SettingScreen(navController = navController)
+    }
+
+    // 설정 > 이용약관
+    composable(
+        route = Routes.WEB_VIEW,
+        arguments = listOf(navArgument("url") { type = NavType.StringType }),
+        enterTransition = {
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
+        },
+        popExitTransition = {
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
+        }
+    ) { backStackEntry ->
+        val url = backStackEntry.arguments?.getString("url").orEmpty()
+        WebViewScreen(navController = navController, url = java.net.URLDecoder.decode(url, "UTF-8"))
+    }
+
 }

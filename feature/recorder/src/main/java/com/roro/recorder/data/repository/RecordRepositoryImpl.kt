@@ -37,6 +37,8 @@ class RecordRepositoryImpl @Inject constructor(
     private val keywordDao: KeywordDao,
 ) : RecordRepository {
 
+    // 수정 필요(각 로직 분리)
+    // -> 오류 발생 케이스 분리
     override suspend fun saveRecording(
         audioFile: File, // 녹음된 WAV 파일
         durationSec: Double, // 녹음 길이 (초)

@@ -48,11 +48,10 @@ import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
-import com.roro.core.ui.component.ChaGokLanguageDialog
 import com.roro.core.ui.component.ChaGokNoteList
-import com.roro.core.ui.component.ChaGokSettingsDropdown
 import com.roro.core.ui.component.ChaGokTopBar
 import com.roro.core.ui.component.ChagokStartRecordFAB
+import com.roro.core.ui.component.GemmaDownloadBottomSheet
 import com.roro.core.ui.component.SummaryStatus
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.TextPrimary
@@ -71,6 +70,7 @@ fun StorageScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var showDownloadBottomSheet by remember { mutableStateOf(false) }  // 모델 다운로드 바텀시트
 
     uiState.errorMessage?.let {
         Timber.d("text $it")
@@ -99,9 +99,12 @@ fun StorageScreen(
                     navController.navigate(Routes.searchTemp(SearchType.HOME))
                 }
 
-                HomeEffect.NavigateToTos -> {
-                    navController.navigate(Routes.TOS)
-                }
+//                HomeEffect.NavigateToTos -> {
+//                    navController.navigate(Routes.TOS)
+//                }
+
+                // 설정
+                HomeEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
             }
         }
     }
@@ -118,12 +121,26 @@ fun StorageScreen(
         },
         onSearchClick = { viewModel.onIntent(HomeIntent.ClickSearch) },
         onSettingClick = { viewModel.onIntent(HomeIntent.ClickSetting) },
-        onTosClick = { viewModel.onIntent(HomeIntent.ClickTos) },
-        onLanguageSelect = { viewModel.onIntent(HomeIntent.SelectLanguageOption(it)) },
-        onConfirmDialog = { viewModel.onIntent(HomeIntent.ConfirmDialog) },
-        onDismissDialog = { viewModel.onIntent(HomeIntent.DismissDialog) },
+        onRecordClick = {
+            if (viewModel.isModelDownloaded()) {
+                navController.navigate(Routes.RECORDER)
+            } else {
+                showDownloadBottomSheet = true
+            }
+        }
     )
+
+    if (showDownloadBottomSheet) {
+        GemmaDownloadBottomSheet(
+            onDismiss = { showDownloadBottomSheet = false },
+            onDownloadComplete = {
+                showDownloadBottomSheet = false
+                navController.navigate(Routes.RECORDER)
+            }
+        )
+    }
 }
+
 
 @Composable
 internal fun StorageScreenContent(
@@ -135,11 +152,9 @@ internal fun StorageScreenContent(
     onClickFolderType: (DefaultFolderType) -> Unit,
     onSearchClick: () -> Unit,
     onSettingClick: () -> Unit,
-    onTosClick: () -> Unit,
-    onLanguageSelect: (Language) -> Unit, // 추가
-    onConfirmDialog: () -> Unit,        // 추가
-    onDismissDialog: () -> Unit,        // 추가
+    onRecordClick: () -> Unit,  // ← 바텀시트용
 ) {
+
     // 1. 스크롤 상태 기억
     val listState = rememberLazyListState()
 
@@ -175,24 +190,12 @@ internal fun StorageScreenContent(
                 .nestedScroll(nestedScrollConnection) // 연결
         ) {
             Column {
-                var isMenuExpanded by remember { mutableStateOf(false) }
                 ChaGokTopBar(
                     title = "차곡",
                     onFirstActionClick = { onSearchClick() },
-                    onSecondActionClick = {
-                        isMenuExpanded = true
-                    }, secondActionTrailingContent = {
-                        ChaGokSettingsDropdown(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false },
-                            onLanguageSettingClick = {
-                                onSettingClick()
-                                isMenuExpanded = false
-                            }, onTosClick = {
-                                onTosClick()
-                                isMenuExpanded = false
-                            })
-                    })
+                    onSecondActionClick = { onSettingClick() },
+                )
+
                 FolderList(
                     isCollapse = isCollapsed,
                     selectedFolderType = uiState.selectedFolderType,
@@ -266,24 +269,16 @@ internal fun StorageScreenContent(
                 }
             }
 
-            if (uiState.isDialog) {
-                ChaGokLanguageDialog(
-                    title = "녹음 언어 변경", selectedLanguage = uiState.selectedTempLanguage, onLanguageSelected = { lang ->
-                        onLanguageSelect(lang)
-                    }, dismissText = "취소", confirmText = "저장하기", onDismiss = onDismissDialog, onConfirm = onConfirmDialog
-                )
-            }
             // 5. 플로팅 버튼을 Box의 오른쪽 하단에 배치
             ChagokStartRecordFAB(
-                onClick = {
-                    navController.navigate(Routes.RECORDER)
-                },
+                onClick = onRecordClick,  // ← 람다로 교체
                 modifier = Modifier
-                    .align(Alignment.BottomEnd) // 우측 하단 정렬
-                    .padding(end = 42.dp, bottom = 64.dp), // 화면 끝에서 여백
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 42.dp, bottom = 64.dp),
             )
         }
     }
+
 }
 
 @Composable
@@ -355,20 +350,21 @@ fun StorageScreenPreview() {
     StorageScreenContent(
         navController = rememberNavController(),
         uiState = HomeUiState(
-            selectedFolderType = DefaultFolderType.RECENT, isLoading = false, errorMessage = null
+            selectedFolderType = DefaultFolderType.RECENT,
+            isLoading = false,
+            errorMessage = null
         ),
         onClickFolderType = {},
         defaultCount = 0,
         privateFolderCount = 0,
         trashFolderCount = 0,
-        onSearchClick = { },
-        onSettingClick = { },
-        onLanguageSelect = { },
-        onConfirmDialog = { },
-        onDismissDialog = { },
-        onTosClick = { },
+        onSearchClick = {},
+        onSettingClick = {},
+
+        onRecordClick = {},  // ← 추가
     )
 }
+
 
 enum class DefaultFolderType(
     val title: String, val icon: ImageVector

@@ -26,7 +26,13 @@ import javax.inject.Inject
 sealed class RecordResultUiState {
     object Loading : RecordResultUiState()
     data class Success(val result: VoiceNoteResult) : RecordResultUiState()
+    data class NoSpeech(val result: VoiceNoteResult) : RecordResultUiState()      // STT 없음
+    data class SummaryError(val result: VoiceNoteResult) : RecordResultUiState()  // 요약 실패
     data class Error(val message: String) : RecordResultUiState()
+}
+
+enum class SummaryDisplayState {
+    Success, Error, NoSpeech
 }
 
 data class PlayerUiState(
@@ -58,10 +64,14 @@ class RecordResultViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val id = UUID.fromString(voiceNoteId)
-                _currentVoiceNoteId = id  // 재생성 시 사용
+                _currentVoiceNoteId = id
                 val result = getVoiceNoteUseCase(id)
                 if (result != null) {
-                    _uiState.value = RecordResultUiState.Success(result)
+                    _uiState.value = when {
+                        result.sttText.isBlank() -> RecordResultUiState.NoSpeech(result)
+                        result.summaryText.isBlank() -> RecordResultUiState.SummaryError(result)
+                        else -> RecordResultUiState.Success(result)
+                    }
                     preparePlayer(result.audioPath)
                 } else {
                     _uiState.value = RecordResultUiState.Error("데이터를 찾을 수 없어요")

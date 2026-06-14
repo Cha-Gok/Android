@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.compose.animation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -72,9 +73,9 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     // ML Kit - 모델 다운로드용 (stt, 요약, 번역)
-    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
-    implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
-    implementation("com.google.mlkit:translate:17.0.3")
+//    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+//    implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
+//    implementation("com.google.mlkit:translate:17.0.3")
 
     // 코루틴 + Task await
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")

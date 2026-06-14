@@ -1,6 +1,6 @@
 package com.roro.recorder.domain.usecase.gemma
 
-import com.roro.recorder.data.GemmaManager
+import com.roro.core.gemma.GemmaManager
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -10,11 +10,11 @@ class SummarizeWithGemmaUseCase @Inject constructor(
     suspend operator fun invoke(text: String): String {
         return try {
             val prompt = """
-                아래 텍스트를 핵심 내용 3줄로 요약해주세요.
-                각 줄은 "*"로 시작하고 한 문장으로 작성하세요.
-                요약문만 출력하고 다른 말은 하지 마세요.
+                Summarize the text below into exactly 3 key points.
+                Each key point must start with "*" and be a single sentence.
+                Return ONLY the 3 key points. Do not add any explanation or extra text.
                 
-                텍스트:
+                Text:
                 $text
             """.trimIndent()
 

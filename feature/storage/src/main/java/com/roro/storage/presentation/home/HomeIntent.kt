@@ -34,10 +34,7 @@ sealed interface HomeIntent {
 
     // 설정 클릭
     data object ClickSetting : HomeIntent
-    data object ClickTos : HomeIntent
-    data class SelectLanguageOption(val language: Language) : HomeIntent
-    data object ConfirmDialog : HomeIntent
-    data object DismissDialog : HomeIntent
+
 }
 
 sealed interface HomeEffect {
@@ -46,5 +43,5 @@ sealed interface HomeEffect {
     object NavigateToPrivate : HomeEffect
     object NavigateToTrash : HomeEffect
     object NavigateToSearch : HomeEffect
-    object NavigateToTos : HomeEffect
+    object NavigateToSettings : HomeEffect  // 설정
 }

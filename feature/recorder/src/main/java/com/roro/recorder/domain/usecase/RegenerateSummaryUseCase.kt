@@ -12,8 +12,6 @@ import javax.inject.Inject
 /**
  * 기능 설명:
  * - 재생성 버튼 클릭 시 요약문 + 키워드를 다시 생성하고 DB에 업데이트
- * - SummarizeTextSimpleUseCase: 요약 재생성
- * - ExtractKeywordsUseCase: 키워드 재추출
  *
  * @author
  * @since 2026. 04. 19.
@@ -21,8 +19,6 @@ import javax.inject.Inject
 
 // 0512 젬마 버전으로 수정
 class RegenerateSummaryUseCase @Inject constructor(
-//    private val summarizeTextSimpleUseCase: SummarizeTextSimpleUseCase,
-//    private val extractKeywordsUseCase: ExtractKeywordsUseCase,
     private val summaryDao: SummaryDao,
     private val keywordDao: KeywordDao,
 

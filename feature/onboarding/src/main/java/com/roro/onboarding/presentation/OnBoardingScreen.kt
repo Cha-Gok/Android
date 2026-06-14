@@ -1,3 +1,4 @@
+// OnBoardingScreen.kt
 package com.roro.onboarding.presentation
 
 import android.Manifest
@@ -6,38 +7,42 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.roro.core.datastore.Language
 import com.roro.core.navigation.Routes
@@ -53,19 +58,17 @@ import com.roro.onboarding.R
 import kotlinx.coroutines.flow.collectLatest
 import timber.log.Timber
 
-private const val ONBOARDING_PAGE_COUNT = 5
+import androidx.compose.animation.slideOutHorizontally
+
+private const val ONBOARDING_PAGE_COUNT = 6
 
 @Composable
-fun OnBoardingScreen(
-    navController: NavController,
-) {
+fun OnBoardingScreen(navController: NavController) {
     val viewModel: OnBoardingViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    val pagerState = rememberPagerState(
-        pageCount = { ONBOARDING_PAGE_COUNT }
-    )
+    val pagerState = rememberPagerState(pageCount = { ONBOARDING_PAGE_COUNT })
 
     BackHandler(enabled = true) {
         if (pagerState.currentPage > 0) {
@@ -85,25 +88,16 @@ fun OnBoardingScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                is OnboardingEffect.ScrollToPage -> {
-                    Timber.d("Onboarding effect ScrollToPage = ${effect.index}")
+                is OnboardingEffect.ScrollToPage ->
                     pagerState.animateScrollToPage(effect.index)
-                }
-
-                is OnboardingEffect.RequestAudioPermission -> {
-                    Timber.d("Onboarding effect RequestAudioPermission received")
+                is OnboardingEffect.RequestAudioPermission ->
                     permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-
-                is OnboardingEffect.NavigationToMain -> {
+                is OnboardingEffect.NavigationToMain ->
                     navController.navigate(Routes.STORAGE) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
-                }
-
-                is OnboardingEffect.ShowToast -> {
+                is OnboardingEffect.ShowToast ->
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
-                }
             }
         }
     }
@@ -131,7 +125,6 @@ private fun OnBoardingScreenUI(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 인디케이터는 항상 4개로 고정 (UI 일관성)
             PageIndicator(
                 modifier = Modifier.padding(top = 96.dp),
                 currentPage = uiState.currentPage,
@@ -147,26 +140,27 @@ private fun OnBoardingScreenUI(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier,
-                    // 핵심 수정 2: userScrollEnabled는 항상 true로 두어 스와이프를 허용함
                     userScrollEnabled = true
                 ) { page ->
                     OnBoardingPage(
                         page = page,
                         selectedLanguage = uiState.selectedLanguage,
                         onLanguageChange = { onIntent(OnboardingIntent.SelectLanguage(it)) },
-                        downloadState = uiState.modelDownloadState, // ← 추가
+                        downloadState = uiState.modelDownloadState,
+                        isDownloadStarted = uiState.isDownloadStarted,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val isLastPage = pagerState.currentPage == 4 // 3 → 4
-                val isDownloadPage = pagerState.currentPage == 3
+                val isLastPage = pagerState.currentPage == 5
+                val isDownloadPage = pagerState.currentPage == 4
 
                 val buttonText = when {
                     isLastPage -> "시작하기"
@@ -192,7 +186,7 @@ private fun OnBoardingScreenUI(
                         text = buttonText,
                         onClick = { onIntent(OnboardingIntent.ClickNext) },
                         modifier = buttonModifier,
-                        enabled = uiState.isNextEnabled, // ← isLoading 대신
+                        enabled = uiState.isNextEnabled,
                         isLoading = uiState.isLoading
                     )
                 }
@@ -205,11 +199,10 @@ private fun OnBoardingScreenUI(
                 ) {
                     when (uiState.currentPage) {
                         0 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickSkip) }) {
-                            Text(text = "건너뛰기", color = Color.Gray, style = ChaGokTextStyle.Body3)
+                            Text("건너뛰기", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
-
-                        1, 2, 3 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickBack) }) {
-                            Text(text = "이전", color = Color.Gray, style = ChaGokTextStyle.Body3)
+                        1, 2, 3,4 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickBack) }) {
+                            Text("이전", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
                     }
                 }
@@ -223,27 +216,31 @@ private fun OnBoardingPage(
     page: Int,
     selectedLanguage: Language,
     onLanguageChange: (Language) -> Unit,
-    downloadState: ModelDownloadState, // ← 추가
+    downloadState: ModelDownloadState,
+    isDownloadStarted: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val title = when (page) {
         0 -> "녹음부터 요약까지,\n내 기기에서 한 번에"
         1 -> "하루가 끝나면,\n기억은 먼저 정리돼버려요."
         2 -> "필요한 권한만\n요청할게요."
-        3 -> "AI 모델을\n다운로드할게요."       // ← 임시 텍스트
-        else -> "기록할 언어를 선택해 주세요.." // 기존 3이 else로
+        3 -> "기기에서 바로 작동하도록\n몇 가지를 준비할게요."
+        4 -> "기기에서 바로 작동하도록\n몇 가지를 준비할게요."
+        else -> "기록할 언어를 선택해 주세요."
     }
 
     val subTitle = when (page) {
         0 -> "서버 업로드 없이 저장되는\n프라이빗 기록"
         1 -> "놓치고 싶지 않은 말들이 있다면,\n내기기에 차곡차곡 기록하고 요약까지"
         2 -> "녹음을 시작하려면\n마이크 권한이 필요해요"
-        3 -> "음성 인식·요약·번역 모델을\n기기에 저장해요. 한 번만 진행돼요."  // ← 임시 텍스트
+        3 -> "모델 설치 유무와 기기 환경을\n확인중이에요..."
+        4 -> "녹음과 요약을 기기 안에서 처리하기 위해\n필요한 모델을 다운로드해요.\nWi-Fi 연결을 권장하며 몇 분 정도 걸려요."
         else -> "텍스트 변환 정확도가 올라가요.\n언어는 나중에 변경할 수 있어요."
     }
+
     Box(modifier = modifier.padding(start = 20.dp)) {
-        if (page == 4) { // 기존 page == 3 → 4로
-            Column {
+        when (page) {
+            5 -> Column {
                 Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(text = subTitle, style = ChaGokTextStyle.Subtitle1, color = TextPrimary)
@@ -260,20 +257,32 @@ private fun OnBoardingPage(
                         onClick = { onLanguageChange(Language.ENGLISH) }
                     )
                 }
+            }
 
-            }
-        }
-        if (page == 3){ // ← 모델 다운로드 페이지
-            Column {
+            4 -> Column {
                 Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(text = subTitle, style = ChaGokTextStyle.Subtitle1, color = TextPrimary)
-                Spacer(modifier = Modifier.height(36.dp))
-                ModelDownloadContent(downloadState = downloadState)
+                Spacer(modifier = Modifier.height(20.dp))  // ← 추가하면 아래로 밀림
+                // Gemma-4 다운로드 아이템
+                ModelDownloadItem(
+                    label = "Gemma-4",
+                    state = when {
+                        isDownloadStarted -> downloadState.gemma
+                        else -> DownloadItemState.Idle
+                    },
+                    progress = downloadState.progress
+                )
             }
-        }
-        else {
-            Column {
+            3 -> Column {
+                Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
+                Spacer(modifier = Modifier.height(20.dp))  // ← 추가하면 아래로 밀림
+                // 지원 환경 확인 아이템만
+                ModelDownloadItem(
+                    label = if (downloadState.isChecking) "지원 환경 확인중" else "지원 환경 확인 완료",
+                    state = if (downloadState.isChecking) DownloadItemState.Checking else DownloadItemState.Done
+                )
+            }
+
+            else -> Column {
                 Text(text = title, style = ChaGokTextStyle.Header1, color = TextPrimary)
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(text = subTitle, style = ChaGokTextStyle.Subtitle1, color = TextPrimary)
@@ -300,6 +309,160 @@ private fun OnBoardingPage(
 }
 
 @Composable
+private fun ModelDownloadContent(
+    downloadState: ModelDownloadState,
+    isDownloadStarted: Boolean
+) {
+    val isChecking = downloadState.isChecking
+    val gemma = downloadState.gemma
+    val showCheckItem = isChecking || gemma == DownloadItemState.Done
+    val showGemmaItem = !showCheckItem
+
+    Box {
+        // 지원 환경 확인 아이템 - 왼쪽에서 슬라이드 인/아웃
+        AnimatedVisibility(
+            visible = showCheckItem,
+            enter = slideInHorizontally(
+                initialOffsetX = { -it },
+                animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f))
+            ) + fadeIn(tween(300)),
+            exit = slideOutHorizontally(
+                targetOffsetX = { -it },
+                animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f))
+            ) + fadeOut(tween(300))
+        ) {
+            ModelDownloadItem(
+                label = if (isChecking) "지원 환경 확인중" else "지원 환경 확인 완료",
+                state = if (isChecking) DownloadItemState.Checking else DownloadItemState.Done
+            )
+        }
+
+        // Gemma-4 아이템 - 오른쪽에서 슬라이드 인
+        AnimatedVisibility(
+            visible = showGemmaItem,
+            enter = slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f))
+            ) + fadeIn(tween(300)),
+            exit = fadeOut(tween(300))
+        ) {
+            ModelDownloadItem(
+                label = "Gemma-4",
+                state = when {
+                    isDownloadStarted -> gemma
+                    else -> DownloadItemState.Idle
+                },
+                progress = downloadState.progress
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModelDownloadItem(
+    label: String,
+    state: DownloadItemState,
+    progress: Float = 0f
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 20.dp)
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = when (state) {
+                    DownloadItemState.Done -> Icons.Default.CheckCircle
+                    DownloadItemState.Failed -> Icons.Default.Error
+                    else -> Icons.Default.Storage
+                },
+                contentDescription = null,
+                tint = when (state) {
+                    DownloadItemState.Done -> PrimaryColor
+                    DownloadItemState.Failed -> Color.Red
+                    else -> Color.White.copy(alpha = 0.5f)
+                },
+                modifier = Modifier.size(18.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Text(
+                text = label,
+                style = ChaGokTextStyle.Subtitle1,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+
+            when (state) {
+                DownloadItemState.Idle ->
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White.copy(alpha = 0.3f),
+                        strokeWidth = 2.dp
+                    )
+                DownloadItemState.Checking ->
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = PrimaryColor,
+                        strokeWidth = 2.dp
+                    )
+                DownloadItemState.Downloading ->
+                    if (progress > 0f) {
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            color = PrimaryColor,
+                            style = ChaGokTextStyle.Body3
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PrimaryColor,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                DownloadItemState.Done ->
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = PrimaryColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                DownloadItemState.Required ->
+                    Text("다운로드 필요", color = Color.Red, style = ChaGokTextStyle.Body3)
+                DownloadItemState.Unavailable ->
+                    Text("미지원", color = Gray400, style = ChaGokTextStyle.Body3)
+                DownloadItemState.Failed ->
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = null,
+                        tint = Color.Red,
+                        modifier = Modifier.size(18.dp)
+                    )
+            }
+        }
+
+        // 다운로드 중 진행률 바
+        if (state == DownloadItemState.Downloading && progress > 0f) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+                color = PrimaryColor,
+                trackColor = Color.White.copy(alpha = 0.1f)
+            )
+        }
+    }
+}
+
+@Composable
 private fun LanguageOption(
     label: String,
     selected: Boolean,
@@ -311,40 +474,24 @@ private fun LanguageOption(
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        // 커스텀 라디오 버튼 구현
         Box(
             modifier = Modifier
                 .size(20.dp)
-                .background(
-                    // 선택되었을 때만 배경을 흰색으로 꽉 채움
-                    color = Color.White,
-                    shape = CircleShape
-                )
-//                .border(
-//                    width = 1.5.dp,
-//                    // 미선택 시에는 회색 테두리, 선택 시에는 흰색 테두리
-//                    color = if (selected) Color.White else Gray400,
-//                    shape = CircleShape
-//                ),
-            ,
+                .background(color = Color.White, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (selected) {
-                // 선택되었을 때 흰색 배경 위에 올라가는 보라색 점
                 Box(
                     modifier = Modifier
-                        .size(12.dp) // 점 크기를 10dp 정도로 키우면 더 잘 보입니다
+                        .size(12.dp)
                         .background(PrimaryColor, CircleShape)
                 )
             }
         }
-
         Spacer(modifier = Modifier.width(12.dp))
-
         Text(
             text = label,
             style = ChaGokTextStyle.Subtitle1,
-            // 선택 시 글자도 흰색으로 강조하면 더 예쁩니다 (피그마에 따라 조정)
             color = if (selected) Color.White else TextPrimary
         )
     }
@@ -373,139 +520,119 @@ private fun PageIndicator(
     }
 }
 
-@Composable
-private fun ModelDownloadContent(downloadState: ModelDownloadState) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        ModelDownloadItem(label = "음성 인식 (STT)", state = downloadState.stt)
-        ModelDownloadItem(label = "요약", state = downloadState.summarize)
-        ModelDownloadItem(label = "번역", state = downloadState.translate)
-    }
-}
 
+@Preview(showBackground = true, name = "① 초기 진입", device = "spec:width=360dp,height=800dp")
 @Composable
-private fun ModelDownloadItem(
-    label: String,
-    state: DownloadItemState
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(end = 20.dp)
-    ) {
-        Text(
-            text = label,
-            style = ChaGokTextStyle.Subtitle1,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f)
-        )
-        when (state) {
-            DownloadItemState.Idle ->
-                Text("대기 중", color = Gray400, style = ChaGokTextStyle.Body3)
-            DownloadItemState.Downloading ->
-                Text("다운로드 중...", color = PrimaryColor, style = ChaGokTextStyle.Body3)
-            DownloadItemState.Done ->
-                Text("✓ 완료", color = PrimaryColor, style = ChaGokTextStyle.Body3)
-            DownloadItemState.Unavailable ->
-                Text("미지원", color = Gray400, style = ChaGokTextStyle.Body3)
-            DownloadItemState.Failed ->
-                Text("실패", color = Color.Red, style = ChaGokTextStyle.Body3)
+fun DownloadIdlePreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(isChecking = false),
+                isDownloadStarted = false,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
 
-// --- 상세 화면별 Preview ---
-
-@Preview(showBackground = true, name = "1단계: 서비스 소개", device = "spec:width=360dp,height=800dp")
+@Preview(showBackground = true, name = "② 환경 체크 중", device = "spec:width=360dp,height=800dp")
 @Composable
-fun Step1Preview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(currentPage = 0),
-        pagerState = rememberPagerState { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
+fun DownloadCheckingPreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(isChecking = true),
+                isDownloadStarted = false,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true, name = "2단계: 상세 안내", device = "spec:width=360dp,height=800dp")
+@Preview(showBackground = true, name = "③ 다운로드 중 (47%)", device = "spec:width=360dp,height=800dp")
 @Composable
-fun Step2Preview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(currentPage = 1),
-        pagerState = rememberPagerState { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
-
+fun DownloadingPreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(
+                    isChecking = false,
+                    gemma = DownloadItemState.Downloading,
+                    progress = 0.47f
+                ),
+                isDownloadStarted = true,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true, name = "3단계: 권한 요청", device = "spec:width=360dp,height=800dp")
+@Preview(showBackground = true, name = "④ 다운로드 완료", device = "spec:width=360dp,height=800dp")
 @Composable
-fun Step3Preview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(currentPage = 2, isPermissionGranted = false),
-        pagerState = rememberPagerState { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
-
+fun DownloadDonePreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(
+                    isChecking = false,
+                    gemma = DownloadItemState.Done,
+                    progress = 1f
+                ),
+                isDownloadStarted = true,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true, name = "추가: 다운로드 관련", device = "spec:width=360dp,height=800dp")
+@Preview(showBackground = true, name = "⑤ 실패", device = "spec:width=360dp,height=800dp")
 @Composable
-fun Step3_1KoreanPreview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(
-            currentPage = 3,
-        ),
-        pagerState = rememberPagerState(initialPage = 3) { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
-
+fun DownloadFailedPreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(
+                    isChecking = false,
+                    gemma = DownloadItemState.Failed
+                ),
+                isDownloadStarted = true,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true, name = "4단계: 언어 선택 (한국어 선택됨)", device = "spec:width=360dp,height=800dp")
+@Preview(showBackground = true, name = "미지원 기기", device = "spec:width=360dp,height=800dp")
 @Composable
-fun Step4KoreanPreview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(
-            currentPage = 4,
-            selectedLanguage = Language.KOREAN
-        ),
-        pagerState = rememberPagerState(initialPage = 4) { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
-
-}
-
-@Preview(showBackground = true, name = "4단계: 언어 선택 (영어 선택됨)", device = "spec:width=360dp,height=800dp")
-@Composable
-fun Step4EnglishPreview() {
-
-    OnBoardingScreenUI(
-        uiState = OnboardingUiState(
-            currentPage = 4,
-            selectedLanguage = Language.ENGLISH
-        ),
-        pagerState = rememberPagerState(initialPage = 4) { ONBOARDING_PAGE_COUNT },
-        onIntent = {}
-    )
-
-}
-
-@Composable
-@Preview(showBackground = true, name = "인디케이터 컴포넌트")
-private fun PageIndicatorStepPreview() {
-    Column(
-        modifier = Modifier
-            .padding(20.dp)
-            .background(Gray900)
-    ) {
-        PageIndicator(
-            currentPage = 0,
-            pageCount = 4
-        )
+fun DownloadUnavailablePreview() {
+    ChaGokBackground {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 200.dp)) {
+            OnBoardingPage(
+                page = 3,
+                selectedLanguage = Language.KOREAN,
+                onLanguageChange = {},
+                downloadState = ModelDownloadState(
+                    isChecking = false,
+                    gemma = DownloadItemState.Unavailable
+                ),
+                isDownloadStarted = true,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }

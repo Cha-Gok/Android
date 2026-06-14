@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +51,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// 수정 필요 사항
+// 수정 확인 사항
 // 1. 기본 ismatch -> 단락 강조 없음, 스크립트 좌측 상단에 '스크립트' 표시
 // 2. iscurrent -> 바탕 보라색 -> 주황색, 글자색 흰색 -> 검정 변경되도록
 // 3. 바텀 바(업다운) 디자인 수정
@@ -104,20 +107,13 @@ fun SearchResultScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBackIosNew,
-                            contentDescription = "뒤로가기",
-                            tint = Color.White
-                        )
-                    }
 
                     // ✅ 검색바 (아이콘 포함, X는 밖으로)
                     Row(
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
-                            .padding(end = 6.dp)
+                            .padding(end = 6.dp, start = 6.dp)
                             .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(50.dp))
                             .border(
                                 width = 0.5.dp,
@@ -136,12 +132,16 @@ fun SearchResultScreen(
                         )
                         BasicTextField(
                             value = uiState.query,
-                            onValueChange = viewModel::onQueryChange,
+                            onValueChange = { viewModel.onQueryChange(it, search = false) }, // 텍스트만 업데이트
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(focusRequester),
                             textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
                             cursorBrush = SolidColor(Color(0xFF9B7FD4)),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { viewModel.onSearch() }  // 검색 실행
+                            ),
                             decorationBox = { innerTextField ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (uiState.query.isEmpty()) {
@@ -162,10 +162,9 @@ fun SearchResultScreen(
                     Box(
                         modifier = Modifier
                             .size(44.dp)
-
                             .background(Color.Black.copy(alpha = 0.8f), CircleShape)
                             .border(0.5.dp, Color.White.copy(alpha = 0.2f), CircleShape)
-                            .clickable { viewModel.onQueryChange("") },
+                            .clickable { navController.popBackStack() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -237,21 +236,16 @@ fun SearchResultScreen(
 
             // ── 기존 콘텐츠 ──
             when {
-                uiState.query.isBlank() -> {
+                uiState.query.isBlank() || currentMatches.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            "검색어를 입력해주세요",
+                            "검색어 입력 후 검색해주세요",
                             color = Color.White.copy(alpha = 0.3f),
                             fontSize = 14.sp
                         )
                     }
                 }
 
-                currentMatches.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("검색 결과가 없어요", color = Color.White.copy(alpha = 0.3f), fontSize = 14.sp)
-                    }
-                }
 
                 uiState.selectedTab == 0 -> {
                     SummarySearchResult(
@@ -354,56 +348,6 @@ fun SearchResultScreen(
 
 // ── 검색 결과 아이템 ──────────────────────────────────────────────────────────
 
-@Composable
-private fun SearchMatchItem(
-    match: SearchMatch,
-    query: String,
-    isCurrent: Boolean,
-    showTimestamp: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-
-        //verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        // 타임스탬프 (스크립트 탭만)
-        if (showTimestamp) {
-            Text(
-                text = formatSearchTime(match.startTimeMs),
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 12.sp,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
-            )
-        }
-
-        // 하이라이트 텍스트
-        // 수정 필요 -> ismatch, iscurrent 색 수정 + iscurrent 글자 색도 같이 수정(while -> black)
-        Text(
-            text = buildAnnotatedString {
-                val before = match.text.substring(0, match.matchStart)
-                val highlighted = match.text.substring(match.matchStart, match.matchEnd)
-                val after = match.text.substring(match.matchEnd)
-
-                append(before)
-                withStyle(
-                    SpanStyle(
-                        color = if (isCurrent) Color.Black else Color.White,
-                        background = if (isCurrent) Color(0xFFFF9500) else Color(0xFF9B7FD4),
-                        //fontWeight = FontWeight.SemiBold
-                    )
-                ) {
-                    append(highlighted)
-                }
-                append(after)
-            },
-            //color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.6f),
-            fontSize = 14.sp,
-            lineHeight = 22.sp
-        )
-    }
-}
 
 @Composable
 private fun ScriptSegmentItem(
@@ -415,6 +359,7 @@ private fun ScriptSegmentItem(
 ) {
     val segText = matches.first().text
     val startTimeMs = matches.first().startTimeMs
+    val sortedMatches = matches.sortedBy { it.matchStart }
 
     Column(
         modifier = Modifier
@@ -423,40 +368,41 @@ private fun ScriptSegmentItem(
     ) {
         Text(
             text = formatSearchTime(startTimeMs),
-            color = if (isCurrent) Color(0xFF9B7FD4) else Color.White.copy(alpha = 0.4f),
+//            color = if (isCurrent) Color(0xFF9B7FD4) else Color.White.copy(alpha = 0.4f),
             fontSize = 12.sp,
-            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+//            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+
+            color = Color.White.copy(alpha = 0.4f),
+            fontWeight = FontWeight.Normal
         )
 
-        // 단락 안 모든 매치 하이라이트
         Text(
             text = buildAnnotatedString {
                 var cursor = 0
-                matches.forEachIndexed { matchIdx, match ->
+                sortedMatches.forEach { match ->
                     val globalIdx = allMatches.indexOf(match)
                     val isThisCurrent = globalIdx == currentMatchIndex
 
-                    // 매치 앞 텍스트
                     if (match.matchStart > cursor) {
                         append(segText.substring(cursor, match.matchStart))
                     }
-                    // 하이라이트
-                    withStyle(SpanStyle(
-                        color = if (isThisCurrent) Color.Black else Color.White,
-                        background = if (isThisCurrent) Color(0xFFFF9500) else Color(0xFF9B7FD4),
-                    )) {
+                    withStyle(
+                        SpanStyle(
+                            color = if (isThisCurrent) Color.Black else Color.White,
+                            background = if (isThisCurrent) Color(0xFFFF9500) else Color(0xFF9B7FD4),
+                        )
+                    ) {
                         append(segText.substring(match.matchStart, match.matchEnd))
                     }
                     cursor = match.matchEnd
                 }
-                // 마지막 매치 뒤 텍스트
                 if (cursor < segText.length) {
                     append(segText.substring(cursor))
                 }
             },
             fontSize = 14.sp,
             lineHeight = 22.sp,
-            color = Color.White.copy(alpha = if (isCurrent) 1f else 0.7f)
+            color = Color.White.copy(alpha = 1f)
         )
     }
 }
@@ -553,12 +499,13 @@ private fun SummarySearchResult(
                                         append(point.substring(cursor, match.matchStart))
                                     }
                                     withStyle(SpanStyle(
-                                        color = if (isThisCurrent) Color.Black else Color(0xFF9B7FD4),
-                                        background = if (isThisCurrent) Color(0xFFFF9500) else Color.Transparent,
+                                        color = if (isThisCurrent) Color.Black else Color.White,
+                                        background = if (isThisCurrent) Color(0xFFFF9500) else Color(0xFF9B7FD4),
                                     )) {
                                         append(point.substring(match.matchStart, match.matchEnd))
                                     }
                                     cursor = match.matchEnd
+
                                 }
                                 if (cursor < point.length) append(point.substring(cursor))
                             }
@@ -634,12 +581,6 @@ private fun formatSearchTime(ms: Long): String {
     return "%02d:%02d".format(minutes, seconds)
 }
 
-private fun formatTime(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return "%02d:%02d".format(minutes, seconds)
-}
 
 private fun formatDate(timestamp: Long): String {
     val dateFormat = SimpleDateFormat("yyyy.MM.dd · a HH:mm", Locale.KOREAN)

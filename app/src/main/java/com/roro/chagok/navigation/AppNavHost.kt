@@ -13,7 +13,7 @@ import com.roro.core.navigation.Routes
 import com.roro.onboarding.navigation.onBoardingGraph
 import com.roro.recorder.navigation.recorderGraph
 import com.roro.recorder.presentation.RecordViewModel
-import com.roro.recorder.presentation.screen.RecorderBottomSheet
+
 import com.roro.storage.navigation.storageGraph
 import com.roro.storage.navigation.trashGraph
 
@@ -32,9 +32,6 @@ import com.roro.storage.navigation.trashGraph
 fun AppNavHost(
     navController: NavHostController,
 ) {
-
-    // 바텀 시트 상태 app 레이어에서 관리
-    var showRecorder by remember { mutableStateOf(false) }
 
     // 스켈레톤 UI
     val recordViewModel: RecordViewModel = hiltViewModel()
@@ -65,7 +62,6 @@ fun AppNavHost(
         // onStartRecord 콜백 전달
         storageGraph(
             navController = navController,
-            onStartRecord = { showRecorder = true }
         )
 
         recorderGraph(
@@ -74,12 +70,4 @@ fun AppNavHost(
         )
     }
 
-    // 바텀 시트 — app 레이어에서 recorder 모듈 직접 호출
-    if (showRecorder) {
-        RecorderBottomSheet(
-            navController = navController,
-            onDismiss = { showRecorder = false },
-            viewModel = recordViewModel  // ✅ 동일 인스턴스 전달
-        )
-    }
 }

@@ -1,11 +1,7 @@
 package com.roro.recorder.domain.usecase.gemma
 
-import com.google.ai.edge.litertlm.Content
-import com.google.ai.edge.litertlm.Contents
-import com.google.ai.edge.litertlm.ConversationConfig
-import com.google.ai.edge.litertlm.SamplerConfig
 import com.roro.core.datastore.Language
-import com.roro.recorder.data.GemmaManager
+import com.roro.core.gemma.GemmaManager
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
@@ -18,25 +14,17 @@ class SttWithGemmaUseCase @Inject constructor(
     }
 
     suspend operator fun invoke(file: File, language: Language): String {
-
-        // 타임 스탬프 관련 (2순위)
-//        val chunkStartMs = index * CHUNK_SECONDS * 1000L
-//        val sentences = result.split(Regex("(?<=[.!?])\\s+"))
-//            .filter { it.isNotBlank() }
-//
-//        sentences.mapIndexed { sentIdx, sentence ->
-//            val estimatedMs = chunkStartMs +
-//                    (sentIdx.toFloat() / sentences.size * CHUNK_SECONDS * 1000).toLong()
-//            "$estimatedMs|$sentence"  // 구분자로 시간 포함
-//        }.joinToString("\n")
-
         val chunks = splitWavToChunks(file, CHUNK_SECONDS)
         val results = mutableListOf<String>()
 
         chunks.forEachIndexed { index, chunkFile ->
             Timber.d("🎤 청크 ${index + 1}/${chunks.size} STT 중...")
-            val result = transcribeChunk(chunkFile, language)
-            if (result.isNotBlank()) results.add(result)
+            if (!isChunkSilent(chunkFile)) {
+                val result = transcribeChunk(chunkFile, language)
+                if (result.isNotBlank()) results.add(result)
+            } else {
+                Timber.d("🔇 청크 ${index + 1} 무음 → 건너뜀")
+            }
             chunkFile.delete()
         }
 
@@ -45,14 +33,14 @@ class SttWithGemmaUseCase @Inject constructor(
 
     private suspend fun transcribeChunk(chunkFile: File, language: Language): String {
         val langStr = when (language) {
-            Language.KOREAN -> "한국어"
+            Language.KOREAN -> "Korean"
             Language.ENGLISH -> "English"
         }
 
         return try {
             gemmaManager.generateWithAudio(
                 audioPath = chunkFile.absolutePath,
-                textPrompt = "위 음성을 $langStr 로 그대로 전사해줘. 전사 텍스트만 출력해."
+                textPrompt = "Transcribe the audio above in $langStr exactly as spoken. Output only the transcribed text. If there is no speech, output nothing."
             ).trim()
         } catch (e: Exception) {
             Timber.e(e, "🎤 청크 전사 실패")
@@ -60,7 +48,26 @@ class SttWithGemmaUseCase @Inject constructor(
         }
     }
 
-    // 기존 WAV 유틸 그대로
+
+    private fun isChunkSilent(chunkFile: File): Boolean {
+        val wav = chunkFile.readBytes()
+        if (wav.size <= 44) return true
+
+        val pcm = wav.drop(44).toByteArray()
+        var sum = 0.0
+        var count = 0
+        var i = 0
+        while (i + 1 < pcm.size) {
+            val sample = ((pcm[i].toInt() and 0xFF) or (pcm[i+1].toInt() shl 8)).toShort()
+            sum += sample * sample
+            count++
+            i += 2
+        }
+        val rms = if (count > 0) Math.sqrt(sum / count) else 0.0
+        return rms < 300.0  // 임계값, 조정 가능
+    }
+
+
     private fun splitWavToChunks(file: File, chunkSeconds: Int): List<File> {
         val wav = file.readBytes()
         val sampleRate  = wav.getIntLE(24)
