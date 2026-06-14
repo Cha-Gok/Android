@@ -24,12 +24,13 @@ sealed interface TrashIntent {
     data object DialogConfirm : TrashIntent // 확인(비우기/삭제) 버튼
 
     // 5. 일반 모드 아이템 클릭
-    data class ClickVoiceNote(val voiceNoteId: UUID) : TrashIntent
-    data class ClickFolder(val folderId: UUID) : TrashIntent
+    data class ClickVoiceNote(val voiceNoteId: String) : TrashIntent
+    data class ClickFolder(val folderId: String, val folderName: String) : TrashIntent
 }
 
 sealed interface TrashEffect {
     data class ShowToast(val message: String) : TrashEffect
     data object NavigateToSearch : TrashEffect
-    data object NavigateToDetail : TrashEffect
+    data class NavigateToDetail(val voiceNoteId: String) : TrashEffect
+    data class NavigateToFolder(val folderId: String, val folderName: String) : TrashEffect
 }

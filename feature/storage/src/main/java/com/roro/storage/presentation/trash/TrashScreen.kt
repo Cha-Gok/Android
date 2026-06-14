@@ -27,6 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.navArgument
+import com.roro.core.domain.model.FileType
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
@@ -62,13 +64,17 @@ internal fun TrashScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is TrashEffect.ShowToast -> context.toast(effect.message)
-                TrashEffect.NavigateToDetail -> {
-
+                is TrashEffect.NavigateToDetail -> {
+                    navController.navigate(Routes.trashVoiceNote(effect.voiceNoteId))
                 }
 
                 TrashEffect.NavigateToSearch -> {
                     Timber.d("Navigation to Search")
                     navController.navigate(Routes.searchTemp(SearchType.TRASH))
+                }
+
+                is TrashEffect.NavigateToFolder -> {
+                    navController.navigate(Routes.storageFile(effect.folderId, effect.folderName, isTrash = true))
                 }
             }
         }
@@ -76,6 +82,7 @@ internal fun TrashScreen(
 
     TrashScreenContent(
         uiState = uiState,
+        onIntent = viewModel::onIntent,
         // 일반 액션
         onBackClick = {
             if (uiState.isSelectMode) viewModel.onIntent(TrashIntent.ClickCloseSelectMode)
@@ -96,13 +103,14 @@ internal fun TrashScreen(
         onRemoveClick = { viewModel.onIntent(TrashIntent.ClickRemoveItems) },
 
         onDialogConfirm = { viewModel.onIntent(TrashIntent.DialogConfirm) },
-        onDialogCancel = { viewModel.onIntent(TrashIntent.DialogCancel) }
+        onDialogCancel = { viewModel.onIntent(TrashIntent.DialogCancel) },
     )
 }
 
 @Composable
 private fun TrashScreenContent(
     uiState: TrashUiState,
+    onIntent: (TrashIntent) -> Unit,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit,
     onMoreMenuClick: () -> Unit,
@@ -214,6 +222,10 @@ private fun TrashScreenContent(
                                     onSelectItem(item.id)
                                 } else {
                                     // 일반모드 인 경우
+                                    when (item.type) {
+                                        FileType.FOLDER -> onIntent(TrashIntent.ClickFolder(folderId = item.id.toString(), item.title))
+                                        FileType.VOICE_NOTE -> onIntent(TrashIntent.ClickVoiceNote(voiceNoteId = item.id.toString()))
+                                    }
                                 }
                             }
                         )
@@ -261,6 +273,7 @@ private fun TrashScreenContentPreview() {
         uiState = TrashUiState(
 
         ),
+        onIntent = {},
         onBackClick = { },
         onSearchClick = { },
         onMoreMenuClick = { },
