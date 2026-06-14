@@ -1,5 +1,6 @@
 package com.roro.recorder.domain.repository
 
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.model.Keyword
 import java.io.File
 import java.util.UUID
@@ -18,6 +19,8 @@ interface RecordRepository {
         sttText: String,
         summaryText: String,
         keywords: List<String>,
-        folderId: UUID? = null
+        folderId: UUID? = null,
+
+        summaryStatus: SummaryStatus = SummaryStatus.NONE
     ): UUID  // Unit → UUID
 }

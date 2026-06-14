@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import timber.log.Timber
 import com.roro.core.datastore.Language
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.gemma.GemmaManager
 import com.roro.recorder.data.datasource.RecordDataSource
 import com.roro.recorder.domain.usecase.SaveRecordingUseCase
@@ -77,12 +78,15 @@ class RecordViewModel @Inject constructor(
     }
 
     fun reset() {
+        Timber.tag("문제").d("🔄 reset() 호출")
         _state.value = RecordState.Idle
         _sttResult.value = ""
         _summarizeState.value = SummarizeState.Idle
         _amplitude.value = 0
         stopAmplitudePolling()
     }
+
+
 
     private fun startAmplitudePolling() {
         amplitudeJob?.cancel()
@@ -130,14 +134,16 @@ class RecordViewModel @Inject constructor(
     }
 
     fun stopRecording(folderId: UUID? = null) {
+        Timber.tag("문제").d("🎬 ViewModel.stopRecording() 호출")
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 stopAmplitudePolling()
                 val file = recordDataSource.stopRecording()
                 lastAudioFile = file
-                _state.value = RecordState.Processing  // ✅ 여기서 스켈레톤 트리거
+                _state.value = RecordState.Processing
                 processAudio(file, folderId)
             } catch (e: Exception) {
+                Timber.tag("문제").d("❌ stopRecording 예외: ${e.message}")
                 _state.value = RecordState.Error(e.message ?: "녹음 종료 실패")
             } finally {
                 if (wakeLock.isHeld) wakeLock.release()
@@ -158,7 +164,8 @@ class RecordViewModel @Inject constructor(
                     sttText = "",
                     summaryText = "",
                     keywords = emptyList(),
-                    folderId = folderId
+                    folderId = folderId,
+                    summaryStatus = SummaryStatus.NONE
                 )
                 _state.value = RecordState.NoSpeech(voiceNoteId.toString())  // ✅ emit 없음
                 return
@@ -182,7 +189,8 @@ class RecordViewModel @Inject constructor(
                 sttText = proofreadText,
                 summaryText = summary,
                 keywords = keywords,
-                folderId = folderId
+                folderId = folderId,
+                summaryStatus = if (summary.isBlank()) SummaryStatus.FAIL else SummaryStatus.SUCCESS
             )
 
             // 5. 상태 분기  ✅ emit 없음

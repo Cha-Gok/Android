@@ -83,7 +83,7 @@ fun ScriptEditScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             // TopBar
             Row(

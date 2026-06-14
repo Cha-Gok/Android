@@ -5,6 +5,7 @@ import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.TranscriptDao
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.entity.KeywordEntity
 import com.roro.core.entity.SummaryEntity
 import com.roro.core.entity.TranscriptEntity
@@ -45,7 +46,9 @@ class RecordRepositoryImpl @Inject constructor(
         sttText: String, // 변환 결과 텍스트
         summaryText: String, // 요약 결과 텍스트
         keywords: List<String>, // 추출된 키워드 목록
-        folderId: UUID? // 저장할 폴더 ID (null이면 기본 폴더)
+        folderId: UUID?, // 저장할 폴더 ID (null이면 기본 폴더)
+        summaryStatus: SummaryStatus
+
     ): UUID {  // Unit → UUID 추가
         val now = System.currentTimeMillis()
         val voiceNoteId = UUID.randomUUID()
@@ -59,7 +62,8 @@ class RecordRepositoryImpl @Inject constructor(
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,
-                folderId = folderId
+                folderId = folderId,
+                summaryStatus = summaryStatus.name
             )
         )
 

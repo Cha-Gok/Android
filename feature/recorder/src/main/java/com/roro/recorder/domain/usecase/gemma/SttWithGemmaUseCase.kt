@@ -51,7 +51,10 @@ class SttWithGemmaUseCase @Inject constructor(
 
     private fun isChunkSilent(chunkFile: File): Boolean {
         val wav = chunkFile.readBytes()
-        if (wav.size <= 44) return true
+        if (wav.size <= 44) {
+            Timber.d("🔇 청크 크기 44 이하: ${wav.size}")
+            return true
+        }
 
         val pcm = wav.drop(44).toByteArray()
         var sum = 0.0
@@ -64,12 +67,24 @@ class SttWithGemmaUseCase @Inject constructor(
             i += 2
         }
         val rms = if (count > 0) Math.sqrt(sum / count) else 0.0
-        return rms < 50.0  // 임계값, 조정 가능
+        Timber.d("🔊 청크 RMS: $rms, 파일: ${chunkFile.name}, 크기: ${chunkFile.length()}")
+        return rms < 150.0
     }
 
 
     private fun splitWavToChunks(file: File, chunkSeconds: Int): List<File> {
+
+        Timber.d("🎤 파일 존재: ${file.exists()}, 크기: ${file.length()}, 경로: ${file.absolutePath}")
+
         val wav = file.readBytes()
+        Timber.d("🎤 WAV 크기: ${wav.size}")
+
+        if (wav.size <= 44) {
+            Timber.d("🎤 WAV 헤더만 있음, 청크 없음")
+            return emptyList()
+        }
+
+        //val wav = file.readBytes()
         val sampleRate  = wav.getIntLE(24)
         val byteRate    = wav.getIntLE(28)
         val blockAlign  = wav.getShortLE(32)

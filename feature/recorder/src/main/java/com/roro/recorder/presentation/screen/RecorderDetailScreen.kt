@@ -138,6 +138,7 @@ fun RecorderDetailScreen(
                             navController.popBackStack()
                         } else {
                             isRunning = false
+                            viewModel.pauseRecording()
                             showCancelDialog = true
                         }
                     }
@@ -150,6 +151,7 @@ fun RecorderDetailScreen(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable(enabled = canStop) {
                         isRunning = false
+                        viewModel.pauseRecording()
                         showStopDialog = true
                     }
                 )
@@ -211,6 +213,7 @@ fun RecorderDetailScreen(
             onDismiss = {
                 showStopDialog = false
                 isRunning = true
+                viewModel.resumeRecording()
             },
             onConfirm = {
                 showStopDialog = false
@@ -230,6 +233,8 @@ fun RecorderDetailScreen(
             onDismiss = {
                 showCancelDialog = false
                 isRunning = true
+                viewModel.resumeRecording()
+
             },
             onConfirm = {
                 showCancelDialog = false

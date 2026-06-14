@@ -1,6 +1,7 @@
 package com.roro.core.model
 
 import androidx.room.PrimaryKey
+import com.roro.core.domain.model.SummaryStatus
 import java.util.UUID
 
 /**
@@ -18,5 +19,7 @@ data class VoiceNote(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = createdAt,
     val deletedAt: Long? = null,
-    val folderId: UUID? = null
+    val folderId: UUID? = null,
+
+    val summaryStatus: SummaryStatus = SummaryStatus.NONE
 )

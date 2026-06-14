@@ -45,16 +45,15 @@ class RecordDataSource @Inject constructor(
         private const val TAG = "RecordDataSource"
     }
 
-    fun pauseRecording() {
-        isPaused = true
-        _currentAmplitude.set(0)
-        audioRecord?.stop()
-    }
-
-    fun resumeRecording() {
-        isPaused = false
-        audioRecord?.startRecording()
-    }
+//    fun pauseRecording() {
+//        isPaused = true
+//        _currentAmplitude.set(0)
+//
+//    }
+//
+//    fun resumeRecording() {
+//        isPaused = false
+//    }
 
     fun createAudioFile(folderName: String? = null): File {
         val baseDir = context.getExternalFilesDir(null)
@@ -81,22 +80,15 @@ class RecordDataSource @Inject constructor(
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun startRecording(file: File) {
 
-        // 이미 녹음 중이면 먼저 정리
-        if (isRecording) {
-            isRecording = false
-            audioRecord?.stop()
-            audioRecord?.release()
-            audioRecord = null
-            recordingThread?.join()
-        }
+        isPaused = false
+        Timber.tag("문제").d("🎤 startRecording 진입, isRecording=$isRecording, audioRecord=$audioRecord, thread=${recordingThread?.isAlive}")
 
         if (isRecording) throw IllegalStateException("이미 녹음 중입니다.")
 
         currentFile = file
 
-        val bufferSize = AudioRecord.getMinBufferSize(
-            SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT
-        )
+        val bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+        Timber.tag("문제").d("🎤 bufferSize=$bufferSize")
 
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.VOICE_RECOGNITION,
@@ -105,35 +97,58 @@ class RecordDataSource @Inject constructor(
             AUDIO_FORMAT,
             bufferSize
         )
+        Timber.tag("문제").d("🎤 AudioRecord 생성, state=${audioRecord?.state}, recordingState=${audioRecord?.recordingState}")
 
         audioRecord?.startRecording()
+        Timber.tag("문제").d("🎤 startRecording() 호출 후, recordingState=${audioRecord?.recordingState}")
+
         isRecording = true
 
         recordingThread = Thread {
             writeAudioToFile(file, bufferSize)
         }.also { it.start() }
 
-        Timber.tag(TAG).d("🎤 녹음 시작: ${file.absolutePath}")
+        Timber.tag("문제").d("🎤 녹음 스레드 시작")
     }
 
     fun stopRecording(): File {
+        Timber.tag("문제").d("🛑 stopRecording 진입, isRecording=$isRecording, audioRecord=$audioRecord, thread=${recordingThread?.isAlive}")
+
         if (!isRecording) throw IllegalStateException("녹음 중이 아닙니다.")
 
         isRecording = false
         _currentAmplitude.set(0)
         audioRecord?.stop()
+        Timber.tag("문제").d("🛑 audioRecord.stop() 완료, recordingState=${audioRecord?.recordingState}")
         audioRecord?.release()
         audioRecord = null
-        recordingThread?.join()
+        Timber.tag("문제").d("🛑 audioRecord.release() 완료")
 
-        Timber.tag(TAG).d("🛑 녹음 종료: ${currentFile?.absolutePath}")
+        recordingThread?.join()
+        Timber.tag("문제").d("🛑 thread join 완료, 파일크기=${currentFile?.length()}")
+
+        Thread.sleep(300)
+        Timber.tag("문제").d("🛑 sleep 완료")
 
         return currentFile ?: throw IllegalStateException("녹음 파일 없음")
+    }
+
+    fun pauseRecording() {
+        Timber.tag("문제").d("⏸️ pauseRecording, isRecording=$isRecording, isPaused=$isPaused")
+        isPaused = true
+        _currentAmplitude.set(0)
+    }
+
+    fun resumeRecording() {
+        Timber.tag("문제").d("▶️ resumeRecording, isRecording=$isRecording, isPaused=$isPaused")
+        isPaused = false
     }
 
     private fun writeAudioToFile(file: File, bufferSize: Int) {
         val buffer = ByteArray(bufferSize)
         val pcmData = mutableListOf<Byte>()
+
+        Timber.tag("문제").d("✍️ writeAudioToFile 시작, isRecording=$isRecording, audioRecord=${audioRecord?.state}")
 
         while (isRecording) {
             if (isPaused) {
@@ -141,16 +156,17 @@ class RecordDataSource @Inject constructor(
                 continue
             }
             val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
-            // Timber.d("🎤 read=$read, rms=${calculateRms(buffer, read)}")  // 확인용
-
+            if (read <= 0) {
+                Timber.tag("문제").d("✍️ read=$read (비정상), recordingState=${audioRecord?.recordingState}")
+            }
             if (read > 0) {
                 pcmData.addAll(buffer.take(read))
-
-                // ✅ PCM 버퍼에서 RMS amplitude 계산 후 업데이트
                 val rms = calculateRms(buffer, read)
                 _currentAmplitude.set(rms)
             }
         }
+
+        Timber.tag("문제").d("✍️ 루프 종료, pcmData.size=${pcmData.size}")
 
         val pcmBytes = pcmData.toByteArray()
         file.outputStream().use { out ->
@@ -158,8 +174,61 @@ class RecordDataSource @Inject constructor(
             out.write(pcmBytes)
         }
 
-        Timber.tag(TAG).d("💾 WAV 저장 완료: ${file.length()} bytes")
+        Timber.tag("문제").d("💾 WAV 저장 완료: ${file.length()} bytes")
     }
+
+//    fun stopRecording(): File {
+//        if (!isRecording) throw IllegalStateException("녹음 중이 아닙니다.")
+//
+//        isRecording = false
+//
+//        recordingThread?.join()
+//
+//
+//        _currentAmplitude.set(0)
+//
+//        audioRecord?.stop()
+//        audioRecord?.release()
+//        audioRecord = null
+//
+//        Timber.tag(TAG).d("🛑 join 전")
+//
+//        Timber.tag(TAG).d("🛑 join 후, 파일크기: ${currentFile?.length()}")
+//
+//        Thread.sleep(300) // ✅ OS가 오디오 소스 해제할 시간
+//
+//        return currentFile ?: throw IllegalStateException("녹음 파일 없음")
+//    }
+//
+//    private fun writeAudioToFile(file: File, bufferSize: Int) {
+//        val buffer = ByteArray(bufferSize)
+//        val pcmData = mutableListOf<Byte>()
+//
+//        //Timber.tag(TAG).d("writeAudioToFile 시작, isRecording=$isRecording")
+//
+//        while (isRecording) {
+//            if (isPaused) {
+//                Thread.sleep(50)
+//                continue
+//            }
+//            val read = audioRecord?.read(buffer, 0, bufferSize) ?: 0
+//            Timber.tag(TAG).d("✍️ read=$read, isRecording=$isRecording, audioRecord=${audioRecord?.state}")
+//
+//            if (read > 0) {
+//                pcmData.addAll(buffer.take(read))
+//                val rms = calculateRms(buffer, read)
+//                _currentAmplitude.set(rms)
+//            }
+//        }
+//
+//        val pcmBytes = pcmData.toByteArray()
+//        file.outputStream().use { out ->
+//            out.write(buildWavHeader(pcmBytes.size))
+//            out.write(pcmBytes)
+//        }
+//
+//        Timber.tag(TAG).d("💾 WAV 저장 완료: ${file.length()} bytes")
+//    }
 
     /**
      * PCM 16bit LE 버퍼 → RMS amplitude (0~32767)

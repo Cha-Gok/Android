@@ -12,6 +12,7 @@ class SummarizeWithGemmaUseCase @Inject constructor(
             val prompt = """
                 Summarize the text below into exactly 3 key points.
                 Each key point must start with "*" and be a single sentence.
+                Respond in the same language as the input text.
                 Return ONLY the 3 key points. Do not add any explanation or extra text.
                 
                 Text:
