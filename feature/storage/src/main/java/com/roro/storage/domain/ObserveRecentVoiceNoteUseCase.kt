@@ -3,6 +3,7 @@ package com.roro.storage.domain
 import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.model.VoiceNote
 import kotlinx.coroutines.flow.Flow
+import timber.log.Timber
 import javax.inject.Inject
 
 class ObserveRecentVoiceNoteUseCase @Inject constructor(

@@ -1,5 +1,6 @@
 package com.roro.storage.presentation.home
 
+import androidx.compose.material3.TimeInput
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.roro.core.domain.GetSelectedLanguageUseCase
@@ -119,7 +120,11 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-
+            is HomeIntent.ClickVoiceNote -> {
+                viewModelScope.launch {
+                    _effect.emit(HomeEffect.NavigateToVoiceNoteDetail(intent.voiceNoteId))
+                }
+            }
         }
     }
 
@@ -127,6 +132,9 @@ class HomeViewModel @Inject constructor(
         // 1. 최근 기록 5개 관찰
         viewModelScope.launch {
             observeRecentVoiceNoteUseCase().collect { voiceNotes ->
+                for (i in voiceNotes) {
+                    Timber.d("")
+                }
                 _uiState.update {
                     it.copy(
                         displayVoiceNotes = voiceNotes,

@@ -35,13 +35,17 @@ sealed interface HomeIntent {
     // 설정 클릭
     data object ClickSetting : HomeIntent
 
+    // voiceNote 클릭
+    data class ClickVoiceNote(val voiceNoteId: String) : HomeIntent
+
 }
 
 sealed interface HomeEffect {
     data class ShowToast(val message: String) : HomeEffect
-    object NavigateToRecord : HomeEffect
-    object NavigateToPrivate : HomeEffect
-    object NavigateToTrash : HomeEffect
-    object NavigateToSearch : HomeEffect
-    object NavigateToSettings : HomeEffect  // 설정
+    data object NavigateToRecord : HomeEffect
+    data object NavigateToPrivate : HomeEffect
+    data object NavigateToTrash : HomeEffect
+    data object NavigateToSearch : HomeEffect
+    data object NavigateToSettings : HomeEffect  // 설정
+    data class NavigateToVoiceNoteDetail(val voiceNoteId: String) : HomeEffect
 }

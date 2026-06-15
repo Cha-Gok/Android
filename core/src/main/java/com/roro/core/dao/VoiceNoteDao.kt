@@ -143,8 +143,26 @@ interface VoiceNoteDao {
     )
     fun observeTrashVoiceNotes(): Flow<List<VoiceNoteEntity>>
 
-    // 최근 업데이트된 VoiceNote 상위 5개
-    @Query("SELECT * FROM voice_note WHERE deletedAt IS NULL ORDER BY updatedAt DESC LIMIT 5")
+    // 최근 업데이트된 VoiceNote 상위 5개 (조인 추가)
+    @Query(
+        """
+        SELECT 
+            vn.id as id,
+            vn.title as title,
+            vn.createdAt as createdAt,
+            vn.updatedAt as updatedAt,
+            vr.durationSec as duration, 
+            s.text as summary,
+            f.name as folderName
+        FROM voice_note vn
+        LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
+        LEFT JOIN summary s ON vn.id = s.voiceNoteId
+        LEFT JOIN folder f ON vn.folderId = f.id
+        WHERE vn.deletedAt IS NULL 
+        ORDER BY vn.updatedAt DESC 
+        LIMIT 5
+        """
+    )
     fun observeRecentVoiceNote(): Flow<List<VoiceNoteItemResult>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
