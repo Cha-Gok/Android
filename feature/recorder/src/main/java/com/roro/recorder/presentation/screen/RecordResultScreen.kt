@@ -89,7 +89,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.roro.core.domain.model.FileListSheetMode
@@ -123,11 +122,25 @@ import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.animation.core.*
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.TextStyle
+import com.roro.recorder.presentation.RecordViewModel
+import com.roro.recorder.presentation.viewModel.SummaryDisplayState
+import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 
 @Composable
 fun RecordResultScreen(
-    navController: NavController, voiceNoteId: String, viewModel: RecordResultViewModel = hiltViewModel(), recordViewModel: RecordViewModel = hiltViewModel()
+    navController: NavController,
+  voiceNoteId: String, 
+  viewModel: RecordResultViewModel = hiltViewModel(), 
+  recordViewModel: RecordViewModel = hiltViewModel()
 ) {
     // ViewModel 상태 구독
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -139,14 +152,6 @@ fun RecordResultScreen(
         }
     }
 
-    // ✅ 추가 - 처리 완료 시 voiceNoteId 받아서 로드
-    LaunchedEffect(Unit) {
-        if (voiceNoteId.isEmpty()) {
-            recordViewModel.navigationEvent.collect { id ->
-                viewModel.load(id)
-            }
-        }
-    }
 
     when (val state = uiState) {
         is RecordResultUiState.Loading -> RecordResultLoadingScreen()
@@ -728,7 +733,7 @@ private fun formatTime(ms: Long): String {
 }
 
 @Composable
-private fun RecordResultLoadingScreen() {
+internal fun RecordResultLoadingScreen() {
     val shimmerColors = listOf(
         Color(0xFF2A2A3A), Color(0xFF3A3A4E), Color(0xFF2A2A3A)
     )

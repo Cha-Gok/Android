@@ -79,9 +79,33 @@ class GemmaManager @Inject constructor(
         }
     }
 
+//    suspend fun generateWithAudio(audioPath: String, textPrompt: String): String {
+//        return withContext(Dispatchers.IO) {
+//            try {
+//                val conversationConfig = ConversationConfig(
+//                    samplerConfig = SamplerConfig(temperature = 0.0, topK = 1, topP = 0.0)
+//                )
+//
+//                engine?.createConversation(conversationConfig)?.use { conversation ->
+//                    val response = conversation.sendMessage(
+//                        Contents.of(
+//                            Content.AudioFile(audioPath),
+//                            Content.Text(textPrompt),
+//                        )
+//                    )
+//                    response.toString()
+//                } ?: ""
+//            } catch (e: Exception) {
+//                Timber.tag("GemmaManager").e(e, "❌ 오디오 생성 실패")
+//                ""
+//            }
+//        }
+//    }
+
     suspend fun generateWithAudio(audioPath: String, textPrompt: String): String {
         return withContext(Dispatchers.IO) {
             try {
+                Timber.tag("GemmaManager").d("🎤 generateWithAudio 시작, engine=$engine")
                 val conversationConfig = ConversationConfig(
                     samplerConfig = SamplerConfig(temperature = 0.0, topK = 1, topP = 0.0)
                 )
@@ -93,10 +117,14 @@ class GemmaManager @Inject constructor(
                             Content.Text(textPrompt),
                         )
                     )
+                    Timber.tag("GemmaManager").d("🎤 응답: $response")
                     response.toString()
-                } ?: ""
+                } ?: run {
+                    Timber.tag("GemmaManager").e("❌ engine이 null")
+                    ""
+                }
             } catch (e: Exception) {
-                Timber.tag("GemmaManager").e(e, "❌ 오디오 생성 실패")
+                Timber.tag("GemmaManager").e(e, "❌ 오디오 생성 실패: ${e.message}")
                 ""
             }
         }

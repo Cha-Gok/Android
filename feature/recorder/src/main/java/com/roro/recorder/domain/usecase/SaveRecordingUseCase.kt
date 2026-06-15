@@ -1,5 +1,6 @@
 package com.roro.recorder.domain.usecase
 
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.recorder.domain.repository.RecordRepository
 import java.io.File
 import java.util.UUID
@@ -14,7 +15,8 @@ class SaveRecordingUseCase @Inject constructor(
         sttText: String,
         summaryText: String,
         keywords: List<String>,
-        folderId: UUID? = null
+        folderId: UUID? = null,
+        summaryStatus: SummaryStatus = SummaryStatus.NONE
     ): UUID {  // Unit → UUID
         return repository.saveRecording(
             audioFile = audioFile,
@@ -22,7 +24,8 @@ class SaveRecordingUseCase @Inject constructor(
             sttText = sttText,
             summaryText = summaryText,
             keywords = keywords,
-            folderId = folderId
+            folderId = folderId,
+            summaryStatus = summaryStatus
         )
     }
 }

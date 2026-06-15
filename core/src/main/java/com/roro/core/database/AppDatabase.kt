@@ -43,7 +43,7 @@ import com.roro.core.entity.VoiceRecordEntity
         SummaryEntity::class,
         KeywordEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

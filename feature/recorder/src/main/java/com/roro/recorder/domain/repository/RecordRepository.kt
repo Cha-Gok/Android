@@ -1,6 +1,7 @@
 package com.roro.recorder.domain.repository
 
 import com.roro.core.domain.model.FolderItem
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.model.Keyword
 import kotlinx.coroutines.flow.Flow
 import java.io.File
@@ -20,7 +21,9 @@ interface RecordRepository {
         sttText: String,
         summaryText: String,
         keywords: List<String>,
-        folderId: UUID? = null
+        folderId: UUID? = null,
+
+        summaryStatus: SummaryStatus = SummaryStatus.NONE
     ): UUID  // Unit → UUID
 
     suspend fun createUserFolder(

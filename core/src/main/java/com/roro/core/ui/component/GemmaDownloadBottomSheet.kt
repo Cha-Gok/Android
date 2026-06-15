@@ -32,7 +32,13 @@ fun GemmaDownloadBottomSheet(
     viewModel: GemmaDownloadBottomSheetViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = {
+            // ✅ 다운로드 중이면 내리기 막기
+            state !is DownloadBottomSheetState.Downloading
+        }
+    )
     val scope = rememberCoroutineScope()
 
     if (state is DownloadBottomSheetState.Completed) {
@@ -46,8 +52,11 @@ fun GemmaDownloadBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = {
-            viewModel.resetState()  // ← 닫힐 때 초기화
-            onDismiss()
+            // 다운로드 중이면 무시
+            if (state !is DownloadBottomSheetState.Downloading) {
+                viewModel.resetState()
+                onDismiss()
+            }
         },
         sheetState = sheetState,
         containerColor = Color(0xFF1A1A26),
