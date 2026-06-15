@@ -122,16 +122,6 @@ import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.animation.core.*
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.TextStyle
-import com.roro.recorder.presentation.RecordViewModel
-import com.roro.recorder.presentation.viewModel.SummaryDisplayState
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 
