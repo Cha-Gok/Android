@@ -1,10 +1,13 @@
 package com.roro.recorder.data.repository
 
+import com.roro.core.dao.FolderDao
 import com.roro.core.dao.KeywordDao
 import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.TranscriptDao
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
+import com.roro.core.domain.mapper.toItem
+import com.roro.core.domain.model.FolderItem
 import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.entity.KeywordEntity
 import com.roro.core.entity.SummaryEntity
@@ -12,12 +15,15 @@ import com.roro.core.entity.TranscriptEntity
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.entity.VoiceRecordEntity
 import com.roro.core.mapper.toEntity
+import com.roro.core.model.Folder
 import com.roro.core.model.Summary
 import com.roro.core.model.Transcript
 import com.roro.core.model.VoiceNote
 import com.roro.core.model.VoiceRecord
 import com.roro.recorder.data.datasource.RecordDataSource
 import com.roro.recorder.domain.repository.RecordRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -31,6 +37,7 @@ import javax.inject.Inject
  * @since 2026. 04. 12.
  */
 class RecordRepositoryImpl @Inject constructor(
+    private val folderDao: FolderDao,
     private val voiceNoteDao: VoiceNoteDao,
     private val voiceRecordDao: VoiceRecordDao,
     private val transcriptDao: TranscriptDao,
@@ -118,4 +125,41 @@ class RecordRepositoryImpl @Inject constructor(
         return voiceNoteId  // ← 추가
     }
 
+    override suspend fun createUserFolder(folderName: String): Boolean {
+        return try {
+            folderDao.insertFolder(
+                Folder(
+                    name = folderName
+                ).toEntity()
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun moveToFolder(voiceNoteId: List<UUID>, folderId: String) {
+        val now = System.currentTimeMillis()
+        voiceNoteDao.moveToFolder(
+            voiceNoteId = voiceNoteId,
+            folderId = folderId,
+            updatedAt = now
+        )
+    }
+
+    override suspend fun moveToVoiceNotes(voiceNoteIds: List<UUID>) {
+        val now = System.currentTimeMillis()
+
+        voiceNoteDao.moveNotesToTrash(
+            noteIds = voiceNoteIds,
+            deletedAt = now,
+            updatedAt = now
+        )
+    }
+
+    override fun observeFolders(): Flow<List<FolderItem>> {
+        return folderDao.observeFolders().map { it.toItem() }
+
+    }
 }
+

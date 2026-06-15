@@ -1,7 +1,6 @@
 package com.roro.storage.presentation.home
 
 import android.app.Activity
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.roro.core.datastore.Language
 import com.roro.core.domain.model.FileType
 import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.navigation.Routes
@@ -52,14 +50,10 @@ import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
-import com.roro.core.ui.component.ChaGokNoteList
 import com.roro.core.ui.component.ChaGokItemBox
-import com.roro.core.ui.component.ChaGokLanguageDialog
-import com.roro.core.ui.component.ChaGokSettingsDropdown
 import com.roro.core.ui.component.ChaGokTopBar
 import com.roro.core.ui.component.ChagokStartRecordFAB
 import com.roro.core.ui.component.GemmaDownloadBottomSheet
-import com.roro.core.ui.component.SummaryStatus
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextTertiary
@@ -119,6 +113,10 @@ fun HomeScreen(
 
                 // 설정
                 HomeEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+
+                is HomeEffect.NavigateToVoiceNoteDetail -> {
+                    navController.navigate(Routes.recordResult(effect.voiceNoteId))
+                }
             }
         }
     }
@@ -127,6 +125,7 @@ fun HomeScreen(
     StorageScreenContent(
         uiState = uiState,
         navController = navController,
+        onIntent = viewModel::onIntent,
         defaultCount = uiState.defaultFolderCount,
         privateFolderCount = uiState.privateFolderCount,
         trashFolderCount = uiState.trashCount,
@@ -141,17 +140,13 @@ fun HomeScreen(
             } else {
                 showDownloadBottomSheet = true
             }
-        }
-    )
+        })
 
     if (showDownloadBottomSheet) {
-        GemmaDownloadBottomSheet(
-            onDismiss = { showDownloadBottomSheet = false },
-            onDownloadComplete = {
-                showDownloadBottomSheet = false
-                navController.navigate(Routes.RECORDER)
-            }
-        )
+        GemmaDownloadBottomSheet(onDismiss = { showDownloadBottomSheet = false }, onDownloadComplete = {
+            showDownloadBottomSheet = false
+            navController.navigate(Routes.RECORDER)
+        })
     }
 }
 
@@ -160,6 +155,7 @@ fun HomeScreen(
 internal fun StorageScreenContent(
     uiState: HomeUiState,
     navController: NavController,
+    onIntent: (HomeIntent) -> Unit,
     defaultCount: Int,
     privateFolderCount: Int,
     trashFolderCount: Int,
@@ -204,7 +200,6 @@ internal fun StorageScreenContent(
                 .nestedScroll(nestedScrollConnection) // 연결
         ) {
             Column {
-                var isMenuExpanded by remember { mutableStateOf(false) }
                 ChaGokTopBar(
                     title = "차곡",
                     onFirstActionClick = { onSearchClick() },
@@ -269,7 +264,7 @@ internal fun StorageScreenContent(
                                     }
                                     items(
                                         items = notesInSection, key = { it.id }) { item ->
-                                        FolderItemList(voiceNote = item, navController = navController) // 0511 수정
+                                        FolderItemList(voiceNote = item, onIntent = onIntent) // 0511 수정
                                     }
                                 }
                             }
@@ -277,7 +272,7 @@ internal fun StorageScreenContent(
                             // 3. 최근 기록(RECENT) 등 다른 타입일 때 (일반 리스트)
                             items(
                                 items = displayList, key = { it.id }) { item ->
-                                FolderItemList(voiceNote = item, navController = navController) // 0511 수정
+                                FolderItemList(voiceNote = item, onIntent = onIntent) // 0511 수정
                             }
                         }
                     }
@@ -298,14 +293,16 @@ internal fun StorageScreenContent(
 @Composable
 fun FolderItemList(
     voiceNote: VoiceNoteItem,
-    navController: NavController,  // 0511 추가
+    onIntent: (HomeIntent) -> Unit,
 ) {
+    Timber.d("아이템 = $voiceNote")
+
     // 0511 수정
     ChaGokItemBox(
         title = voiceNote.title,
         createAt = voiceNote.createdAt.formatDate(),
         duration = voiceNote.duration,
-        onClick = { navController.navigate(Routes.trashVoiceNote(voiceNote.id)) },
+        onClick = { onIntent(HomeIntent.ClickVoiceNote(voiceNoteId = voiceNote.id)) },
         type = FileType.VOICE_NOTE,
     )
 }
@@ -365,13 +362,13 @@ fun StorageScreenPreview() {
         uiState = HomeUiState(
             selectedFolderType = DefaultFolderType.RECENT, isLoading = false, errorMessage = null
         ),
+        onIntent = {},
         onClickFolderType = {},
         defaultCount = 0,
         privateFolderCount = 0,
         trashFolderCount = 0,
         onSearchClick = {},
         onSettingClick = {},
-
         onRecordClick = {},  // ← 추가
     )
 }

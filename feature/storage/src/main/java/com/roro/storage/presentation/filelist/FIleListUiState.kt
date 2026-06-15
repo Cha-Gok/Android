@@ -1,5 +1,6 @@
 package com.roro.storage.presentation.filelist
 
+import com.roro.core.domain.model.FileListSheetMode
 import com.roro.core.domain.model.FolderItem
 import com.roro.core.domain.model.SortType
 import com.roro.core.domain.model.VoiceNoteItem
@@ -30,8 +31,3 @@ data class FileListUiState(
     val folderList: List<FolderItem> = emptyList()
 
 )
-
-enum class FileListSheetMode {
-    FOLDER_LIST,  // 폴더 목록 모드
-    CREATE_FOLDER // 새 폴더 입력 모드
-}
