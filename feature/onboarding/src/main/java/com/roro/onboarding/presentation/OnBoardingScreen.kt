@@ -137,7 +137,7 @@ private fun OnBoardingScreenUI(
             ) {
                 HorizontalPager(
                     state = pagerState,
-                    userScrollEnabled = true
+                    userScrollEnabled = uiState.modelDownloadState.gemma != DownloadItemState.Downloading
                 ) { page ->
                     OnBoardingPage(
                         page = page,
@@ -171,7 +171,7 @@ private fun OnBoardingScreenUI(
                         "다운로드"
 
                     uiState.isCheckingEnvironment ->
-                        "확인 중..."
+                        "환경 확인 중"
 
                     else ->
                         "다음"
@@ -219,7 +219,10 @@ private fun OnBoardingScreenUI(
                         0 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickSkip) }) {
                             Text("건너뛰기", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
-                        1, 2, 3, 4 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickBack) }) {
+                        1, 2, 3, 4 -> TextButton(
+                            onClick = { onIntent(OnboardingIntent.ClickBack) },
+                            enabled = uiState.modelDownloadState.gemma != DownloadItemState.Downloading
+                        ) {
                             Text("이전", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
                     }
@@ -288,10 +291,19 @@ private fun OnBoardingPage(
                         downloadState.gemma == DownloadItemState.Done -> "DONE"
                         else -> "READY"
                     },
+//                    transitionSpec = {
+//                        slideInHorizontally(
+//                            initialOffsetX = { it }
+//                        ) + fadeIn() togetherWith fadeOut()
+//                    },
                     transitionSpec = {
                         slideInHorizontally(
-                            initialOffsetX = { it }
-                        ) + fadeIn() togetherWith fadeOut()
+                            initialOffsetX = { -it }
+                        ) + fadeIn() togetherWith
+
+                                slideOutHorizontally(
+                                    targetOffsetX = { +it / 3 }
+                                ) + fadeOut()
                     },
                     label = "setup_content"
                 ) { state ->
@@ -306,7 +318,7 @@ private fun OnBoardingPage(
                                     color = TextPrimary
                                 )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(40.dp))
 
                                 ModelDownloadItem(
                                     label = "지원 환경 확인중",
@@ -323,7 +335,7 @@ private fun OnBoardingPage(
                                     color = TextPrimary
                                 )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(40.dp))
 
                                 ModelDownloadItem(
                                     label = "Gemma-4",
@@ -340,7 +352,7 @@ private fun OnBoardingPage(
                                     color = TextPrimary
                                 )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(40.dp))
 
                                 ModelDownloadItem(
                                     label = "Gemma-4",
@@ -358,7 +370,7 @@ private fun OnBoardingPage(
                                     color = TextPrimary
                                 )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(40.dp))
 
                                 ModelDownloadItem(
                                     label = "Gemma-4",
@@ -478,8 +490,10 @@ private fun ModelDownloadItem(
             .fillMaxWidth()
             .padding(end = 20.dp)
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .background(Color.White.copy(alpha = 0.02f), RoundedCornerShape(12.dp))
+            //.defaultMinSize(minHeight = 72.dp)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -521,19 +535,30 @@ private fun ModelDownloadItem(
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), color = PrimaryColor, strokeWidth = 2.dp)
                     }
                 DownloadItemState.Done -> Icon(Icons.Default.Check, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
-                DownloadItemState.Required -> Text("다운로드 필요", color = Color.Red, style = ChaGokTextStyle.Body3)
+                DownloadItemState.Required -> Text("", color = Color.Red, style = ChaGokTextStyle.Body3)
                 DownloadItemState.Unavailable -> Text("미지원", color = Gray400, style = ChaGokTextStyle.Body3)
                 DownloadItemState.Failed -> Icon(Icons.Default.Error, null, tint = Color.Red, modifier = Modifier.size(18.dp))
             }
         }
         if (state == DownloadItemState.Downloading && progress > 0f) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth(),
-                color = PrimaryColor,
+                color = Color.White,
                 trackColor = Color.White.copy(alpha = 0.1f)
             )
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Text(
+                text = "다운로드 중입니다..",
+                style = ChaGokTextStyle.Body3,
+                color = Color.White.copy(alpha = 0.5f)
+            )
+
+
         }
     }
 }
