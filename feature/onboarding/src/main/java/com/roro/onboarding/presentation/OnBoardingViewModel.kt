@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -57,21 +58,36 @@ class OnBoardingViewModel @Inject constructor(
             // PagerChanged - 페이지 3 진입 시 자동 체크 시작
             is OnboardingIntent.PagerChanged -> {
                 val previousPage = uiState.value.currentPage
+                val wasChecked = uiState.value.isEnvironmentChecked  // update 전에 먼저 읽어
                 _uiState.update { it.copy(currentPage = intent.index) }
-                if (intent.index == 3 && previousPage != 3) {
-                    checkEnvironment()
-                }
+
+                Timber.d("PagerChanged: $previousPage -> ${intent.index}, isEnvironmentChecked=$wasChecked")
+
+//                if (intent.index == 3 && !wasChecked) {
+//                    Timber.d("checkEnvironment 호출")
+//                    viewModelScope.launch {
+//                        delay(500L) // UI가 먼저 그려지고 나서 체크 시작
+//                        checkEnvironment()
+//                    }
+//                }
             }
 
             // ClickNext
             OnboardingIntent.ClickNext -> {
                 val currentPage = uiState.value.currentPage
+                val state = uiState.value
 
                 when {
                     currentPage == 2 -> emitEffect(OnboardingEffect.RequestAudioPermission)
-                    currentPage == 3 -> emitEffect(OnboardingEffect.ScrollToPage(4))
-                    currentPage == 4 && !uiState.value.isDownloadStarted -> startModelDownload()
-                    currentPage == 4 && uiState.value.modelDownloadState.allDone -> emitEffect(OnboardingEffect.ScrollToPage(5))
+                    currentPage == 3 && !state.isEnvironmentChecked && !state.isCheckingEnvironment -> {
+                        checkEnvironment()  // 다운로드 버튼 클릭 시 환경 확인 시작
+                    }
+                    currentPage == 3 && state.isEnvironmentChecked && !state.isDownloadStarted -> {
+                        startModelDownload()  // 환경 확인 완료 후 다운로드 시작
+                    }
+                    currentPage == 3 && state.modelDownloadState.gemma == DownloadItemState.Done -> {
+                        emitEffect(OnboardingEffect.ScrollToPage(4))
+                    }
                     else -> emitEffect(OnboardingEffect.ScrollToPage(currentPage + 1))
                 }
             }
@@ -105,38 +121,57 @@ class OnBoardingViewModel @Inject constructor(
 
     // checkEnvironment - 자동 실행용 (버튼 없이)
     private fun checkEnvironment() {
+
+        Timber.d("isCheckingEnvironment=${uiState.value.isCheckingEnvironment}")
+        Timber.d("downloadState=${uiState.value.modelDownloadState}")
+
         viewModelScope.launch(Dispatchers.IO) {
+            Timber.d("checkEnvironment 시작")
             _uiState.update {
                 it.copy(
-                    isEnvironmentChecked = false,
+                    isCheckingEnvironment = true,
                     modelDownloadState = ModelDownloadState(isChecking = true)
                 )
             }
+            Timber.d("isCheckingEnvironment = ${uiState.value.isCheckingEnvironment}")
+
+            delay(3000) // 테스트용
 
             val result = downloadModelsUseCase.checkDeviceSupport()
-
-            val gemmaState = when (result) {
-                is DeviceSupportResult.Supported -> DownloadItemState.Done
-                is DeviceSupportResult.UnsupportedCpu -> DownloadItemState.Unavailable
-                is DeviceSupportResult.InsufficientRam -> DownloadItemState.Unavailable
-            }
+            val supported = result is DeviceSupportResult.Supported
 
             _uiState.update {
                 it.copy(
-                    isEnvironmentChecked = true,
+                    isCheckingEnvironment = false,
                     modelDownloadState = it.modelDownloadState.copy(
                         isChecking = false,
-                        gemma = gemmaState
+                        gemma = if (supported)
+                            DownloadItemState.Required
+                        else
+                            DownloadItemState.Unavailable
                     )
                 )
             }
 
-            when (result) {
-                is DeviceSupportResult.UnsupportedCpu ->
-                    emitEffect(OnboardingEffect.ShowToast("ARM64 미지원 기기입니다."))
-                is DeviceSupportResult.InsufficientRam ->
-                    emitEffect(OnboardingEffect.ShowToast("RAM이 부족합니다. (현재 ${String.format("%.1f", result.actualGb)}GB)"))
-                else -> {}
+
+            if (!supported) {
+                when (result) {
+                    is DeviceSupportResult.UnsupportedCpu ->
+                        emitEffect(OnboardingEffect.ShowToast("ARM64 미지원 기기입니다."))
+                    is DeviceSupportResult.InsufficientRam ->
+                        emitEffect(OnboardingEffect.ShowToast("RAM 부족 (현재 ${String.format(Locale.getDefault(), "%.1f", result.actualGb)}GB)"))
+                    else -> {}
+                }
+                return@launch
+            }
+
+            // 체크 완료 표시 800ms 후 Idle로 복귀
+            delay(800)
+
+            _uiState.update {
+                it.copy(
+                    isEnvironmentChecked = true
+                )
             }
         }
     }
@@ -182,12 +217,10 @@ class OnBoardingViewModel @Inject constructor(
 
             // 5. 체크마크 잠깐 보여주고 → Gemma-4로 복귀
             delay(800)
+
             _uiState.update {
                 it.copy(
-                    isEnvironmentChecked = true,  // ← 체크 완료 플래그
-                    modelDownloadState = it.modelDownloadState.copy(
-                        gemma = DownloadItemState.Idle
-                    )
+                    isEnvironmentChecked = true
                 )
             }
 
@@ -198,6 +231,7 @@ class OnBoardingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
+
                     modelDownloadState = it.modelDownloadState.copy(
                         gemma = DownloadItemState.Downloading
                     )

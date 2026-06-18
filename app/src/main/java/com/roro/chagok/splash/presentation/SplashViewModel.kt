@@ -45,7 +45,7 @@ class SplashViewModel @Inject constructor(
             val delayJob = launch { delay(2000L) }
 
             // 개발용: 항상 온보딩 보이게 강제
-            val isFinishOnboarding = true
+            val isFinishOnboarding = false // true로 수정
 
             // 2. UseCase를 통해 DataStore에서 상태 읽기
             //val isFinishOnboarding = getOnboardingStatusUseCase().first()
