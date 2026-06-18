@@ -72,7 +72,6 @@ import com.roro.core.ui.component.ChaGokMenuItem
 import com.roro.core.ui.component.ChaGokMoreMenu
 import com.roro.core.ui.component.ChaGokSwipeableFileItem
 import com.roro.core.ui.component.ChaGokTopBarV2
-import com.roro.core.ui.component.SummaryStatus
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.Danger
 import com.roro.core.ui.theme.Gray100
@@ -91,11 +90,7 @@ import java.util.UUID
 
 @Composable
 fun FileListScreen(
-    navController: NavController,
-    folderName: String,
-    folderId: String,
-    isTrash: Boolean,
-    viewModel: FileListViewModel = hiltViewModel()
+    navController: NavController, folderName: String, folderId: String, isTrash: Boolean, viewModel: FileListViewModel = hiltViewModel()
 ) {
     Timber.d("folderId 확인 = $folderId")
     Timber.d("isTrah 확인 = $isTrash")
@@ -116,9 +111,8 @@ fun FileListScreen(
             when (effect) {
                 FileListEffect.NavigateToSearch -> {
                     navController.navigate(
-                        Routes.searchTemp(
-                            searchType = SearchType.VOICE_NOTE,
-                            folderId = folderId
+                        Routes.search(
+                            searchType = SearchType.VOICE_NOTE, folderId = folderId
                         )
                     )
                 }
@@ -145,9 +139,7 @@ fun FileListScreen(
 
 
     FileListScreenContent(
-        uiState = uiState,
-        onIntent = viewModel::onIntent,
-        isTrash = isTrash
+        uiState = uiState, onIntent = viewModel::onIntent, isTrash = isTrash
     )
 }
 
@@ -196,47 +188,32 @@ internal fun FileListScreenContent(
                                         if (uiState.selectedIds.isNotEmpty()) {
                                             onIntent(FileListIntent.ShowDeleteDialog(true))
                                         }
-                                    }
-                                ) {
+                                    }) {
                                     Text(text = "삭제", color = Danger, style = ChaGokTextStyle.Title2)
                                 }
                             }
                         } else if (!isTrash) {
                             ChaGokMoreMenu(
-                                expanded = uiState.isMenuExpanded,
-                                onDismissRequest = { onIntent(FileListIntent.ShowMoreMenu(false)) },
-                                items = listOf(
+                                expanded = uiState.isMenuExpanded, onDismissRequest = { onIntent(FileListIntent.ShowMoreMenu(false)) }, items = listOf(
                                     ChaGokMenuItem(
-                                        text = "생성일 순",
-                                        onClick = {
+                                        text = "생성일 순", isSelected = uiState.selectedSortType == SortType.CREATED_AT, onClick = {
                                             onIntent(FileListIntent.ChangeSort(SortType.CREATED_AT))
-                                        }
-                                    ),
-                                    ChaGokMenuItem(
-                                        text = "수정일 순",
-                                        onClick = {
+                                        }), ChaGokMenuItem(
+                                        text = "수정일 순", isSelected = uiState.selectedSortType == SortType.UPDATED_AT, onClick = {
                                             onIntent(FileListIntent.ChangeSort(SortType.UPDATED_AT))
-                                        }
-                                    ),
-                                    ChaGokMenuItem(
-                                        text = if (uiState.selectedIds.size == uiState.item.size && uiState.item.isNotEmpty()) "전체 해제" else "전체 선택",
-                                        onClick = { onIntent(FileListIntent.ToggleSelectAll) }
-                                    ),
-                                    ChaGokMenuItem(
-                                        text = "선택하기",
-                                        onClick = { onIntent(FileListIntent.EnterSelectionMode) }
-                                    )
+                                        }), ChaGokMenuItem(
+                                        text = if (uiState.selectedIds.size == uiState.item.size && uiState.item.isNotEmpty()) "전체 해제" else "전체 선택 하기",
+                                        hasDividerBefore = true,
+                                        isSelected = null,
+                                        onClick = { onIntent(FileListIntent.ToggleSelectAll) }), ChaGokMenuItem(
+                                        text = "선택하기", isSelected = null, onClick = { onIntent(FileListIntent.EnterSelectionMode) })
                                 )
                             )
                         }
-                    }
-                )
+                    })
 
                 FileVoiceNoteList(
-                    voiceNotes = uiState.item,
-                    isSelectionMode = uiState.isSelectMode,
-                    selectedIds = uiState.selectedIds,
-                    onItemClick = { voiceNote ->
+                    voiceNotes = uiState.item, isSelectionMode = uiState.isSelectMode, selectedIds = uiState.selectedIds, onItemClick = { voiceNote ->
                         if (uiState.isSelectMode) {
                             onIntent(FileListIntent.ToggleSelectItem(UUID.fromString(voiceNote.id)))
                         } else {
@@ -245,8 +222,7 @@ internal fun FileListScreenContent(
                     }, // 콤마 추가 확인
                     onDeleteFile = { voiceNote ->
                         onIntent(FileListIntent.SwipeDeleteFile(voiceNoteItem = voiceNote))
-                    }
-                )
+                    })
             }
         }
 
@@ -259,8 +235,7 @@ internal fun FileListScreenContent(
                 dismissText = "취소",
                 confirmText = "삭제",
                 onDismiss = { onIntent(FileListIntent.ShowDeleteDialog(false)) },
-                onConfirm = { onIntent(FileListIntent.ConfirmDelete) }
-            )
+                onConfirm = { onIntent(FileListIntent.ConfirmDelete) })
         }
 
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -268,17 +243,14 @@ internal fun FileListScreenContent(
         // FileListScreenContent.kt 하단
         if (uiState.isBottomSheet) {
             val sheetState = rememberModalBottomSheetState(
-                skipPartiallyExpanded = true,
-                confirmValueChange = { newValue ->
+                skipPartiallyExpanded = true, confirmValueChange = { newValue ->
                     // newValue가 Hidden 상태(내려가는 상태)일 때 동작을 제어할 수 있습니다.
                     // 드래그해서 닫히는 것이 불편하다면 여기서 특정 조건에 따라 true/false를 반환합니다.
                     true
-                }
-            )
+                })
 
             ModalBottomSheet(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 onDismissRequest = { onIntent(FileListIntent.ShowBottomSheet(false)) },
                 sheetState = sheetState,
                 containerColor = Gray100,
@@ -286,20 +258,15 @@ internal fun FileListScreenContent(
                 AnimatedContent(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = screenHeight * 0.6f),
-                    targetState = uiState.sheetMode,
-                    transitionSpec = {
+                        .heightIn(max = screenHeight * 0.6f), targetState = uiState.sheetMode, transitionSpec = {
                         if (targetState == FileListSheetMode.CREATE_FOLDER) {
                             // 목록 -> 생성 (오른쪽에서 왼쪽으로 슬라이드)
-                            slideInHorizontally { width -> width } + fadeIn() togetherWith
-                                    slideOutHorizontally { width -> -width } + fadeOut()
+                            slideInHorizontally { width -> width } + fadeIn() togetherWith slideOutHorizontally { width -> -width } + fadeOut()
                         } else {
                             // 생성 -> 목록 (왼쪽에서 오른쪽으로 슬라이드)
-                            slideInHorizontally { width -> -width } + fadeIn() togetherWith
-                                    slideOutHorizontally { width -> width } + fadeOut()
+                            slideInHorizontally { width -> -width } + fadeIn() togetherWith slideOutHorizontally { width -> width } + fadeOut()
                         }
-                    },
-                    label = "SheetModeAnimation"
+                    }, label = "SheetModeAnimation"
                 ) { targetMode ->
                     // 바텀시트 내부 콘텐츠
                     Column(
@@ -315,8 +282,7 @@ internal fun FileListScreenContent(
                                     selectedFolder = uiState.selectedFolder,
                                     onFolderSelect = { onIntent(FileListIntent.SelectTargetFolder(it)) },
                                     onConfirmMove = { onIntent(FileListIntent.ConfirmMove) },
-                                    onCreateFolderClick = { onIntent(FileListIntent.ChangeSheetMode(FileListSheetMode.CREATE_FOLDER)) }
-                                )
+                                    onCreateFolderClick = { onIntent(FileListIntent.ChangeSheetMode(FileListSheetMode.CREATE_FOLDER)) })
                             }
 
                             FileListSheetMode.CREATE_FOLDER -> {
@@ -325,8 +291,7 @@ internal fun FileListScreenContent(
                                     errorMessage = uiState.errorMessage,
                                     onNameChange = { onIntent(FileListIntent.UpdateNewFolderName(it)) },
                                     onCancel = { onIntent(FileListIntent.ChangeSheetMode(FileListSheetMode.FOLDER_LIST)) },
-                                    onConfirm = { onIntent(FileListIntent.ConfirmCreateFolder) }
-                                )
+                                    onConfirm = { onIntent(FileListIntent.ConfirmCreateFolder) })
                             }
                         }
                     }
@@ -338,11 +303,7 @@ internal fun FileListScreenContent(
 
 @Composable
 fun FolderListBottomSheet(
-    folderList: List<FolderItem>,
-    selectedFolder: FolderItem?,
-    onFolderSelect: (FolderItem) -> Unit,
-    onConfirmMove: () -> Unit,
-    onCreateFolderClick: () -> Unit
+    folderList: List<FolderItem>, selectedFolder: FolderItem?, onFolderSelect: (FolderItem) -> Unit, onConfirmMove: () -> Unit, onCreateFolderClick: () -> Unit
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -350,15 +311,11 @@ fun FolderListBottomSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight(),
-            horizontalArrangement = Arrangement.SpaceBetween, // 양끝 정렬
+                .wrapContentHeight(), horizontalArrangement = Arrangement.SpaceBetween, // 양끝 정렬
             verticalAlignment = Alignment.CenterVertically // 높이 중앙 정렬
         ) {
             Text(
-                text = "이동할 폴더 선택",
-                style = ChaGokTextStyle.Title3,
-                color = TextPrimary,
-                modifier = Modifier.padding(bottom = 24.dp)
+                text = "이동할 폴더 선택", style = ChaGokTextStyle.Title3, color = TextPrimary, modifier = Modifier.padding(bottom = 24.dp)
             )
 
             Row(
@@ -368,16 +325,11 @@ fun FolderListBottomSheet(
                 verticalAlignment = Alignment.CenterVertically // ✅ 아이콘과 텍스트 수직 중앙 정렬
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp)
+                    imageVector = Icons.Default.Add, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(2.dp))
                 Text(
-                    text = "새 폴더",
-                    style = ChaGokTextStyle.Title3,
-                    color = TextSecondary
+                    text = "새 폴더", style = ChaGokTextStyle.Title3, color = TextSecondary
                 )
             }
 
@@ -388,15 +340,11 @@ fun FolderListBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = screenHeight * 0.4f)
-                .weight(weight = 1f, fill = false),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .weight(weight = 1f, fill = false), verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(folderList) { folder ->
                 ChaGokFolderBox(
-                    text = folder.title,
-                    count = folder.count,
-                    onClick = { onFolderSelect(folder) },
-                    isSelected = folder.id == selectedFolder?.id
+                    text = folder.title, count = folder.count, onClick = { onFolderSelect(folder) }, isSelected = folder.id == selectedFolder?.id
                 )
             }
         }
@@ -412,10 +360,7 @@ fun FolderListBottomSheet(
             shape = RoundedCornerShape(20.dp),
             border = if (selectedFolder == null) BorderStroke(1.dp, TextDisabled) else null,
             colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryColor,
-                contentColor = TextPrimary,
-                disabledContainerColor = Gray300.copy(alpha = 0.3f),
-                disabledContentColor = TextDisabled
+                containerColor = PrimaryColor, contentColor = TextPrimary, disabledContainerColor = Gray300.copy(alpha = 0.3f), disabledContentColor = TextDisabled
             )
         ) {
             Text(text = "이동하기", style = ChaGokTextStyle.Subtitle1)
@@ -425,64 +370,44 @@ fun FolderListBottomSheet(
 
 @Composable
 fun FileVoiceNoteList(
-    voiceNotes: List<VoiceNoteItem>,
-    isSelectionMode: Boolean,
-    selectedIds: Set<UUID>,
-    onItemClick: (VoiceNoteItem) -> Unit,
-    onDeleteFile: (VoiceNoteItem) -> Unit,
-    modifier: Modifier = Modifier
+    voiceNotes: List<VoiceNoteItem>, isSelectionMode: Boolean, selectedIds: Set<UUID>, onItemClick: (VoiceNoteItem) -> Unit, onDeleteFile: (VoiceNoteItem) -> Unit, modifier: Modifier = Modifier
 ) {
     // 어떤 아이템이 스와이프되어 열려 있는지 관리
     var revealedFileId by remember { mutableStateOf<UUID?>(null) }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(top = 14.dp, start = 20.dp, end = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(items = voiceNotes, key = { it.id }) { file ->
             ChaGokSwipeableFileItem(
-                title = file.title,
-                time = file.createdAt.formatDate(),
-                duration = file.duration,
-                summary = SummaryStatus.COMPLETED,
+                title = file.title, time = file.createdAt.formatDate(), duration = file.duration, summary = file.summaryStatus,
 
-                // ✅ 선택 모드 관련 설정
-                isSelectionMode = isSelectionMode,
-                isSelected = selectedIds.contains(file.id.toUUIDOrNull()),
-                onChange = {
+                // 선택 모드 관련 설정
+                isSelectionMode = isSelectionMode, isSelected = selectedIds.contains(file.id.toUUIDOrNull()), onChange = {
                     // 체크박스 클릭 시 부모에게 전달
                     onItemClick(file)
                 },
 
-                // ✅ 스와이프 제어 (선택 모드일 때는 강제로 닫음)
-                isRevealed = if (isSelectionMode) false else revealedFileId == file.id.toUUIDOrNull(),
-                onExpand = {
+                // 스와이프 제어 (선택 모드일 때는 강제로 닫음)
+                isRevealed = if (isSelectionMode) false else revealedFileId == file.id.toUUIDOrNull(), onExpand = {
                     if (!isSelectionMode) revealedFileId = file.id.toUUIDOrNull()
-                },
-                onCollapse = {
+                }, onCollapse = {
                     if (revealedFileId == file.id.toUUIDOrNull()) revealedFileId = null
-                },
-                onDelete = {
+                }, onDelete = {
                     onDeleteFile(file)
                 },
 
-                // ✅ 아이템 본체 클릭
+                // 아이템 본체 클릭
                 onClick = {
                     onItemClick(file)
-                }
-            )
+                })
         }
     }
 }
 
 @Composable
 private fun NewFolderDialog(
-    newFolderName: String,
-    errorMessage: String? = null,
-    onNameChange: (String) -> Unit,
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit
+    newFolderName: String, errorMessage: String? = null, onNameChange: (String) -> Unit, onCancel: () -> Unit, onConfirm: () -> Unit
 ) {
     val maxLength = 50
 
@@ -490,84 +415,59 @@ private fun NewFolderDialog(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "새 폴더 만들기",
-            style = ChaGokTextStyle.Title3,
-            color = TextPrimary,
-            modifier = Modifier.padding(vertical = 24.dp)
+            text = "새 폴더 만들기", style = ChaGokTextStyle.Title3, color = TextPrimary, modifier = Modifier.padding(vertical = 24.dp)
         )
 
-        BasicTextField(
-            value = newFolderName,
-            onValueChange = {
-                if (it.length <= 50) {
-                    onNameChange(it)
-                }
-            },
-            textStyle = ChaGokTextStyle.Body1.copy(color = TextPrimary),
-            cursorBrush = SolidColor(PrimaryColor),
-            singleLine = true,
-            decorationBox = { innerTextField ->
-                Column {
+        BasicTextField(value = newFolderName, onValueChange = {
+            if (it.length <= 50) {
+                onNameChange(it)
+            }
+        }, textStyle = ChaGokTextStyle.Body1.copy(color = TextPrimary), cursorBrush = SolidColor(PrimaryColor), singleLine = true, decorationBox = { innerTextField ->
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(53.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Gray200)
+                        .padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(53.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Gray200)
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.CenterStart
+                            .padding(end = 56.dp), contentAlignment = Alignment.CenterStart
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 56.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (newFolderName.isEmpty()) {
-                                Text(
-                                    text = "폴더 이름",
-                                    style = ChaGokTextStyle.Body1,
-                                    color = TextTertiary
-                                )
-                            }
-                            innerTextField()
+                        if (newFolderName.isEmpty()) {
+                            Text(
+                                text = "폴더 이름", style = ChaGokTextStyle.Body1, color = TextTertiary
+                            )
                         }
+                        innerTextField()
+                    }
 
-                        Text(
-                            text = "${newFolderName.length}/$maxLength",
-                            style = ChaGokTextStyle.Body1,
-                            color = TextTertiary,
-                            modifier = Modifier.align(Alignment.CenterEnd)
-                        )
-                    }
-                    if (!errorMessage.isNullOrBlank()) {
-                        Text(
-                            text = errorMessage,
-                            style = ChaGokTextStyle.Label,
-                            color = Danger,
-                            modifier = Modifier.padding(top = 8.dp, start = 4.dp)
-                        )
-                    }
+                    Text(
+                        text = "${newFolderName.length}/$maxLength", style = ChaGokTextStyle.Body1, color = TextTertiary, modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage, style = ChaGokTextStyle.Label, color = Danger, modifier = Modifier.padding(top = 8.dp, start = 4.dp)
+                    )
                 }
             }
-        )
+        })
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 취소 시 다시 목록으로 돌아감
             Button(
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp),
-                shape = RoundedCornerShape(20.dp),
-                onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Gray300,
-                    contentColor = TextTertiary
+                    .height(46.dp), shape = RoundedCornerShape(20.dp), onClick = onCancel, colors = ButtonDefaults.buttonColors(
+                    containerColor = Gray300, contentColor = TextTertiary
                 )
             ) {
                 Text(text = "취소", style = ChaGokTextStyle.Body1)
@@ -575,12 +475,8 @@ private fun NewFolderDialog(
             Button(
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp),
-                onClick = onConfirm,
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor,
-                    contentColor = TextPrimary
+                    .height(46.dp), onClick = onConfirm, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryColor, contentColor = TextPrimary
                 )
             ) {
                 Text(text = "만들기", style = ChaGokTextStyle.Body1)
@@ -594,9 +490,7 @@ private fun NewFolderDialog(
 @Composable
 fun FileListScreenPreview() {
     FileListScreenContent(
-        uiState = FileListUiState(),
-        onIntent = {},
-        isTrash = false
+        uiState = FileListUiState(), onIntent = {}, isTrash = false
     )
 }
 
@@ -604,12 +498,7 @@ fun FileListScreenPreview() {
 @Composable
 fun NewFolderDialogPreview() {
     Box(modifier = Modifier.padding(20.dp)) {
-        NewFolderDialog(
-            newFolderName = "테스트 폴더",
-            onNameChange = {},
-            onCancel = {},
-            onConfirm = {}
-        )
+        NewFolderDialog(newFolderName = "테스트 폴더", onNameChange = {}, onCancel = {}, onConfirm = {})
     }
 }
 
@@ -618,32 +507,17 @@ fun NewFolderDialogPreview() {
 fun FolderListBottomSheetPreview() {
     val mockFolders = listOf(
         FolderItem(
-            id = UUID.randomUUID().toString(),
-            title = "기본 폴더",
-            count = "1",
-            createAt = 1776769324521
+            id = UUID.randomUUID().toString(), title = "기본 폴더", count = "1", createAt = 1776769324521
         ), // <--- 쉼표 추가 및 괄호 닫기
         FolderItem(
-            id = UUID.randomUUID().toString(),
-            title = "중요 문서",
-            count = "5",
-            createAt = 1776769342203
+            id = UUID.randomUUID().toString(), title = "중요 문서", count = "5", createAt = 1776769342203
         ), // <--- 쉼표 추가
         FolderItem(
-            id = UUID.randomUUID().toString(),
-            title = "아이디어 기록",
-            count = "10",
-            createAt = 1776771640900
+            id = UUID.randomUUID().toString(), title = "아이디어 기록", count = "10", createAt = 1776771640900
         )
     )
 
     Box(modifier = Modifier.padding(20.dp)) {
-        FolderListBottomSheet(
-            folderList = mockFolders,
-            selectedFolder = mockFolders[0],
-            onFolderSelect = {},
-            onConfirmMove = {},
-            onCreateFolderClick = {}
-        )
+        FolderListBottomSheet(folderList = mockFolders, selectedFolder = mockFolders[0], onFolderSelect = {}, onConfirmMove = {}, onCreateFolderClick = {})
     }
 }

@@ -61,6 +61,7 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +90,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.roro.core.domain.model.FileListSheetMode
@@ -110,7 +112,6 @@ import com.roro.core.ui.theme.TextPrimary
 import com.roro.core.ui.theme.TextSecondary
 import com.roro.core.ui.theme.TextTertiary
 import com.roro.recorder.domain.usecase.VoiceNoteResult
-import com.roro.recorder.presentation.RecordViewModel
 import com.roro.recorder.presentation.viewModel.RecordResultEffect
 import com.roro.recorder.presentation.viewModel.RecordResultIntent
 import com.roro.recorder.presentation.viewModel.RecordResultIntent.ClickMoveToFolder
@@ -122,25 +123,14 @@ import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.compose.animation.core.*
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.TextStyle
-import com.roro.recorder.presentation.RecordViewModel
-import com.roro.recorder.presentation.viewModel.SummaryDisplayState
-import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlin.time.TimedValue
 
 
 @Composable
 fun RecordResultScreen(
     navController: NavController,
-  voiceNoteId: String, 
-  viewModel: RecordResultViewModel = hiltViewModel(), 
-  recordViewModel: RecordViewModel = hiltViewModel()
+    voiceNoteId: String,
+    viewModel: RecordResultViewModel = hiltViewModel(),
 ) {
     // ViewModel 상태 구독
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -381,7 +371,7 @@ private fun RecordResultContent(
                     Text(text = "완료", color = Color(0xFF9B7FD4), fontSize = 16.sp)
                 }
             } else {
-                IconButton(onClick = { navController.navigate(Routes.SEARCH) }) {
+                IconButton(onClick = { navController.navigate(Routes.SEARCH_VOICENOTE) }) {
                     Icon(
                         imageVector = Icons.Default.Search, contentDescription = "검색", tint = Color.White
                     )
@@ -402,19 +392,20 @@ private fun RecordResultContent(
                             viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
                         }, items = listOf(
                             ChaGokMenuItem(
-                            text = "기록 이동하기", onClick = {
-                                viewModel.onIntent(ShowMoreMenu(false))
-                                viewModel.onIntent(ClickMoveToFolder)
-                            }), ChaGokMenuItem(
-                            text = "편집하기", onClick = {
-                                viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
-                                navController.navigate(Routes.scriptEdit(voiceNoteId))
-                            }), ChaGokMenuItem(
-                            text = "삭제하기", textColor = Color.Red, // Danger 색상이 있다면 Danger 사용
-                            onClick = {
-                                viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
-                                viewModel.onIntent(RecordResultIntent.ShowDeleteDialog(true))
-                            })))
+                                text = "기록 이동하기", onClick = {
+                                    viewModel.onIntent(ShowMoreMenu(false))
+                                    viewModel.onIntent(ClickMoveToFolder)
+                                }), ChaGokMenuItem(
+                                text = "편집하기", onClick = {
+                                    viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
+                                    navController.navigate(Routes.scriptEdit(voiceNoteId))
+                                }), ChaGokMenuItem(
+                                text = "삭제하기", textColor = Danger, onClick = {
+                                    viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
+                                    viewModel.onIntent(RecordResultIntent.ShowDeleteDialog(true))
+                                })
+                        )
+                    )
                 }
             }
         }
@@ -530,10 +521,11 @@ private fun AiSummaryTab(
                             text = "핵심 포인트", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
                         )
                         Box {
-                            Row(modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .clickable(enabled = !isRegenerating) { onRegenerate() }
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50.dp))
+                                    .clickable(enabled = !isRegenerating) { onRegenerate() }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (isRegenerating) {
@@ -627,11 +619,12 @@ private fun AiSummaryTab(
                             text = "일시적인 오류가 발생했어요.\n잠시 후 다시 시도해주세요.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Box(modifier = Modifier
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(Color(0xFF9B7FD4))
-                            .clickable { onRegenerate() }
-                            .padding(horizontal = 24.dp, vertical = 12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(Color(0xFF9B7FD4))
+                                .clickable { onRegenerate() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)) {
                             Text(text = "재생성", color = Color.White, fontSize = 14.sp)
                         }
                     }
@@ -696,13 +689,14 @@ private fun ScriptTab(
     ) {
         segments.forEachIndexed { index, (startMs, text) ->
             val isActive = index == activeIndex
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { coords ->
-                    itemHeights[index] = coords.size.height
-                }
-                .clickable { onSeek(startMs) }
-                .padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coords ->
+                        itemHeights[index] = coords.size.height
+                    }
+                    .clickable { onSeek(startMs) }
+                    .padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 // 타임스탬프
                 Text(
                     text = formatTime(startMs),

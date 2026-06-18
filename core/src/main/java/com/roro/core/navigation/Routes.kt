@@ -14,7 +14,7 @@ object Routes {
     const val RECORDER = "record"
     const val TRASH = "trash"
     const val TOS = "tos" // 이용약관
-    const val SEARCH_TEMP = "search/{searchType}?folderId={folderId}" // 검색
+    const val SEARCH = "search/{searchType}?folderId={folderId}" // 검색
     const val TRASH_VOICE_NOTE = "trash_voiceNote/{voiceNoteId}" // 휴지통 -> 상세정보
 
     const val SETTINGS = "settings" // 설정
@@ -46,10 +46,10 @@ object Routes {
     fun scriptEdit(voiceNoteId: String) = "record/script-edit/$voiceNoteId"
 
     // 검색 결과 검색 화면
-    const val SEARCH = "record/search/"
+    const val SEARCH_VOICENOTE = "record/search/"
 
-    // 검색 화면 - 임시?
-    fun searchTemp(searchType: SearchType, folderId: String? = null): String {
+    // 검색 화면
+    fun search(searchType: SearchType, folderId: String? = null): String {
         return if (folderId != null) {
             "search/${searchType.name}?folderId=$folderId"
         } else {

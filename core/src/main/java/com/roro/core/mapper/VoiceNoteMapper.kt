@@ -12,8 +12,7 @@ fun VoiceNoteEntity.toModel(): VoiceNote {
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         folderId = folderId,
-
-        summaryStatus = SummaryStatus.valueOf(summaryStatus)
+        summaryStatus = summaryStatus
     )
 }
 
@@ -25,6 +24,6 @@ fun VoiceNote.toEntity(): VoiceNoteEntity {
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         folderId = folderId,
-        summaryStatus = summaryStatus.name
+        summaryStatus = summaryStatus
     )
 }

@@ -33,7 +33,7 @@ fun NavGraphBuilder.trashGraph(
     val animationDuration = 500
 
     composable(
-        Routes.SEARCH_TEMP,
+        Routes.SEARCH,
         arguments = listOf(navArgument("searchType") { type = NavType.StringType }),
         enterTransition = {
             // 1번 -> 2번으로 올 때: 왼쪽으로 밀면서 들어옴

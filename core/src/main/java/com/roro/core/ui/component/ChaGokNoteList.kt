@@ -18,12 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.ui.theme.ChaGokTheme
-
-enum class SummaryStatus(val label: String) {
-    COMPLETED("요약 완료"),
-    NONE("요약 안 됨")
-}
 
 @Composable
 fun ChaGokNoteList(
@@ -34,8 +30,9 @@ fun ChaGokNoteList(
     onClick: () -> Unit = {}
 ) {
     val tagColor = when (summaryStatus) {
-        SummaryStatus.COMPLETED -> Color(0xFF7B4FCC)
         SummaryStatus.NONE -> Color(0xFF3D3D4E)
+        SummaryStatus.SUCCESS -> Color(0xFF7B4FCC)
+        SummaryStatus.FAIL -> Color(0xFF3D3D4E)
     }
 
     Column(
@@ -77,7 +74,7 @@ private fun ChaGokNoteCardCompletedPreview() {
         ChaGokNoteList(
             title = "오전 취업 관련 강의",
             time = "오후 3:23 · 2시간 12분",
-            summaryStatus = SummaryStatus.COMPLETED,
+            summaryStatus = SummaryStatus.SUCCESS,
             modifier = Modifier.padding(16.dp)
         )
     }

@@ -43,14 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.roro.core.domain.model.FileType
 import com.roro.core.domain.model.VoiceNoteItem
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
 import com.roro.core.ui.component.ChaGokBackground
 import com.roro.core.ui.component.ChaGokBox
 import com.roro.core.ui.component.ChaGokBoxSmall
-import com.roro.core.ui.component.ChaGokItemBox
+import com.roro.core.ui.component.ChaGokFileListBox
 import com.roro.core.ui.component.ChaGokTopBar
 import com.roro.core.ui.component.ChagokStartRecordFAB
 import com.roro.core.ui.component.GemmaDownloadBottomSheet
@@ -108,7 +107,7 @@ fun HomeScreen(
                 }
 
                 HomeEffect.NavigateToSearch -> {
-                    navController.navigate(Routes.searchTemp(SearchType.HOME))
+                    navController.navigate(Routes.search(SearchType.HOME))
                 }
 
                 // 설정
@@ -298,13 +297,20 @@ fun FolderItemList(
     Timber.d("아이템 = $voiceNote")
 
     // 0511 수정
-    ChaGokItemBox(
+    ChaGokFileListBox(
         title = voiceNote.title,
-        createAt = voiceNote.createdAt.formatDate(),
+        time = voiceNote.createdAt.formatDate(),
         duration = voiceNote.duration,
+        summaryStatus = voiceNote.summaryStatus,
         onClick = { onIntent(HomeIntent.ClickVoiceNote(voiceNoteId = voiceNote.id)) },
-        type = FileType.VOICE_NOTE,
     )
+//    ChaGokItemBox(
+//        title = voiceNote.title,
+//        createAt = voiceNote.createdAt.formatDate(),
+//        duration = voiceNote.duration,
+//        onClick = { onIntent(HomeIntent.ClickVoiceNote(voiceNoteId = voiceNote.id)) },
+//        type = FileType.VOICE_NOTE,
+//    )
 }
 
 @Composable

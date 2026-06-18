@@ -58,11 +58,10 @@ interface VoiceNoteDao {
             vn.createdAt as createdAt,
             vn.updatedAt as updatedAt,
             vr.durationSec as duration,
-            s.text as summary,
+            vn.summaryStatus as summaryStatus,
             f.name as folderName
         FROM voice_note vn
         LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-        LEFT JOIN summary s ON vn.id = s.voiceNoteId
         LEFT JOIN folder f ON vn.folderId = f.id
         WHERE vn.folderId = :folderId AND vn.deletedAt IS NULL
         ORDER BY vn.createdAt DESC
@@ -115,11 +114,10 @@ interface VoiceNoteDao {
             vn.createdAt as createdAt,
             vn.updatedAt as updatedAt,
             vr.durationSec as duration,
-            s.text as summary,
+            vn.summaryStatus as summaryStatus,
             f.name as folderName
         FROM voice_note vn
         LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-        LEFT JOIN summary s ON vn.id = s.voiceNoteId
         LEFT JOIN folder f ON vn.folderId = f.id
         WHERE vn.folderId IS NULL AND vn.deletedAt IS NULL
         ORDER BY vn.createdAt DESC
@@ -152,11 +150,10 @@ interface VoiceNoteDao {
             vn.createdAt as createdAt,
             vn.updatedAt as updatedAt,
             vr.durationSec as duration, 
-            s.text as summary,
+        vn.summaryStatus as summaryStatus,
             f.name as folderName
         FROM voice_note vn
         LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-        LEFT JOIN summary s ON vn.id = s.voiceNoteId
         LEFT JOIN folder f ON vn.folderId = f.id
         WHERE vn.deletedAt IS NULL 
         ORDER BY vn.updatedAt DESC 
@@ -217,13 +214,12 @@ interface VoiceNoteDao {
             vn.createdAt as createdAt,
             vn.updatedAt as updatedAt,
             vr.durationSec as duration,
-            s.text as summary,
+            vn.summaryStatus as summaryStatus,
             f.name as folderName
         FROM voice_note vn
         LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-        LEFT JOIN summary s ON vn.id = s.voiceNoteId
         LEFT JOIN folder f ON vn.folderId = f.id
-        WHERE vn.deletedAt IS NULL -- 👈 정상 상태인 파일만 필터링
+        WHERE vn.deletedAt IS NULL 
         AND vn.title LIKE '%' || :query || '%'
         ORDER BY vn.createdAt DESC
         """
@@ -240,12 +236,11 @@ interface VoiceNoteDao {
         vn.createdAt as createdAt,
         vn.updatedAt as updatedAt,
         vr.durationSec as duration,
-        s.text as summary,
-        f.name as folderName -- 👈 폴더 테이블의 이름을 가져옴
+        vn.summaryStatus as summaryStatus,
+        f.name as folderName 
     FROM voice_note vn
     LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-    LEFT JOIN summary s ON vn.id = s.voiceNoteId
-    LEFT JOIN folder f ON vn.folderId = f.id -- 👈 폴더 테이블 조인 추가
+    LEFT JOIN folder f ON vn.folderId = f.id 
     WHERE vn.deletedAt IS NOT NULL 
     AND vn.title LIKE '%' || :query || '%'
     ORDER BY vn.deletedAt DESC
@@ -263,15 +258,14 @@ interface VoiceNoteDao {
             vn.createdAt as createdAt,
             vn.updatedAt as updatedAt,
             vr.durationSec as duration,
-            s.text as summary,
+            vn.summaryStatus as summaryStatus,
             f.name as folderName
         FROM voice_note vn
         LEFT JOIN voice_record vr ON vn.id = vr.voiceNoteId
-        LEFT JOIN summary s ON vn.id = s.voiceNoteId
         LEFT JOIN folder f ON vn.folderId = f.id
-        WHERE vn.folderId = :folderId -- 👈 해당 폴더 아이디 필터링
-        AND vn.deletedAt IS NULL     -- 👈 삭제되지 않은 항목만
-        AND vn.title LIKE '%' || :query || '%' -- 👈 검색어 포함
+        WHERE vn.folderId = :folderId 
+        AND vn.deletedAt IS NULL   
+        AND vn.title LIKE '%' || :query || '%'
         ORDER BY vn.createdAt DESC
         """
     )

@@ -194,7 +194,7 @@ class FileRepositoryImpl @Inject constructor(
                 updatedAt = it.updatedAt,
                 duration = it.duration,
                 folderName = it.folderName,
-                summary = it.summary
+                summaryStatus = it.summaryStatus
             )
         }
     }
@@ -207,7 +207,7 @@ class FileRepositoryImpl @Inject constructor(
                 createdAt = it.createdAt,
                 updatedAt = it.updatedAt,
                 duration = it.duration,
-                summary = it.summary,
+                summaryStatus = it.summaryStatus,
                 folderName = it.folderName,
             )
         }
@@ -233,7 +233,7 @@ class FileRepositoryImpl @Inject constructor(
                 updatedAt = it.updatedAt,
                 duration = it.duration,
                 folderName = it.folderName,
-                summary = it.summary,
+                summaryStatus = it.summaryStatus
             )
         }
     }

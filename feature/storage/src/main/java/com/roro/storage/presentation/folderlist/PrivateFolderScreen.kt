@@ -57,7 +57,7 @@ fun PrivateFolderScreen(
 
                 PrivateFolderEffect.NavigateSearch -> {
                     navController.navigate(
-                        Routes.searchTemp(
+                        Routes.search(
                             searchType = SearchType.FOLDER,
                         )
                     )

@@ -70,7 +70,7 @@ class RecordRepositoryImpl @Inject constructor(
                 updatedAt = now,
                 deletedAt = null,
                 folderId = folderId,
-                summaryStatus = summaryStatus.name
+                summaryStatus = summaryStatus
             )
         )
 
