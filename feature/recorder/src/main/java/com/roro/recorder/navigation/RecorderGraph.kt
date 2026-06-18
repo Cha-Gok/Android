@@ -108,7 +108,7 @@ fun NavGraphBuilder.recorderGraph(
 
     // 검색 화면
     // 검색 화면
-    composable(Routes.SEARCH) { backStackEntry ->
+    composable(Routes.SEARCH_VOICENOTE) { backStackEntry ->
         val voiceNoteId = backStackEntry.arguments?.getString("voiceNoteId").orEmpty()
 
         val parentEntry = remember(backStackEntry) {
@@ -131,4 +131,3 @@ fun NavGraphBuilder.recorderGraph(
         )
     }
 }
-

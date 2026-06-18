@@ -1,6 +1,7 @@
 package com.roro.core.database
 
 import androidx.room.TypeConverter
+import com.roro.core.domain.model.SummaryStatus
 import java.util.UUID
 
 /**
@@ -22,4 +23,20 @@ class Converters{
 
     @TypeConverter
     fun toUuid(value: String?): UUID? = value?.let(UUID::fromString)
+
+    @TypeConverter
+    fun fromString(value: String?): SummaryStatus {
+        return try {
+            // DB의 String을 Enum으로 변환
+            SummaryStatus.valueOf(value ?: SummaryStatus.NONE.name)
+        } catch (e: Exception) {
+            SummaryStatus.NONE
+        }
+    }
+
+    @TypeConverter
+    fun statusToString(status: SummaryStatus?): String {
+        // Enum을 DB에 저장할 String으로 변환
+        return status?.name ?: SummaryStatus.NONE.name
+    }
 }

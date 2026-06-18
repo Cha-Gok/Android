@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.roro.core.domain.model.FileType
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.ui.theme.BoxBackground
 import com.roro.core.ui.theme.ChaGokTextStyle
 import com.roro.core.ui.theme.ChaGokTheme
@@ -580,14 +581,14 @@ fun ChaGokFileBoxPreview() {
             ChaGokFileListBox(
                 title = "회의록",
                 time = "오후 3:23",
-                summaryStatus = SummaryStatus.COMPLETED,
+                summaryStatus = SummaryStatus.FAIL,
                 duration = "2시간 12분",
             )
             ChaGokFileListBox(
                 title = "회의록",
                 time = "오후 3:23",
                 isSelectionMode = true,
-                summaryStatus = SummaryStatus.COMPLETED,
+                summaryStatus = SummaryStatus.NONE,
                 duration = "2시간 12분",
             )
             ChaGokFileListBox(
@@ -595,7 +596,7 @@ fun ChaGokFileBoxPreview() {
                 time = "오후 3:23",
                 isSelectionMode = true,
                 isSelected = true,
-                summaryStatus = SummaryStatus.COMPLETED,
+                summaryStatus = SummaryStatus.SUCCESS,
                 duration = "2시간 12분",
             )
             ChaGokTrashBox(

@@ -1,6 +1,5 @@
 package com.roro.core.model
 
-import androidx.room.PrimaryKey
 import com.roro.core.domain.model.SummaryStatus
 import java.util.UUID
 

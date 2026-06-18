@@ -199,7 +199,7 @@ fun NavGraphBuilder.storageGraph(
     }
 
     composable(
-        Routes.SEARCH_TEMP,
+        Routes.SEARCH,
         arguments = listOf(
             navArgument("searchType") { type = NavType.StringType },
             navArgument("folderId") {

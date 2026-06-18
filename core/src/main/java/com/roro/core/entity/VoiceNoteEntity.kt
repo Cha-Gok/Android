@@ -34,6 +34,5 @@ data class VoiceNoteEntity(
     val updatedAt: Long,
     val deletedAt: Long?,
     val folderId: UUID?,
-
-    val summaryStatus: String = SummaryStatus.NONE.name
+    val summaryStatus: SummaryStatus = SummaryStatus.NONE
 )

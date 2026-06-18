@@ -27,7 +27,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.navArgument
 import com.roro.core.domain.model.FileType
 import com.roro.core.navigation.Routes
 import com.roro.core.navigation.SearchType
@@ -70,7 +69,7 @@ internal fun TrashScreen(
 
                 TrashEffect.NavigateToSearch -> {
                     Timber.d("Navigation to Search")
-                    navController.navigate(Routes.searchTemp(SearchType.TRASH))
+                    navController.navigate(Routes.search(SearchType.TRASH))
                 }
 
                 is TrashEffect.NavigateToFolder -> {

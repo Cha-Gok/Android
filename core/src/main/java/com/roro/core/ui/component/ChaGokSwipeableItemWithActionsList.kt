@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.roro.core.domain.model.SummaryStatus
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -347,7 +348,7 @@ fun ChaGokSwipePreview() {
                     title = name,
                     time = "오후 11:11",
                     duration = "03:00",
-                    summary = SummaryStatus.COMPLETED,
+                    summary = SummaryStatus.SUCCESS,
                     isRevealed = revealedFolderId == id,
                     onExpand = { revealedFolderId = id },
                     onCollapse = { if (revealedFolderId == id) revealedFolderId = null },
