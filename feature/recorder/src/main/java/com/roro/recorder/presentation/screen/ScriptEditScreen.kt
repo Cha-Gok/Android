@@ -1,5 +1,6 @@
 package com.roro.recorder.presentation.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,13 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.roro.recorder.presentation.viewModel.ScriptEditUiState
 import com.roro.recorder.presentation.viewModel.ScriptEditViewModel
-import kotlinx.coroutines.launch
 
 /**
  * 기능 설명:
  * - 스크립트(STT 텍스트) 세그먼트별 직접 편집 화면
  * - DB에서 직접 sttText 조회
- * - 완료 시 스낵바 표시 후 RecordResultScreen으로 복귀
+ * - 완료 시 Toast 표시 후 RecordResultScreen으로 복귀
  *
  * @author
  * @since 2026. 04. 19.
@@ -46,39 +47,26 @@ fun ScriptEditScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val segments by viewModel.segments.collectAsStateWithLifecycle()
     val focusedIndex by viewModel.focusedIndex.collectAsStateWithLifecycle()
-
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // ✅ voiceNoteId로 DB에서 직접 로드
     LaunchedEffect(voiceNoteId) {
         viewModel.load(voiceNoteId)
     }
 
-    // 저장 완료 → 스낵바 → 복귀
+    // 저장 완료 → Toast → 복귀
     LaunchedEffect(uiState) {
         if (uiState is ScriptEditUiState.Saved) {
             if (viewModel.isModified) {
                 onScriptSaved()
-                scope.launch {
-                    snackbarHostState.showSnackbar("스크립트가 수정됐어요")
-                }
+                Toast.makeText(context, "스크립트가 수정됐어요", Toast.LENGTH_SHORT).show()
             }
             navController.popBackStack()
         }
     }
 
     Scaffold(
-        containerColor = Color(0xFF121218),
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = Color(0xFF2D2D3A),
-                    contentColor = Color.White
-                )
-            }
-        }
+        containerColor = Color(0xFF121218)
     ) { paddingValues ->
         Column(
             modifier = Modifier

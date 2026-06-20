@@ -14,6 +14,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -152,11 +153,24 @@ fun RecordResultScreen(
         )
 
         is RecordResultUiState.NoSpeech -> RecordResultContent(
-            navController = navController, voiceNoteId = voiceNoteId, result = state.result, viewModel = viewModel, state = state, summaryState = SummaryDisplayState.NoSpeech
+            navController = navController,
+            voiceNoteId = voiceNoteId,
+            result = state.result,
+            viewModel = viewModel,
+            state = state,
+            summaryState = if (state.result.summaryStatus == com.roro.core.domain.model.SummaryStatus.INSUFFICIENT) {
+                SummaryDisplayState.Insufficient
+            } else {
+                SummaryDisplayState.NoSpeech
+            }
         )
 
         is RecordResultUiState.SummaryError -> RecordResultContent(
             navController = navController, voiceNoteId = voiceNoteId, result = state.result, viewModel = viewModel, state = state, summaryState = SummaryDisplayState.Error
+        )
+
+        is RecordResultUiState.SummaryGenerating -> RecordResultContent(
+            navController = navController, voiceNoteId = voiceNoteId, result = state.result, viewModel = viewModel, state = state, summaryState = SummaryDisplayState.Generating
         )
     }
 }
@@ -199,15 +213,15 @@ private fun RecordResultContent(
 
     // 폴더 목록 등 필요한 나머지 값들도 동일하게 추출
     val folderList =
-        (state as? RecordResultUiState.Success)?.folderList ?: (state as? RecordResultUiState.NoSpeech)?.folderList ?: (state as? RecordResultUiState.SummaryError)?.folderList ?: emptyList()
+        (state as? RecordResultUiState.Success)?.folderList ?: (state as? RecordResultUiState.NoSpeech)?.folderList ?: (state as? RecordResultUiState.SummaryError)?.folderList ?: (state as? RecordResultUiState.SummaryGenerating)?.folderList ?: emptyList()
 
     val selectedFolder =
-        (state as? RecordResultUiState.Success)?.selectedFolder ?: (state as? RecordResultUiState.NoSpeech)?.selectedFolder ?: (state as? RecordResultUiState.SummaryError)?.selectedFolder
+        (state as? RecordResultUiState.Success)?.selectedFolder ?: (state as? RecordResultUiState.NoSpeech)?.selectedFolder ?: (state as? RecordResultUiState.SummaryError)?.selectedFolder ?: (state as? RecordResultUiState.SummaryGenerating)?.selectedFolder
 
     val createFolderName =
-        (state as? RecordResultUiState.Success)?.createFolderName ?: (state as? RecordResultUiState.NoSpeech)?.createFolderName ?: (state as? RecordResultUiState.SummaryError)?.createFolderName ?: ""
+        (state as? RecordResultUiState.Success)?.createFolderName ?: (state as? RecordResultUiState.NoSpeech)?.createFolderName ?: (state as? RecordResultUiState.SummaryError)?.createFolderName ?: (state as? RecordResultUiState.SummaryGenerating)?.createFolderName ?: ""
 
-    val errorMessage = (state as? RecordResultUiState.Success)?.errorMessage ?: (state as? RecordResultUiState.NoSpeech)?.errorMessage ?: (state as? RecordResultUiState.SummaryError)?.errorMessage
+    val errorMessage = (state as? RecordResultUiState.Success)?.errorMessage ?: (state as? RecordResultUiState.NoSpeech)?.errorMessage ?: (state as? RecordResultUiState.SummaryError)?.errorMessage ?: (state as? RecordResultUiState.SummaryGenerating)?.errorMessage
 
 
     val successState = state as? RecordResultUiState.Success
@@ -324,6 +338,7 @@ private fun RecordResultContent(
     }
 
     val keyPoints = result.summaryText.split("*").map { it.trim() }.filter { it.isNotBlank() }.take(3)
+    val hasScript = result.sttText.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -372,9 +387,14 @@ private fun RecordResultContent(
                     Text(text = "완료", color = Color(0xFF9B7FD4), fontSize = 16.sp)
                 }
             } else {
-                IconButton(onClick = { navController.navigate(Routes.SEARCH_VOICENOTE) }) {
+                IconButton(
+                    onClick = { navController.navigate(Routes.SEARCH_VOICENOTE) },
+                    enabled = hasScript
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Search, contentDescription = "검색", tint = Color.White
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "검색",
+                        tint = if (hasScript) Color.White else Color.White.copy(alpha = 0.32f)
                     )
                 }
                 Box {
@@ -391,21 +411,25 @@ private fun RecordResultContent(
                         // 상단에서 추출한 공통 contentState의 expanded 상태 사용
                         expanded = contentState?.isMenuExpanded == true, onDismissRequest = {
                             viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
-                        }, items = listOf(
-                            ChaGokMenuItem(
+                        }, items = buildList {
+                            add(ChaGokMenuItem(
                                 text = "기록 이동하기", onClick = {
                                     viewModel.onIntent(ShowMoreMenu(false))
                                     viewModel.onIntent(ClickMoveToFolder)
-                                }), ChaGokMenuItem(
-                                text = "편집하기", onClick = {
-                                    viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
-                                    navController.navigate(Routes.scriptEdit(voiceNoteId))
-                                }), ChaGokMenuItem(
+                                }))
+                            if (hasScript) {
+                                add(ChaGokMenuItem(
+                                    text = "편집하기", onClick = {
+                                        viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
+                                        navController.navigate(Routes.scriptEdit(voiceNoteId))
+                                    }))
+                            }
+                            add(ChaGokMenuItem(
                                 text = "삭제하기", textColor = Danger, onClick = {
                                     viewModel.onIntent(RecordResultIntent.ShowMoreMenu(false))
                                     viewModel.onIntent(RecordResultIntent.ShowDeleteDialog(true))
-                                })
-                        )
+                                }))
+                        }
                     )
                 }
             }
@@ -512,6 +536,59 @@ private fun AiSummaryTab(
 
         // 상태에 따라 분기
         when (summaryState) {
+            SummaryDisplayState.Generating -> {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "핵심 포인트", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                    )
+                    repeat(3) { index ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(Color(0xFF2D2D3A))
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF7B4FCC)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${index + 1}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(if (index == 1) 0.62f else 0.78f)
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(50.dp))
+                                    .background(Color.White.copy(alpha = 0.24f))
+                            )
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "키워드", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                    )
+                    repeat(2) { index ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(if (index == 0) 0.9f else 0.78f)
+                                .height(22.dp)
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(Color.White.copy(alpha = 0.18f))
+                        )
+                    }
+                }
+            }
+
             SummaryDisplayState.Success -> {
                 // 핵심 포인트
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -623,10 +700,19 @@ private fun AiSummaryTab(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
-                                .background(Color(0xFF9B7FD4))
-                                .clickable { onRegenerate() }
+                                .background(if (isRegenerating) Color(0xFF2D2D3A) else Color.Transparent)
+                                .border(1.dp, Color(0xFF9B7FD4), RoundedCornerShape(50.dp))
+                                .clickable(enabled = !isRegenerating) { onRegenerate() }
                                 .padding(horizontal = 24.dp, vertical = 12.dp)) {
-                            Text(text = "재생성", color = Color.White, fontSize = 14.sp)
+                            if (isRegenerating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(text = "재생성", color = Color.White, fontSize = 14.sp)
+                            }
                         }
                     }
                 }
@@ -649,6 +735,28 @@ private fun AiSummaryTab(
                         )
                         Text(
                             text = "인식된 음성이 없어\n요약을 생성할 수 없어요.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            SummaryDisplayState.Insufficient -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp), contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            text = "요약할 만큼 충분한 내용이 없어요.", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "스크립트는 저장되었지만\n요약을 생성하지 않았어요.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -1165,7 +1273,8 @@ fun PreviewRecordResultDetail() {
         audioPath = "/sdcard/dummy.mp3",
         createdAt = System.currentTimeMillis(),
         updatedAt = System.currentTimeMillis(),
-        durationSec = 125.0 // 2분 5초
+        durationSec = 125.0, // 2분 5초
+        summaryStatus = com.roro.core.domain.model.SummaryStatus.SUCCESS
     )
 
     // 2. 프리뷰용 테마 설정

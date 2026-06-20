@@ -26,6 +26,9 @@ interface SummaryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(summary: SummaryEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(summary: SummaryEntity)
+
     //0414 추가
     /**
      * 요약문 불러오기

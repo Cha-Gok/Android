@@ -216,10 +216,10 @@ private fun OnBoardingScreenUI(
                         .padding(bottom = 26.dp)
                 ) {
                     when (uiState.currentPage) {
-                        0 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickSkip) }) {
+                        0,3 -> TextButton(onClick = { onIntent(OnboardingIntent.ClickSkip) }) {
                             Text("건너뛰기", color = Color.Gray, style = ChaGokTextStyle.Body3)
                         }
-                        1, 2, 3, 4 -> TextButton(
+                        1, 2, 4 -> TextButton(
                             onClick = { onIntent(OnboardingIntent.ClickBack) },
                             enabled = uiState.modelDownloadState.gemma != DownloadItemState.Downloading
                         ) {

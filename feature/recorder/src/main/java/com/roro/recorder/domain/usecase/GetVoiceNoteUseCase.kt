@@ -5,6 +5,7 @@ import com.roro.core.dao.SummaryDao
 import com.roro.core.dao.TranscriptDao
 import com.roro.core.dao.VoiceNoteDao
 import com.roro.core.dao.VoiceRecordDao
+import com.roro.core.domain.model.SummaryStatus
 import java.util.UUID
 import javax.inject.Inject
 
@@ -16,7 +17,8 @@ data class VoiceNoteResult(
     val audioPath: String,
     val createdAt: Long,
     val updatedAt: Long,
-    val durationSec: Double  // ✅ 추가 - VoiceRecordEntity.durationSec
+    val durationSec: Double,  // ✅ 추가 - VoiceRecordEntity.durationSec
+    val summaryStatus: SummaryStatus
 )
 
 class GetVoiceNoteUseCase @Inject constructor(
@@ -41,7 +43,8 @@ class GetVoiceNoteUseCase @Inject constructor(
             audioPath = voiceRecord?.audioPath.orEmpty(),
             createdAt = voiceNote.createdAt,
             updatedAt = voiceNote.updatedAt,
-            durationSec = voiceRecord?.durationSec ?: 0.0
+            durationSec = voiceRecord?.durationSec ?: 0.0,
+            summaryStatus = voiceNote.summaryStatus
         )
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.domain.model.FileListSheetMode
 import com.roro.core.domain.model.FolderItem
 import com.roro.core.util.toUUIDOrNull
@@ -19,6 +20,7 @@ import com.roro.recorder.domain.usecase.VoiceNoteResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,11 +85,23 @@ sealed class RecordResultUiState {
         override val showDeleteDialog: Boolean = false
     ) : RecordResultUiState(), ContentState // 요약 실패
 
+    data class SummaryGenerating(
+        override val result: VoiceNoteResult,
+        override val isMenuExpanded: Boolean = false,
+        override val isBottomSheet: Boolean = false,
+        override val sheetMode: FileListSheetMode = FileListSheetMode.FOLDER_LIST,
+        override val folderList: List<FolderItem> = emptyList(),
+        override val selectedFolder: FolderItem? = null,
+        override val createFolderName: String = "",
+        override val errorMessage: String? = null,
+        override val showDeleteDialog: Boolean = false
+    ) : RecordResultUiState(), ContentState
+
     data class Error(val message: String) : RecordResultUiState()
 }
 
 enum class SummaryDisplayState {
-    Success, Error, NoSpeech
+    Generating, Success, Error, NoSpeech, Insufficient
 }
 
 data class PlayerUiState(
@@ -148,6 +162,7 @@ class RecordResultViewModel @Inject constructor(
 
     private var exoPlayer: ExoPlayer? = null
     private var _currentVoiceNoteId: UUID? = null  // 재생성 시 사용
+    private var summaryRefreshJob: Job? = null
 
     private val _effect = MutableSharedFlow<RecordResultEffect>()
     val effect = _effect.asSharedFlow()
@@ -231,10 +246,12 @@ class RecordResultViewModel @Inject constructor(
                 _currentVoiceNoteId = id
                 val result = getVoiceNoteUseCase(id)
                 if (result != null) {
-                    _uiState.value = when {
-                        result.sttText.isBlank() -> RecordResultUiState.NoSpeech(result)
-                        result.summaryText.isBlank() -> RecordResultUiState.SummaryError(result)
-                        else -> RecordResultUiState.Success(result)
+                    _uiState.value = result.toUiState()
+                    if (result.summaryStatus == SummaryStatus.GENERATING) {
+                        stopSummaryRefresh()
+                        startSummaryRefresh(id)
+                    } else {
+                        stopSummaryRefresh()
                     }
                     preparePlayer(result.audioPath)
                 } else {
@@ -244,6 +261,37 @@ class RecordResultViewModel @Inject constructor(
                 _uiState.value = RecordResultUiState.Error(e.message ?: "오류가 발생했어요")
             }
         }
+    }
+
+    private fun VoiceNoteResult.toUiState(): RecordResultUiState {
+        return when {
+            sttText.isBlank() -> RecordResultUiState.NoSpeech(this)
+            summaryStatus == SummaryStatus.INSUFFICIENT -> RecordResultUiState.NoSpeech(this)
+            summaryStatus == SummaryStatus.GENERATING -> RecordResultUiState.SummaryGenerating(this)
+            summaryStatus == SummaryStatus.FAIL -> RecordResultUiState.SummaryError(this)
+            summaryText.isBlank() -> RecordResultUiState.SummaryError(this)
+            else -> RecordResultUiState.Success(this)
+        }
+    }
+
+    private fun startSummaryRefresh(voiceNoteId: UUID) {
+        if (summaryRefreshJob?.isActive == true) return
+        summaryRefreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(1500L)
+                val result = getVoiceNoteUseCase(voiceNoteId) ?: continue
+                if (result.summaryStatus != SummaryStatus.GENERATING) {
+                    _uiState.value = result.toUiState()
+                    stopSummaryRefresh()
+                    return@launch
+                }
+            }
+        }
+    }
+
+    private fun stopSummaryRefresh() {
+        summaryRefreshJob?.cancel()
+        summaryRefreshJob = null
     }
 
     // ── ExoPlayer 초기화 (Main thread 필수) ──────────────────────────────────
@@ -315,7 +363,7 @@ class RecordResultViewModel @Inject constructor(
 
     // 제목 탭 → 편집 모드 진입
     fun startTitleEdit() {
-        val current = _uiState.value as? RecordResultUiState.Success ?: return
+        val current = _uiState.value as? RecordResultUiState.ContentState ?: return
         _editingTitle.value = current.result.title
         _isTitleEditing.value = true
     }
@@ -327,7 +375,7 @@ class RecordResultViewModel @Inject constructor(
 
     // 완료 버튼 or 키보드 내리기 → 저장 후 편집 모드 종료
     fun confirmTitleEdit() {
-        val current = _uiState.value as? RecordResultUiState.Success ?: return
+        val current = _uiState.value as? RecordResultUiState.ContentState ?: return
         val voiceNoteId = _currentVoiceNoteId ?: return
         _isTitleEditing.value = false
 
@@ -336,11 +384,14 @@ class RecordResultViewModel @Inject constructor(
                 voiceNoteId = voiceNoteId, newTitle = _editingTitle.value, currentTitle = current.result.title
             )
             // UiState 제목 갱신 + updatedAt 갱신
-            _uiState.value = RecordResultUiState.Success(
-                current.result.copy(
-                    title = finalTitle, updatedAt = System.currentTimeMillis()
+            updateContentState {
+                it.copyAny(
+                    result = current.result.copy(
+                        title = finalTitle,
+                        updatedAt = System.currentTimeMillis()
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -359,7 +410,7 @@ class RecordResultViewModel @Inject constructor(
     }
 
     fun regenerateSummary() {
-        val current = _uiState.value as? RecordResultUiState.Success ?: return
+        val current = _uiState.value as? RecordResultUiState.ContentState ?: return
 
         viewModelScope.launch {
             _isRegenerating.value = true
@@ -385,6 +436,7 @@ class RecordResultViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        stopSummaryRefresh()
         viewModelScope.launch(Dispatchers.Main) {
             exoPlayer?.release()
             exoPlayer = null
@@ -393,10 +445,7 @@ class RecordResultViewModel @Inject constructor(
 
     // ── 더보기 메뉴 ─────────────────────────────────────────────────────────────────
     fun toggleMenu(expanded: Boolean) {
-        val currentState = _uiState.value
-        if (currentState is RecordResultUiState.Success) {
-            _uiState.value = currentState.copy(isMenuExpanded = expanded)
-        }
+        updateContentState { it.copyAny(isMenuExpanded = expanded) }
     }
 
     // 1. 기록 이동하기 클릭 (메인 로직)
@@ -428,10 +477,7 @@ class RecordResultViewModel @Inject constructor(
     // ── 바텀시트 제어 및 폴더 이동 ──────────────────────────────────────────────────
 
     fun hideBottomSheet() {
-        val currentState = _uiState.value
-        if (currentState is RecordResultUiState.Success) {
-            _uiState.value = currentState.copy(isBottomSheet = false)
-        }
+        updateContentState { it.copyAny(isBottomSheet = false) }
     }
 
     // ── 폴더 이동 및 생성 로직 ──────────────────────────────────────────────────
@@ -539,6 +585,18 @@ class RecordResultViewModel @Inject constructor(
             )
 
             is RecordResultUiState.SummaryError -> this.copy(
+                isMenuExpanded = isMenuExpanded,
+                isBottomSheet = isBottomSheet,
+                sheetMode = sheetMode,
+                folderList = folderList,
+                selectedFolder = selectedFolder,
+                createFolderName = createFolderName,
+                errorMessage = errorMessage,
+                showDeleteDialog = showDeleteDialog,
+                result = result
+            )
+
+            is RecordResultUiState.SummaryGenerating -> this.copy(
                 isMenuExpanded = isMenuExpanded,
                 isBottomSheet = isBottomSheet,
                 sheetMode = sheetMode,

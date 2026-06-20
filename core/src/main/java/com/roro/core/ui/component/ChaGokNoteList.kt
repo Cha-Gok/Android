@@ -31,6 +31,8 @@ fun ChaGokNoteList(
 ) {
     val tagColor = when (summaryStatus) {
         SummaryStatus.NONE -> Color(0xFF3D3D4E)
+        SummaryStatus.INSUFFICIENT -> Color(0xFF3D3D4E)
+        SummaryStatus.GENERATING -> Color(0xFF5A4A7A)
         SummaryStatus.SUCCESS -> Color(0xFF7B4FCC)
         SummaryStatus.FAIL -> Color(0xFF3D3D4E)
     }

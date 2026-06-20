@@ -19,6 +19,7 @@ fun AppScaffold() {
     val showBottomBar = currentRoute in bottomBarRoutes
 
     Scaffold(
+        //contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0)
 //        bottomBar = {
 //            if (showBottomBar) {
 //                BottomBar(
