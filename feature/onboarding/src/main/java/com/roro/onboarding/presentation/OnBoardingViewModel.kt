@@ -63,13 +63,6 @@ class OnBoardingViewModel @Inject constructor(
 
                 Timber.d("PagerChanged: $previousPage -> ${intent.index}, isEnvironmentChecked=$wasChecked")
 
-//                if (intent.index == 3 && !wasChecked) {
-//                    Timber.d("checkEnvironment 호출")
-//                    viewModelScope.launch {
-//                        delay(500L) // UI가 먼저 그려지고 나서 체크 시작
-//                        checkEnvironment()
-//                    }
-//                }
             }
 
             // ClickNext
@@ -99,8 +92,13 @@ class OnBoardingViewModel @Inject constructor(
             }
 
             OnboardingIntent.ClickSkip -> {
-                Timber.d("Onboarding onIntent: ClickSkip")
-                emitEffect(OnboardingEffect.ScrollToPage(2))
+                val currentPage = uiState.value.currentPage
+                Timber.d("Onboarding onIntent: ClickSkip, currentPage=$currentPage")
+
+                when (currentPage) {
+                    3 -> emitEffect(OnboardingEffect.ScrollToPage(4))
+                    else -> emitEffect(OnboardingEffect.ScrollToPage(2))
+                }
             }
 
             OnboardingIntent.ClickPermissionRequest -> {
