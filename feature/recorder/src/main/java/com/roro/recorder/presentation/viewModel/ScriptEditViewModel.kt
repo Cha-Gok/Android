@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.roro.recorder.domain.usecase.GetVoiceNoteUseCase
 import com.roro.recorder.domain.usecase.UpdateScriptUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -26,6 +29,11 @@ data class ScriptSegment(
     val text: String
 )
 
+sealed class ScriptEditEffect {
+    object NavigateBack : ScriptEditEffect()
+    data class ShowToast(val message: String) : ScriptEditEffect()
+}
+
 @HiltViewModel
 class ScriptEditViewModel @Inject constructor(
     private val getVoiceNoteUseCase: GetVoiceNoteUseCase,  // ✅ DB 직접 조회
@@ -40,6 +48,9 @@ class ScriptEditViewModel @Inject constructor(
 
     private val _focusedIndex = MutableStateFlow<Int?>(null)
     val focusedIndex: StateFlow<Int?> = _focusedIndex.asStateFlow()
+
+    private val _effect = MutableSharedFlow<ScriptEditEffect>(extraBufferCapacity = 1)
+    val effect: SharedFlow<ScriptEditEffect> = _effect.asSharedFlow()
 
     private var originalText = ""
 
@@ -85,6 +96,7 @@ class ScriptEditViewModel @Inject constructor(
     fun save(voiceNoteId: String) {
         if (!isModified) {
             _uiState.value = ScriptEditUiState.Saved
+            _effect.tryEmit(ScriptEditEffect.NavigateBack)
             return
         }
         viewModelScope.launch {
@@ -96,6 +108,8 @@ class ScriptEditViewModel @Inject constructor(
                 )
                 Timber.tag("ScriptEditVM").d("✅ 스크립트 저장 완료")
                 _uiState.value = ScriptEditUiState.Saved
+                _effect.tryEmit(ScriptEditEffect.ShowToast("스크립트가 수정되었어요"))
+                _effect.tryEmit(ScriptEditEffect.NavigateBack)
             } catch (e: Exception) {
                 Timber.tag("ScriptEditVM").e(e, "❌ 스크립트 저장 실패")
                 _uiState.value = ScriptEditUiState.Error(e.message ?: "저장 실패")

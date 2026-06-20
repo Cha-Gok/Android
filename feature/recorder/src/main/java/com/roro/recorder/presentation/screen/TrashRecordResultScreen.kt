@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.recorder.domain.usecase.VoiceNoteResult
 import com.roro.recorder.presentation.viewModel.RecordResultUiState
 import com.roro.recorder.presentation.viewModel.RecordResultViewModel
@@ -66,6 +67,10 @@ fun TrashRecordResultScreen(
             result = state.result
         )
         is RecordResultUiState.SummaryError -> TrashRecordResultContent(
+            navController = navController,
+            result = state.result
+        )
+        is RecordResultUiState.SummaryGenerating -> TrashRecordResultContent(
             navController = navController,
             result = state.result
         )
@@ -570,6 +575,7 @@ private val fakeVoiceNoteResult = VoiceNoteResult(
     createdAt = System.currentTimeMillis(),
     updatedAt = System.currentTimeMillis(),
     durationSec = 4350.0,
+    summaryStatus = SummaryStatus.SUCCESS,
 )
 
 @Preview(showBackground = true)

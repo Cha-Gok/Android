@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.roro.core.domain.model.SummaryStatus
 import com.roro.core.domain.model.VoiceNoteItemResult
 import com.roro.core.entity.VoiceNoteEntity
 import com.roro.core.model.FolderWithNoteCount
@@ -204,6 +205,9 @@ interface VoiceNoteDao {
 
     @Query("UPDATE voice_note SET title = :voiceNoteTitle, updatedAt = :updatedAt WHERE id = :noteId")
     suspend fun renameVoiceNote(noteId: UUID, voiceNoteTitle: String, updatedAt: Long)
+
+    @Query("UPDATE voice_note SET summaryStatus = :status, updatedAt = :updatedAt WHERE id = :voiceNoteId")
+    suspend fun updateSummaryStatus(voiceNoteId: UUID, status: SummaryStatus, updatedAt: Long)
 
     // 전체 음성 메모 검색 (정상 상태, 폴더명 포함)
     @Query(
