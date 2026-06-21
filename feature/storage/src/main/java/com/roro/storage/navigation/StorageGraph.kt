@@ -256,19 +256,6 @@ fun NavGraphBuilder.storageGraph(
         SettingScreen(navController = navController)
     }
 
-    // 설정 > 이용약관
-    composable(
-        route = Routes.WEB_VIEW,
-        arguments = listOf(navArgument("url") { type = NavType.StringType }),
-        enterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(animationDuration))
-        },
-        popExitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(animationDuration))
-        }
-    ) { backStackEntry ->
-        val url = backStackEntry.arguments?.getString("url").orEmpty()
-        WebViewScreen(navController = navController, url = java.net.URLDecoder.decode(url, "UTF-8"))
-    }
+
 
 }

@@ -1,5 +1,6 @@
 package com.roro.core.ui.theme
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -7,6 +8,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.roro.core.R
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
 /**
  * 기능 설명:
@@ -235,4 +246,62 @@ object ChaGokTextStyle {
         lineHeight = (14 * 1.3).sp,
         letterSpacing = (-0.02).sp
     )
+}
+
+@Preview(
+    showBackground = true,
+   // backgroundColor = 0xFF121212,
+    showSystemUi = true
+)
+@Composable
+fun ChaGokTypographyPreview() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Header1", style = ChaGokTextStyle.Header1)
+        Text("Header2", style = ChaGokTextStyle.Header2)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text("Title1", style = ChaGokTextStyle.Title1)
+        Text("Title2", style = ChaGokTextStyle.Title2)
+        Text("Title3", style = ChaGokTextStyle.Title3)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text("Subtitle1", style = ChaGokTextStyle.Subtitle1)
+        Text("Subtitle2", style = ChaGokTextStyle.Subtitle2)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Body1 - 안녕하세요. 차곡 텍스트 스타일입니다.",
+            style = ChaGokTextStyle.Body1
+        )
+
+        Text(
+            "Body2 - 안녕하세요. 차곡 텍스트 스타일입니다.",
+            style = ChaGokTextStyle.Body2
+        )
+
+        Text(
+            "Body3 - 안녕하세요. 차곡 텍스트 스타일입니다.",
+            style = ChaGokTextStyle.Body3
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Label - 설정",
+            style = ChaGokTextStyle.Label
+        )
+
+        Text(
+            "Caption - 마지막 수정: 2026.06.20",
+            style = ChaGokTextStyle.Caption
+        )
+    }
 }

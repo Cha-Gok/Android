@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.roro.core.gemma.DownloadBottomSheetState
 import com.roro.core.gemma.GemmaDownloadBottomSheetViewModel
+import com.roro.core.ui.theme.PrimaryColor
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -128,7 +129,7 @@ fun GemmaDownloadBottomSheet(
                                 onClick = { viewModel.startDownload() },
                                 modifier = Modifier.weight(1f).height(52.dp),
                                 shape = RoundedCornerShape(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B7FD4))
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                             ) {
                                 Text("다운로드", fontSize = 16.sp, color = Color.White)
                             }
@@ -140,7 +141,7 @@ fun GemmaDownloadBottomSheet(
                             onClick = { viewModel.startDownload() },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B7FD4))
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                         ) {
                             Text("다시 시도", fontSize = 16.sp, color = Color.White)
                         }
@@ -185,7 +186,7 @@ private fun IdleContent() {
                 Icon(
                     imageVector = Icons.Default.Storage,
                     contentDescription = null,
-                    tint = Color(0xFF9B7FD4),
+                    tint = PrimaryColor,
                     modifier = Modifier.size(16.dp)
                 )
                 Text(text = text, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
@@ -222,7 +223,7 @@ private fun DownloadingContent(progress: Float) {
             }
             Text(
                 text = "${(progress * 100).toInt()}%",
-                color = Color(0xFF9B7FD4),
+                color = PrimaryColor,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -230,7 +231,7 @@ private fun DownloadingContent(progress: Float) {
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth().height(4.dp),
-            color = Color(0xFF9B7FD4),
+            color = PrimaryColor,
             trackColor = Color.White.copy(alpha = 0.1f)
         )
         Text(
