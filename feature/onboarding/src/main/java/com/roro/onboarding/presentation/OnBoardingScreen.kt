@@ -192,7 +192,7 @@ private fun OnBoardingScreenUI(
                     .height(54.dp)
 
                 if (isLastPage) {
-                    ChaGokButton(
+                    ChaGokOutlinedButton(
                         text = buttonText,
                         onClick = { onIntent(OnboardingIntent.ClickStart) },
                         modifier = buttonModifier,

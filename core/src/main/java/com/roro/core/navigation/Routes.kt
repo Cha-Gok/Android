@@ -19,9 +19,6 @@ object Routes {
 
     const val SETTINGS = "settings" // 설정
 
-    // 웹뷰
-    const val WEB_VIEW = "webview?url={url}"
-    fun webView(url: String) = "webview?url=${java.net.URLEncoder.encode(url, "UTF-8")}"
 
     // 스토리지 화면 구성
     // 폴더 목록

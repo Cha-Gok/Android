@@ -1,5 +1,8 @@
 package com.roro.storage.presentation.home.setting
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -56,9 +59,24 @@ fun SettingScreen(
         onLanguageSelect = { viewModel.onIntent(SettingIntent.SelectLanguage(it)) },
         onConfirmLanguage = { viewModel.onIntent(SettingIntent.ConfirmLanguage) },
         onDeleteGemma = { viewModel.onIntent(SettingIntent.DeleteGemmaModel) },
-        onTosClick = { navController.navigate(Routes.webView("https://sunset-bar-890.notion.site/369d9da368aa8033be62f317299c07f2?pvs=74")) },
-        onPrivacyClick = { navController.navigate(Routes.webView("https://sunset-bar-890.notion.site/369d9da368aa80538cced7f6c56e339a?pvs=74")) },
-        onContactClick = { navController.navigate(Routes.webView("https://docs.google.com/forms/d/e/1FAIpQLSeevBvqUuIG4yBEos3T6KEZc_R1GgbMLAZYG9iHTc4JMv7DIg/viewform")) },
+        onTosClick = {
+            openUrl(
+                context,
+                "https://sunset-bar-890.notion.site/369d9da368aa8033be62f317299c07f2?pvs=74"
+            )
+        },
+        onPrivacyClick = {
+            openUrl(
+                context,
+                "https://sunset-bar-890.notion.site/369d9da368aa80538cced7f6c56e339a?pvs=74"
+            )
+        },
+        onContactClick = {
+            openUrl(
+                context,
+                "https://docs.google.com/forms/d/e/1FAIpQLSeevBvqUuIG4yBEos3T6KEZc_R1GgbMLAZYG9iHTc4JMv7DIg/viewform"
+            )
+        }
     )
 }
 
@@ -137,11 +155,27 @@ private fun SettingSection(
     description: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-        Text(text = title, style = ChaGokTextStyle.Title3, color = TextPrimary)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = title,
+            style = ChaGokTextStyle.Title3,
+            color = TextPrimary
+        )
+
         description?.let {
-            Text(text = it, style = ChaGokTextStyle.Body2, color = TextTertiary)
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = it,
+                style = ChaGokTextStyle.Caption,
+                color = TextTertiary
+            )
         }
+
         Spacer(modifier = Modifier.height(12.dp))
         content()
     }
@@ -158,7 +192,7 @@ private fun SettingRadioItem(
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1E1E2E))
+         //   .background(Color(0xFF1E1E2E))
             .border(
                 width = if (selected) 1.dp else 0.5.dp,
                 color = if (selected) PrimaryColor else Color(0xFF3D3D4E),
@@ -202,7 +236,7 @@ private fun SettingModelItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1E1E2E))
+         //   .background(Color(0xFF1E1E2E))
             .border(0.5.dp, Color(0xFF3D3D4E), RoundedCornerShape(12.dp))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -216,7 +250,10 @@ private fun SettingModelItem(
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, style = ChaGokTextStyle.Body1, color = TextPrimary)
-            Text(text = description, style = ChaGokTextStyle.Body2, color = TextTertiary)
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(text = description, style = ChaGokTextStyle.Caption, color = TextTertiary)
         }
         Icon(
             imageVector = Icons.Outlined.Delete,
@@ -243,4 +280,15 @@ private fun SettingTextItem(
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp)
     )
+}
+
+private fun openUrl(
+    context: Context,
+    url: String
+) {
+    val intent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse(url)
+    )
+    context.startActivity(intent)
 }
