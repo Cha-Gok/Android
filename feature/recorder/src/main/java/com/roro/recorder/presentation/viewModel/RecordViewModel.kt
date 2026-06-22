@@ -44,6 +44,7 @@ class RecordViewModel @Inject constructor(
     companion object {
         private const val TAG = "RecordViewModel"
         private const val AMPLITUDE_POLL_INTERVAL_MS = 100L
+        private const val PROOFREAD_MIN_TEXT_LENGTH = 300
     }
 
     private val _state = MutableStateFlow<RecordState>(RecordState.Idle)
@@ -174,11 +175,16 @@ class RecordViewModel @Inject constructor(
                 return
             }
 
-            val proofreadText = try {
-                proofreadWithGemmaUseCase(sttText)
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "proofread failed; using original STT")
+            val proofreadText = if (sttText.length < PROOFREAD_MIN_TEXT_LENGTH) {
+                Timber.tag(TAG).d("skip proofread for short STT: length=${sttText.length}")
                 sttText
+            } else {
+                try {
+                    proofreadWithGemmaUseCase(sttText)
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "proofread failed; using original STT")
+                    sttText
+                }
             }
             _sttResult.value = proofreadText
 
