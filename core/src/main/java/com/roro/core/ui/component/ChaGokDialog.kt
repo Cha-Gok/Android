@@ -57,7 +57,7 @@ fun ChaGokDialog(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
                 .border(width = 0.7.dp, color = Gray350, shape = RoundedCornerShape(20.dp))
-                .background(Purple200.copy(alpha = 0.2f))
+                .background(Color(0xFF12121F))
                 .padding(horizontal = 20.dp, vertical = 32.dp)
         ) {
             Column(
@@ -134,8 +134,8 @@ fun ChaGokDialogCreateFolder(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .border(width = 0.7.dp, color = Color(0xFF7B7B7B), shape = RoundedCornerShape(20.dp))
-                .background(Color(0xFF2D2D3A))
+                .border(width = 0.7.dp, color = Gray350, shape = RoundedCornerShape(20.dp))
+                .background(Color(0xFF12121F))
                 .padding(horizontal = 20.dp, vertical = 32.dp)
         ) {
             Column(
@@ -230,8 +230,8 @@ fun ChaGokLanguageDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .border(width = 0.7.dp, color = Color(0xFF7B7B7B), shape = RoundedCornerShape(20.dp))
-                .background(Color(0xFF2D2D3A))
+                .border(width = 0.7.dp, color = Gray350, shape = RoundedCornerShape(20.dp))
+                .background(Color(0xFF12121F))
                 .padding(horizontal = 20.dp, vertical = 32.dp)
         ) {
             Column(

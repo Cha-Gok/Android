@@ -36,7 +36,7 @@ class RegenerateSummaryUseCase @Inject constructor(
     ): Result {
         // 1. 요약 재생성
         val newSummary = summarizeWithGemmaUseCase(sttText)
-        Timber.tag("RegenerateSummary").d("요약 재생성 완료")
+        Timber.tag("RegenerateSummary").d("요약 재생성 완료 $newSummary")
 
         // 2. 키워드 재추출
         val newKeywords = extractKeywordsWithGemmaUseCase(sttText)
