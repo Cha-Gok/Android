@@ -65,6 +65,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -144,6 +145,11 @@ fun RecordResultScreen(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.pause()
+        }
+    }
 
     when (val state = uiState) {
         is RecordResultUiState.Loading -> RecordResultLoadingScreen()
@@ -194,7 +200,7 @@ private fun RecordResultContent(
 
     val sheetMode = contentState?.sheetMode ?: FileListSheetMode.FOLDER_LIST
 
-    // ✅ 로그 추가: 현재 UI가 알고 있는 상태를 Logcat에 출력
+    // 로그 추가: 현재 UI가 알고 있는 상태를 Logcat에 출력
     LaunchedEffect(state, isBottomSheet, sheetMode) {
         Timber.d("===== RecordResult UI Debug =====")
         Timber.d("현재 UiState 타입: ${state::class.simpleName}")
@@ -283,13 +289,13 @@ private fun RecordResultContent(
                     when (targetMode) {
                         FileListSheetMode.FOLDER_LIST -> {
                             FolderListBottomSheet(folderList = folderList, selectedFolder = selectedFolder, onFolderSelect = { folder ->
-                                // ✅ 수정: 폴더를 클릭하면 해당 폴더가 선택되어야 함
+                                // 수정: 폴더를 클릭하면 해당 폴더가 선택되어야 함
                                 viewModel.onIntent(RecordResultIntent.SelectTargetFolder(folder))
                             }, onConfirmMove = {
-                                // ✅ 이동 확정
+                                // 이동 확정
                                 viewModel.onIntent(RecordResultIntent.ConfirmMove)
                             }, onCreateFolderClick = {
-                                // ✅ 새 폴더 만들기 모드로 전환
+                                // 새 폴더 만들기 모드로 전환
                                 viewModel.onIntent(RecordResultIntent.ChangeSheetMode(FileListSheetMode.CREATE_FOLDER))
                             })
                         }
@@ -304,7 +310,7 @@ private fun RecordResultContent(
                                     viewModel.onIntent(RecordResultIntent.ChangeSheetMode(FileListSheetMode.FOLDER_LIST))
                                 },
                                 onConfirm = {
-                                    // ✅ 새 폴더 생성 확정
+                                    // 새 폴더 생성 확정
                                     viewModel.onIntent(RecordResultIntent.ConfirmCreateFolder)
                                 })
                         }
@@ -339,6 +345,9 @@ private fun RecordResultContent(
 
     val keyPoints = result.summaryText.split("*").map { it.trim() }.filter { it.isNotBlank() }.take(3)
     val hasScript = result.sttText.isNotBlank()
+    val isSearchEnabled = hasScript &&
+            summaryState != SummaryDisplayState.Error &&
+            summaryState != SummaryDisplayState.Insufficient
 
     Column(
         modifier = Modifier
@@ -351,13 +360,15 @@ private fun RecordResultContent(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = {
+                navController.popBackStack(Routes.STORAGE, inclusive = false)
+            }) {
                 Icon(
                     imageVector = Icons.Default.ArrowBackIosNew, contentDescription = "뒤로가기", tint = Color.White
                 )
             }
 
-            // ✅ 편집 모드: TextField / 일반 모드: Text
+            // 편집 모드: TextField / 일반 모드: Text
             if (isTitleEditing) {
                 BasicTextField(
                     value = editingTitle, onValueChange = viewModel::onTitleChange, modifier = Modifier
@@ -377,7 +388,7 @@ private fun RecordResultContent(
                         .clickable { viewModel.startTitleEdit() })
             }
 
-            // ✅ 편집 모드: [완료] 버튼 / 일반 모드: 검색 + 더보기
+            // 편집 모드: [완료] 버튼 / 일반 모드: 검색 + 더보기
             if (isTitleEditing) {
                 TextButton(
                     onClick = {
@@ -389,12 +400,12 @@ private fun RecordResultContent(
             } else {
                 IconButton(
                     onClick = { navController.navigate(Routes.SEARCH_VOICENOTE) },
-                    enabled = hasScript
+                    enabled = isSearchEnabled
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "검색",
-                        tint = if (hasScript) Color.White else Color.White.copy(alpha = 0.32f)
+                        tint = if (isSearchEnabled) Color.White else Color.White.copy(alpha = 0.32f)
                     )
                 }
                 Box {
@@ -543,31 +554,35 @@ private fun AiSummaryTab(
                     )
                     repeat(3) { index ->
                         Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(Color(0xFF2D2D3A))
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF1E1E2E))
+                                .padding(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(24.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF7B4FCC)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "${index + 1}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold
+                                    text = "${index + 1}",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                             Box(
                                 modifier = Modifier
+                                    .weight(1f)
                                     .fillMaxWidth(if (index == 1) 0.62f else 0.78f)
-                                    .height(10.dp)
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .background(Color.White.copy(alpha = 0.24f))
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.White.copy(alpha = 0.18f))
+                                    .align(Alignment.CenterVertically)
                             )
                         }
                     }
@@ -643,7 +658,8 @@ private fun AiSummaryTab(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF7B4FCC)), contentAlignment = Alignment.Center
+                                    .background(Color(0xFF7B4FCC)),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "${index + 1}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold
@@ -731,10 +747,10 @@ private fun AiSummaryTab(
                             imageVector = Icons.Default.MicOff, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(40.dp)
                         )
                         Text(
-                            text = "요약할 수 있는 음성이\n기록되지 않았어요.", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                            text = "요약할 수 있는 음성이 기록되지 않았어요.", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "인식된 음성이 없어\n요약을 생성할 수 없어요.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center
+                            text = "인식된 음성이 없어 요약을 생성할 수 없어요.", color = Color.White.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -977,14 +993,15 @@ internal fun RecordResultLoadingScreen() {
                         .background(Color(0xFF1E1E2E))
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.Top
+                    //verticalAlignment = Alignment.Top
                 ) {
                     // 번호 원
                     Box(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(brush)
+                            .background(brush),
+
                     )
                     // 텍스트 2줄
                     Column(
@@ -1036,7 +1053,8 @@ internal fun RecordResultLoadingScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF1A1A26))
-                .padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 0.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 프로그레스 바
             Box(
@@ -1064,6 +1082,7 @@ internal fun RecordResultLoadingScreen() {
                                 .size(28.dp)
                                 .clip(CircleShape)
                                 .background(brush)
+
                         )
                     }
                 }
@@ -1100,7 +1119,7 @@ fun FolderListBottomSheet(
                 modifier = Modifier
                     .padding(bottom = 24.dp)
                     .clickable { onCreateFolderClick() }, // 영역 전체 클릭 가능하게 변경
-                verticalAlignment = Alignment.CenterVertically // ✅ 아이콘과 텍스트 수직 중앙 정렬
+                verticalAlignment = Alignment.CenterVertically // 아이콘과 텍스트 수직 중앙 정렬
             ) {
                 Icon(
                     imageVector = Icons.Default.Add, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp)
@@ -1256,43 +1275,5 @@ private fun formatDuration(durationSec: Double): String {
         if (hours > 0) append("${hours}시간 ")
         if (minutes > 0) append("${minutes}분 ")
         append("${seconds}초")
-    }
-}
-
-
-// ── 프리뷰 ─────────────────────────────────────────
-@Preview(showBackground = true, backgroundColor = 0xFF121218)
-@Composable
-fun PreviewRecordResultDetail() {
-    // 1. 가짜 데이터 생성 (제시해주신 VoiceNoteResult 구조 반영)
-    val mockResult = VoiceNoteResult(
-        title = "2026년 신규 프로젝트 브레인스토밍",
-        sttText = "안녕하세요, 오늘 회의에서는 차곡차곡 앱의 신규 기능인 AI 자동 요약 기능에 대해 논의하겠습니다. 사용자가 녹음을 마치면 즉시 텍스트로 변환되고 요약본이 생성되어야 합니다.",
-        summaryText = "• 사용자의 음성 기록을 AI가 자동으로 요약하는 기능 논의\n• 녹음 완료 즉시 STT 변환 및 요약 생성 프로세스 구축\n• 사용자 편의성을 위한 키워드 추출 시스템 도입",
-        keywords = listOf("AI 요약", "STT", "사용자 경험", "신규 기능"),
-        audioPath = "/sdcard/dummy.mp3",
-        createdAt = System.currentTimeMillis(),
-        updatedAt = System.currentTimeMillis(),
-        durationSec = 125.0, // 2분 5초
-        summaryStatus = com.roro.core.domain.model.SummaryStatus.SUCCESS
-    )
-
-    // 2. 프리뷰용 테마 설정
-    MaterialTheme {
-        // RecordResultContent가 ViewModel을 안 받는 구조라면 바로 호출 가능
-        // 만약 ViewModel을 받는다면, 내부의 Stateless한 컴포저블(예: AiSummaryTab)을 호출하세요.
-        Column(modifier = Modifier.fillMaxSize()) {
-            AiSummaryTab(
-                result = mockResult, keyPoints = mockResult.keywords, // 키워드 리스트
-                isRegenerating = false, isScriptModified = false, onRegenerate = { /* 프리뷰이므로 비워둠 */ })
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF121218)
-@Composable
-fun PreviewRecordResultLoading() {
-    MaterialTheme {
-        RecordResultLoadingScreen()
     }
 }

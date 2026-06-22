@@ -40,7 +40,14 @@ class SttWithGemmaUseCase @Inject constructor(
         return try {
             gemmaManager.generateWithAudio(
                 audioPath = chunkFile.absolutePath,
-                textPrompt = "Transcribe the audio above in $langStr exactly as spoken. Output only the transcribed text. If there is no speech, output nothing."
+                textPrompt = """
+                    Transcribe the audio above in $langStr exactly as spoken.
+                    Return only words spoken by the speaker.
+                    Do not describe the speaker, language level, audio quality, or task.
+                    Do not transcribe background noise, music, breathing, silence, or non-speech sounds.
+                    Output only the transcribed text.
+                    If there is no speech, output nothing.
+                """.trimIndent()
             ).trim()
         } catch (e: Exception) {
             Timber.e(e, "🎤 청크 전사 실패")

@@ -161,6 +161,7 @@ class RecordResultViewModel @Inject constructor(
     val playerUiState: StateFlow<PlayerUiState> = _playerUiState.asStateFlow()
 
     private var exoPlayer: ExoPlayer? = null
+
     private var _currentVoiceNoteId: UUID? = null  // 재생성 시 사용
     private var summaryRefreshJob: Job? = null
 
@@ -437,10 +438,8 @@ class RecordResultViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopSummaryRefresh()
-        viewModelScope.launch(Dispatchers.Main) {
-            exoPlayer?.release()
-            exoPlayer = null
-        }
+        exoPlayer?.release()
+        exoPlayer = null
     }
 
     // ── 더보기 메뉴 ─────────────────────────────────────────────────────────────────

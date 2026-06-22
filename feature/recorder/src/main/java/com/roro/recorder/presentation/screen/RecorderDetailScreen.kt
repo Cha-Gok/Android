@@ -230,6 +230,7 @@ fun RecorderDetailScreen(
             dismissText = "계속 녹음",
             confirmText = "녹음 취소",
             confirmColor = Color(0xFFE53935),
+            buttonColor = Color(0xFFE53935),
             onDismiss = {
                 showCancelDialog = false
                 isRunning = true
